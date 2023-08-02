@@ -1,0 +1,220 @@
+container CommVastgoedSloopNaTransactie : using = "eenheden;typeringen;typeringen/bag;typeringen/redev;typeringen/tijd;geometries"
+{ 
+	unit<uint32>      RegioUnit_Gem       := Brondata/RegioIndelingen/gemeenten/j2021;
+	unit<uint32>      RegioUnit_Aggl      := Brondata/RegioIndelingen/gemeenten/j2021/Agglomeration_uq;
+	unit<uint32>      Periods             := Tijd/Jaren;
+	unit<uint8>       WP2                 := typeringen/bag/type_woonpand_2;
+	unit<uint8>       WP4                 := typeringen/bag/type_woonpand_4;
+	unit<uint8>       WP5                 := typeringen/bag/type_woonpand;
+	
+	// Container Vbo_domains := 
+		// for_each_ne(
+			// Periods/name
+			// , 'Brondata/BAG/Snapshots/VBOs/'+Periods/name+'01/vbo'
+		// );
+		
+	Container Pand_domains := 
+		for_each_ne(
+			Periods/name
+			, 'Brondata/BAG/Snapshots/Panden/'+Periods/name+'01/pand'
+		);
+
+	unit<uint32> panden := ='union_unit('+AsList('Pand_domains/'+Periods/name,',')+')'
+	, FreeData = "false"
+	{ 
+		attribute<geometries/rdc>       geometry (poly)                            := ='union_data(.,'+AsList('Pand_domains/'+Periods/name+'/geometry',',')+')';
+		attribute<Periods>              BAG_Period                                 := ='union_data(.,'+AsList('const('+string(id(Periods))+'[Periods], Pand_domains/'+Periods/name+')',',')+')'; 
+		attribute<string>               identificatie                              := ='union_data(.,'+AsList('Pand_domains/'+Periods/name+'/identificatie',',')+')';
+		attribute<Jaar>                 Bouwjaar                                   := ='union_data(.,'+AsList('Pand_domains/'+Periods/name+'/Bouwjaar_trunc',',')+')';
+		
+		attribute<string>               id_period_key                              := identificatie + '_' + string(periods/name[BAG_Period]);
+		attribute<uq_identificatie>     uq_rel                                     := rlookup(identificatie, uq_identificatie/identificatie);
+
+		parameter<bool>                 uq_identificatie_ontkoppeld                := true;
+		unit<uint32>                    uq_identificatie                           := =uq_identificatie_ontkoppeld ? 'Read_uq_identificatie' : 'Make_uq_identificatie';
+		
+ 		unit<uint32> Make_uq_identificatie := unique(identificatie)
+		, StorageName = "='%LocalDataDir%/Verdichting/Pand_Transactie_SLoop/uq_identificatie_pand_'+/Parameters/BAG_Selection_Area+'.fss'"
+		{ 
+			attribute<geometries/rdc>       geometry (poly)                  := rjoin(identificatie, ../identificatie, ../geometry);
+			attribute<jaar>                 Bouwjaar                         := modus(../Bouwjaar, ../uq_rel);
+			attribute<string>               identificatie                    := values;
+			
+			container Generates 
+			{
+				parameter<string> src_items                                := 'Ready', ExplicitSuppliers = "geometry;Bouwjaar;identificatie";
+				parameter<string> pand_rel_PerPeriod                       := 'Ready', ExplicitSuppliers = "=AsList('../pand_rel_PerPeriod/'+Periods/name,';')";
+				parameter<string> status_rel_PerPeriod                     := 'Ready', ExplicitSuppliers = "=AsList('../status_rel_PerPeriod/'+Periods/name,';')";
+				
+				parameter<string> generate_all := 'Ready', ExplicitSuppliers = "src_items;pand_rel_PerPeriod;status_rel_PerPeriod";
+			}
+			
+			
+			container pand_rel_PerPeriod :=
+				for_each_nedv(
+					Periods/name
+					, 'rlookup(identificatie, pand_domains/'+Periods/name+'/identificatie)'
+					, Make_uq_identificatie
+					, uint32
+				);
+				
+			container status_rel_PerPeriod :=
+				for_each_nedv(
+					Periods/name
+					, 'pand_domains/'+Periods/name+'/status_rel[pand_rel_PerPeriod/'+Periods/name+']'
+					, Make_uq_identificatie
+					, pand_status
+				);
+		}
+		
+ 		unit<uint32> Read_uq_identificatie
+		: StorageName = "='%LocalDataDir%/Verdichting/Pand_Transactie_Sloop/uq_identificatie_pand_'+/Parameters/BAG_Selection_Area+'.fss'"
+		, StorageReadOnly = "true"
+		{ 
+			attribute<geometries/rdc>       geometry (poly);
+			attribute<jaar>                 Bouwjaar;
+			attribute<string>               identificatie;
+
+			container pand_rel_PerPeriod :=
+				for_each_ndv(
+					Periods/name
+					, Read_uq_identificatie
+					, uint32
+				);
+				
+			container status_rel_PerPeriod :=
+				for_each_ndv(
+					Periods/name
+					, Read_uq_identificatie
+					, pand_status
+				);
+				
+			container IsGesloopt_PerPeriod :=
+				for_each_nedv(
+					Periods/name
+					, 'status_rel_PerPeriod/'+Periods/name+' == pand_status/V/Pand_gesloopt'
+					, Read_uq_identificatie
+					, bool
+				)
+			{
+				attribute<bool> IsOoitGesloopt (Read_uq_identificatie) := ='OR('+AsList(Periods/name,',')+')';
+			}
+			
+			container IsSloopVergunning_PerPeriod :=
+				for_each_nedv(
+					Periods/name
+					, 'status_rel_PerPeriod/'+Periods/name+' == pand_status/V/Sloopvergunning_verleend'
+					, Read_uq_identificatie
+					, bool
+				)
+			{
+				attribute<bool> IsOoitSloopVergunning (Read_uq_identificatie) := ='OR('+AsList(Periods/name,',')+')';
+			}
+			
+			unit<uint32> OoitGesloopt := subset(IsGesloopt_PerPeriod/IsOoitGesloopt)
+			{
+				attribute<geometries/rdc>       geometry (poly) := ../geometry[nr_OrgEntity];
+				attribute<jaar>                 Bouwjaar        := ../Bouwjaar[nr_OrgEntity];
+				attribute<string>               identificatie   := ../identificatie[nr_OrgEntity];
+				
+				container IsGesloopt_PerPeriod :=
+					for_each_nedv(
+						Periods/name
+						, 'Read_uq_identificatie/IsGesloopt_PerPeriod/'+Periods/name+'[nr_OrgEntity]'
+						, .
+						, bool
+					);
+				
+				attribute<uint32> SloopJaar := switch(
+												case(IsGesloopt_PerPeriod/Y2012, 2012)
+												,case(IsGesloopt_PerPeriod/Y2013, 2013)
+												,case(IsGesloopt_PerPeriod/Y2014, 2014)
+												,case(IsGesloopt_PerPeriod/Y2015, 2015)
+												,case(IsGesloopt_PerPeriod/Y2016, 2016)
+												,case(IsGesloopt_PerPeriod/Y2017, 2017)
+												,case(IsGesloopt_PerPeriod/Y2018, 2018)
+												,case(IsGesloopt_PerPeriod/Y2019, 2019)
+												,case(IsGesloopt_PerPeriod/Y2020, 2020)
+												,case(IsGesloopt_PerPeriod/Y2021, 2021)
+												,case(IsGesloopt_PerPeriod/Y2022, 2022)
+												, (0/0)
+											);
+			}
+			unit<uint32> OoitSloopVergunning := subset(IsSloopVergunning_PerPeriod/IsOoitSloopVergunning)
+			{
+				attribute<geometries/rdc>       geometry (poly) := ../geometry[nr_OrgEntity];
+				attribute<jaar>                 Bouwjaar        := ../Bouwjaar[nr_OrgEntity];
+				attribute<string>               identificatie   := ../identificatie[nr_OrgEntity];
+				
+				container IsSloopVergunning_PerPeriod :=
+					for_each_nedv(
+						Periods/name
+						, 'Read_uq_identificatie/IsSloopVergunning_PerPeriod/'+Periods/name+'[nr_OrgEntity]'
+						, .
+						, bool
+					);
+				
+				attribute<uint32> VergunnningJaar := switch(
+												case(IsSloopVergunning_PerPeriod/Y2012, 2012)
+												,case(IsSloopVergunning_PerPeriod/Y2013, 2013)
+												,case(IsSloopVergunning_PerPeriod/Y2014, 2014)
+												,case(IsSloopVergunning_PerPeriod/Y2015, 2015)
+												,case(IsSloopVergunning_PerPeriod/Y2016, 2016)
+												,case(IsSloopVergunning_PerPeriod/Y2017, 2017)
+												,case(IsSloopVergunning_PerPeriod/Y2018, 2018)
+												,case(IsSloopVergunning_PerPeriod/Y2019, 2019)
+												,case(IsSloopVergunning_PerPeriod/Y2020, 2020)
+												,case(IsSloopVergunning_PerPeriod/Y2021, 2021)
+												,case(IsSloopVergunning_PerPeriod/Y2022, 2022)
+												, (0/0)
+											);
+			}
+		}
+	}
+	
+	unit<uint32> NVM_path        := /Brondata/NVM_CommercieelVastgoed/ReadFSS;
+	unit<uint32> Pand_Sloop      := Panden/Read_uq_identificatie/OoitGesloopt;
+	unit<uint32> Pand_Vergunning := Panden/Read_uq_identificatie/OoitSloopVergunning;
+	
+	unit<uint32> NVM             := NVM_path
+	{
+		attribute<rdc>         geometry           := NVM_path/geometry;
+		attribute<float32>     x                  := pointcol(geometry);
+		attribute<float32>     y                  := pointrow(geometry);
+		attribute<jaar>        TransactionYear    := NVM_path/year_value;
+		// attribute<eur>         TransactionPrice   := NVM_path/koopprijs_value;
+		// attribute<jaar>        BuildingYear       := NVM_path/bouwjaar_value;
+		attribute<uint32>      SloopJaar          := rjoin(pand_id, Pand_Sloop/identificatie, Pand_Sloop/SloopJaar);
+		attribute<uint32>      VergunningJaar     := rjoin(pand_id, Pand_Vergunning/identificatie, Pand_Vergunning/VergunnningJaar);
+		
+		attribute<int32>       CheckSloop              := SloopJaar[int32] - TransactionYear[int32];
+		attribute<int32>       CheckVergunning         := VergunningJaar[int32] - TransactionYear[int32];
+		
+		// attribute<string>      strabo_nr          := NVM_path/strabo_nr;
+		attribute<uint32>      geocode_id         := NVM_path/geocode_id;
+		
+		attribute<string> pand_id := switch(
+										case(TransactionYear == 2012s, Pand_id_PerYear/Y2012)
+										,case(TransactionYear == 2013s, Pand_id_PerYear/Y2013)
+										,case(TransactionYear == 2014s, Pand_id_PerYear/Y2014)
+										,case(TransactionYear == 2015s, Pand_id_PerYear/Y2015)
+										,case(TransactionYear == 2016s, Pand_id_PerYear/Y2016)
+										,case(TransactionYear == 2017s, Pand_id_PerYear/Y2017)
+										,case(TransactionYear == 2018s, Pand_id_PerYear/Y2018)
+										,case(TransactionYear == 2019s, Pand_id_PerYear/Y2019)
+										,case(TransactionYear == 2020s, Pand_id_PerYear/Y2020)
+										,case(TransactionYear == 2021s, Pand_id_PerYear/Y2021)
+										,case(TransactionYear == 2022s, Pand_id_PerYear/Y2022)
+										,''
+									);
+									
+		container Pand_id_PerYear :=
+			for_each_nedv(
+				jaren12_22/name
+				, 'Pand_domains/'+jaren12_22/name+'/identificatie[point_in_polygon(NVM/geometry, Pand_domains/'+jaren12_22/name+'/geometry)]'
+				, NVM
+				, string
+			);
+		
+	}
+}

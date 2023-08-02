@@ -1,0 +1,68 @@
+container vbo_in_bbg
+{
+	container vbo_in_bbg
+	{
+		attribute<uint32> count_2012 (Brondata/begenzing_bebouwd_gebied/BBG_2003/shapes) := count(/Brondata/BAG/snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus/geometry, /Brondata/BAG/snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus/bbg_rel);
+		attribute<uint32> count_2017 (Brondata/begenzing_bebouwd_gebied/BBG_2003/shapes) := count(/Brondata/BAG/snapshots/vbos/vbo2017/metwoonfunctie_enCBSStatus/geometry, /Brondata/BAG/snapshots/vbos/vbo2017/metwoonfunctie_enCBSStatus/bbg_rel);	
+	}
+
+	container pand_in_bbg
+	{
+		unit<uint32> pand_2012_vbo := Subset(Brondata/BAG/Snapshots/Panden/p2012/pand_2012_vbo/count_vbo_pand > 0)
+		, DialogType = "Map"
+		, DialogData = "geometry_mm"
+		, FreeData = "False"
+		{
+			attribute<geometries/rdc_mm>              	geometry_mm (polygon)   		:= Brondata/BAG/Snapshots/Panden/p2012/pand_2012_vbo/geometry_mm[Nr_OrgEntity];
+			attribute<geometries/rdc>                	geometry (polygon)      		:= Brondata/BAG/Snapshots/Panden/p2012/pand_2012_vbo/geometry[Nr_OrgEntity];
+			attribute<string>                          	identificatie           		:= Brondata/BAG/Snapshots/Panden/p2012/pand_2012_vbo/identificatie[Nr_OrgEntity];
+			attribute<eenheden/jaar>            		bouwjaar                		:= Brondata/BAG/Snapshots/Panden/p2012/pand_2012_vbo/bouwjaar[Nr_OrgEntity];
+			attribute<uint32>							id								:= id(.);
+			attribute<uint32>							bbg_rel							:= rlookup(id, pand_2012_bbg/first_rel);
+
+		}
+	
+		unit<uint32> pand_2017_vbo := Subset(Brondata/BAG/Snapshots/Panden/p2017/pand_2017_vbo/count_vbo_pand > 0)
+		, DialogType = "Map"
+		, DialogData = "geometry_mm"
+		, FreeData = "False"
+		{
+			attribute<geometries/rdc_mm>              	geometry_mm (polygon)   		:= Brondata/BAG/Snapshots/Panden/p2017/pand_2017_vbo/geometry_mm[Nr_OrgEntity];
+			attribute<geometries/rdc>                	geometry (polygon)      		:= Brondata/BAG/Snapshots/Panden/p2017/pand_2017_vbo/geometry[Nr_OrgEntity];
+			attribute<string>                          	identificatie           		:= Brondata/BAG/Snapshots/Panden/p2017/pand_2017_vbo/identificatie[Nr_OrgEntity];
+			attribute<eenheden/jaar>            		bouwjaar                		:= Brondata/BAG/Snapshots/Panden/p2017/pand_2017_vbo/bouwjaar[Nr_OrgEntity];
+			attribute<uint32>							id								:= id(.);
+			attribute<uint32>							bbg_rel							:= rlookup(id, pand_2017_bbg/second_rel);
+		}
+	
+		unit<uint32> BBG_2003 := Brondata/begenzing_bebouwd_gebied/BBG_2003/shapes
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<geometries/rdc_mm> geometry_mm (polygon) := geometry[geometries/rdc_mm];
+			attribute<geometries/rdc> geometry (polygon) ;
+		}
+
+
+		unit<uint32> pand_2012_bbg 		:= overlay_polygon(pand_2012_vbo/geometry_mm, BBG_2003/geometry_mm), 	FreeData = "False";
+		unit<uint32> pand_2017_bbg 		:= overlay_polygon(pand_2017_vbo/geometry_mm, BBG_2003/geometry_mm), 	FreeData = "False";
+		
+		unit<uint32> pand_2012_bbg_vbo := Subset(IsDefined(pand_2012_vbo/bbg_rel))
+		, DialogType = "Map"
+		, DialogData = "geometry_mm"
+		, FreeData = "False"
+		{
+			attribute<geometries/rdc_mm>              	geometry_mm (polygon)   		:= pand_2012_vbo/geometry_mm[Nr_OrgEntity];
+			attribute<geometries/rdc>                	geometry (polygon)      		:= pand_2012_vbo/geometry[Nr_OrgEntity];
+			attribute<string>                          	identificatie           		:= pand_2012_vbo/identificatie[Nr_OrgEntity];
+			attribute<eenheden/jaar>            		bouwjaar                		:= pand_2012_vbo/bouwjaar[Nr_OrgEntity];
+			attribute<uint32>							id								:= pand_2012_vbo/id[Nr_OrgEntity];
+			attribute<uint32>							bbg_rel							:= pand_2012_vbo/bbg_rel[Nr_OrgEntity];
+			attribute<pand_2012_bbg_vbo>                      	pand_vbo_rel (Brondata/BAG/Snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus) := point_in_polygon(Brondata/BAG/Snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus/geometry, geometry);
+			attribute<uint32>                     		count_vbo_pand 					:= pcount(pand_vbo_rel);
+
+		}
+		
+		
+	}
+}			

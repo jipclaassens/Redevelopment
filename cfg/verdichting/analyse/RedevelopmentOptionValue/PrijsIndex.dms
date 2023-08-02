@@ -1,0 +1,66 @@
+container PrijsIndex
+{ 
+	// parameter<string> Schattingen_StAreaRef := 'NL';
+	
+	// container ReadCoefficients := 
+		// for_each_ne(
+			// WP2/name
+			// , 'T('+string(id(WP2))+'[WP2],WP2,Schattingen_StAreaRef,''Jun2021'')'
+		// );
+	container ReadCoefficients := 
+		for_each_ne(
+			WP4/name
+			, 'T('+string(id(WP4))+'[WP4],WP4,''20220419'','''')'
+		);
+	
+	container ReadCoefficients_WP_limit := 
+		for_each_ne(
+			WP4/name
+			, 'T('+string(id(WP4))+'[WP4],WP4,''20220419'',''_limit'')'
+		);
+	
+	Template T
+	{
+		//
+		parameter<Types_dom> id;
+		unit<uint8> Types_dom;
+		parameter<string> Datum;
+		parameter<string> Limit;
+		//
+		parameter<bool> IsLimit := Limit == '_limit';
+		
+		unit<uint8> HouseCharacteristics_src := =IsLimit ? 'NVM/HouseCharacteristics_src_limit' : 'NVM/HouseCharacteristics_src';
+		
+		unit<uint32> Domain   
+		:  StorageName = "= '%SourceDataDir%/RSL/Vastgoed/Estimates_'+Datum+'_'+Types_dom/name_english[id]+''+Limit+'.csv'"
+		,  StorageType = "gdal.vect"
+		,  StorageReadOnly = "True" 
+		{
+			attribute<string> parm;
+			attribute<string> name := replace(parm, '2012.trans_year', 'y2012', '2013.trans_year', 'y2013', '2014.trans_year', 'y2014', '2015.trans_year', 'y2015', '2016.trans_year', 'y2016', '2017.trans_year', 'y2017', '2018.trans_year', 'y2018', '2019.trans_year', 'y2019', '2020.trans_year', 'y2020', '_cons', 'constant','2.building_type', 'd_detached', '3.building_type', 'd_semidetached');
+		}
+		
+		container MakeResult := 
+			for_each_nedva(
+				HouseCharacteristics_src/name
+				, 'rjoin(rlookup('+quote(HouseCharacteristics_src/name)+', Domain/name), id(Domain), Domain/p)[float32] <= 0.05f
+					? rjoin(rlookup('+quote(HouseCharacteristics_src/name)+', Domain/name), id(Domain), Domain/estimate)[float32]
+					: 0f'
+				, void
+				, float32
+				, '%LocalDataProjDir%/UnlinkedData/Vastgoed/Estimates_'+WP4/name[id]+'_'+Datum+''+Limit+'/'+HouseCharacteristics_src/name+'.fss'
+			);
+			
+		container Result := 
+			for_each_ndva(
+				HouseCharacteristics_src/name
+				, void
+				, float32
+				, '%LocalDataProjDir%/UnlinkedData/Vastgoed/Estimates_'+WP4/name[id]+'_'+Datum+''+Limit+'/'+HouseCharacteristics_src/name+'.fss'
+			), StorageReadOnly = "true"
+		{
+			parameter<float32> Y2021 := Y2020 * 1.15f;
+			parameter<float32> Y2022 := Y2021;
+		}
+	}
+}

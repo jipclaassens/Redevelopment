@@ -1,0 +1,144 @@
+container Begrenzing_Bebouwd_Gebied:  using = "eenheden;typeringen", FreeData = "False" 
+{
+	unit<uint32> bestand_bodem_gebruik := brondata/bestand_bodem_gebruik/src;
+
+	parameter<bool> UseStudyArea := FALSE;
+	
+	parameter<string> GenerateResult := 'ready', 
+		ExplicitSuppliers = "id;result", IsHidden = "True";
+
+	container SrcData := = UseStudyArea 
+							? 'UseStudyArea_T(TRUE)'
+							: 'UseCountry_T(FALSE)';
+							
+	
+
+	unit<uint32> primair := subset(SrcData/studyarea/bbg_begrenzing == 1[begr_beb_geb]), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+	{
+		attribute<geometries/rdc>  geometry_rd (poly)    := SrcData/studyarea/geometry_rd[nr_OrgEntity];
+		attribute<begr_beb_geb>    bbg_begrenzing        := SrcData/studyarea/bbg_begrenzing[nr_OrgEntity];
+		attribute<ipoint>          buffer_16m (poly)     := polygon_i4D(geometry_rd[ipoint], 16d);
+		attribute<geometries/rdc>  buffer_16m_rd (poly)  := buffer_16m[geometries/rdc];
+	}
+	
+	unit<uint32> secundair_algm := subset(SrcData/studyarea/bbg_begrenzing == 2[begr_beb_geb]), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+	{
+		attribute<geometries/rdc>  geometry_rd (poly)          := SrcData/studyarea/geometry_rd[nr_OrgEntity];
+		attribute<begr_beb_geb>    bbg_begrenzing              := SrcData/studyarea/bbg_begrenzing[nr_OrgEntity];
+		attribute<.>               grid_100m (NL_grid/domain)  := poly2grid(geometry_rd, NL_grid/domain);
+		attribute<float32>         avg_verharding              := mean(Brondata/Overig/Verhardingsgraad, grid_100m)[float32];
+		attribute<bool>            wel_in_primairbuff          := IsDefined(rlookup(id(.), intersect_primairbuf/second_rel));
+		attribute<ha>              area                        := area(geometry_rd, m2) / 10000 [m2 / Ha];
+		
+		unit<uint32> intersect_primairbuf := overlay_polygon(primair/buffer_16m, ./geometry_rd[ipoint]), FreeData = "False"
+		{
+			attribute<geometries/rdc>  geometry_rd (poly)   := geometry[geometries/rdc];
+		}
+		
+		unit<uint32>               binnen_primair   := subset(wel_in_primairbuff ), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+		{
+			attribute<geometries/rdc>  geometry_rd (poly)   := ../geometry_rd[nr_OrgEntity];
+			attribute<begr_beb_geb>    bbg_begrenzing       := ../bbg_begrenzing[nr_OrgEntity];
+		}
+	}
+	
+	unit<uint32> secundair_infra := subset(SrcData/studyarea/bbg_begrenzing == 3[begr_beb_geb]), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+	{
+		attribute<geometries/rdc>  geometry_rd (poly)          := SrcData/studyarea/geometry_rd[nr_OrgEntity];
+		attribute<begr_beb_geb>    bbg_begrenzing              := SrcData/studyarea/bbg_begrenzing[nr_OrgEntity];
+		attribute<.>               grid_100m (NL_grid/domain)  := poly2grid(geometry_rd, NL_grid/domain);
+		attribute<float32>         avg_verharding              := mean(Brondata/Overig/Verhardingsgraad, grid_100m)[float32];
+		attribute<bool>            wel_in_primairbuff          := IsDefined(rlookup(id(.), intersect_primairbuf/second_rel));
+		attribute<ha>              area                        := area(geometry_rd, m2) / 10000 [m2 / Ha];
+		
+		unit<uint32> intersect_primairbuf := overlay_polygon(primair/buffer_16m, ./geometry_rd[ipoint]), FreeData = "False"
+		{
+			attribute<geometries/rdc>  geometry_rd (poly)   := geometry[geometries/rdc];
+		}
+		
+		unit<uint32>               binnen_primair   := subset(wel_in_primairbuff && area <= 25[ha] && avg_verharding >= 30f), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+		{
+			attribute<geometries/rdc>  geometry_rd (poly)   := ../geometry_rd[nr_OrgEntity];
+			attribute<begr_beb_geb>    bbg_begrenzing       := ../bbg_begrenzing[nr_OrgEntity];
+		}
+	}
+	
+	unit<uint32> buitengebied := subset(SrcData/studyarea/bbg_begrenzing == 4[begr_beb_geb]), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+	{
+		attribute<geometries/rdc>  geometry_rd (poly)   := SrcData/studyarea/geometry_rd[nr_OrgEntity];
+		attribute<begr_beb_geb>    bbg_begrenzing       := SrcData/studyarea/bbg_begrenzing[nr_OrgEntity];
+		attribute<bool>            wel_in_primairbuff   := IsDefined(rlookup(id(.), intersect_primairbuf/second_rel));
+		attribute<ha>              area                 := area(geometry_rd, m2) / 10000 [m2 / Ha];
+		
+		attribute<.>        grid_100m (NL_grid/domain)  := poly2grid(geometry_rd, NL_grid/domain);
+		attribute<float32>  avg_verharding := mean(Brondata/Overig/Verhardingsgraad, grid_100m)[float32];
+		
+		unit<uint32> intersect_primairbuf := overlay_polygon(primair/buffer_16m, ./geometry_rd[ipoint]), FreeData = "False"
+		{
+			attribute<geometries/rdc>  geometry_rd (poly)        := geometry[geometries/rdc];
+		}
+		
+		unit<uint32>               binnen_primair   := subset(wel_in_primairbuff && area <= 25[ha] && avg_verharding >= 30f), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+		{
+			attribute<geometries/rdc>  geometry_rd (poly) := ../geometry_rd[nr_OrgEntity];
+			attribute<begr_beb_geb>    bbg_begrenzing   := ../bbg_begrenzing[nr_OrgEntity];
+		}
+	}
+	
+	unit<uint32> primair_plusbinnensec_plusbuitensec := union_unit(primair, secundair_algm/binnen_primair, secundair_infra/binnen_primair, buitengebied/binnen_primair), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+	{
+		attribute<geometries/rdc>  geometry_rd (poly)    := union_data(., primair/geometry_rd       , secundair_algm/binnen_primair/geometry_rd       , secundair_infra/binnen_primair/geometry_rd       , buitengebied/binnen_primair/geometry_rd);
+		attribute<begr_beb_geb>    bbg_begrenzing        := union_data(., primair/bbg_begrenzing, secundair_algm/binnen_primair/bbg_begrenzing, secundair_infra/binnen_primair/bbg_begrenzing, buitengebied/binnen_primair/bbg_begrenzing);
+
+		parameter<float64> inflate_size := 100d;
+		
+		attribute<ipoint>          inflate (poly)     := polygon_i4D(geometry_rd[ipoint], inflate_size);
+
+		parameter<ipoint>  union (poly) := union_polygon(inflate[ipoint]);
+		
+		unit<uint32> union2attr1 : nrofrows = 1
+		{
+			attribute<ipoint> geometry_ipoint (poly) := union_data(., ../union);
+		}
+		
+		unit<uint32> Multi_to_singlepart_poly1 := split_polygon(union2attr1/geometry_ipoint)
+		{
+			attribute<ipoint>          deflate (poly)     := polygon_d4D(geometry[ipoint], inflate_size);
+			attribute<geometries/rdc>  deflate_rd (poly)  := deflate[geometries/rdc];
+			attribute<ha>              area               := area(deflate_rd, m2) / 10000 [m2 / Ha];
+		}
+		
+		unit<uint32> Result_zonder_teklein := subset(Multi_to_singlepart_poly1/area >= 25[ha])
+		{
+			attribute<geometries/rdc>  geometry_rd (poly)  := Multi_to_singlepart_poly1/deflate_rd[nr_OrgEntity];
+		}
+	}
+	
+	attribute<uint32>          id (primair_plusbinnensec_plusbuitensec/Result_zonder_teklein)            := id(primair_plusbinnensec_plusbuitensec/Result_zonder_teklein), StorageName = "%LocalDataDir%/BegrenzingBebouwdGebied2006_28okt19.dbf";
+	attribute<geometries/rdc>  result (primair_plusbinnensec_plusbuitensec/Result_zonder_teklein, poly)  := primair_plusbinnensec_plusbuitensec/Result_zonder_teklein/geometry_rd, StorageName = "%LocalDataDir%/BegrenzingBebouwdGebied2006_28okt19.shp";
+	
+
+
+	Template UseStudyArea_T
+	{
+		parameter<bool> StudyAreaUsed;
+		unit<uint32> studyarea := overlay_polygon(bestand_bodem_gebruik/geometry[ipoint], geometries/selectie_polygoon/polygon[ipoint]), FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+		{
+			attribute<begr_beb_geb>    bbg_begrenzing := bestand_bodem_gebruik/bbg2006_begrenzing[first_rel];
+			// attribute<begr_beb_geb>    bbg_begrenzing := bestand_bodem_gebruik/bbg2012_begrenzing[first_rel];
+			attribute<geometries/rdc>  geometry_rd (poly) := geometry[geometries/rdc];
+		}
+	}
+	
+	Template UseCountry_T
+	{
+		parameter<bool> StudyAreaUsed;
+		unit<uint32> studyarea := bestand_bodem_gebruik, FreeData = "False",  DialogType = "Map",  DialogData = "geometry_rd"
+		{
+			attribute<begr_beb_geb>    bbg_begrenzing := bestand_bodem_gebruik/bbg2006_begrenzing;
+			// attribute<begr_beb_geb>    bbg_begrenzing := bestand_bodem_gebruik/bbg2012_begrenzing;
+			attribute<geometries/rdc>  geometry_rd (poly) := bestand_bodem_gebruik/geometry;
+		}
+	}
+}
+

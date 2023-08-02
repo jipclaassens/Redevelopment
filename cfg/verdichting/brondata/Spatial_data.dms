@@ -1,0 +1,303 @@
+container Spatial_data
+{
+	container resistance
+	{
+		attribute<m> grid (NL_grid/domain)	:= const(100,NL_grid/domain,m);
+	}
+
+	container NWB
+	{
+		unit<uint32> wegen_src
+		:	StorageName     = "%SourceDataDir%/NWB/NWB_20181201/Wegvakken.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		,	FreeData = "False"
+		,	SyncMode = "None"
+		{
+			attribute<geometries/rdc> 	geometry (arc);
+			attribute<string>           WEGBEHSRT;
+			attribute<string>           HECTO_LTTR;
+		}
+		
+		unit<uint32> wegen_R := subset(wegen_src/WEGBEHSRT == 'R'), FreeData = "False"
+		{
+		
+			attribute<geometries/rdc>  geometry (arc)  := wegen_src/geometry[nr_OrgEntity];
+			attribute<string>          HECTO_LTTR      := wegen_src/HECTO_LTTR[nr_OrgEntity];
+			
+			unit<uint32>      segments                := arc2segm(geometry);
+			unit<uint32>      pointset                := dyna_point(segments/point, segments/nextpoint, value(100, m)), DialogType = "Map", DialogData = "point"{attribute<NL_grid/domain> grid_rel  := point[NL_grid/domain];}
+			attribute<m>      DistTo (NL_grid/domain) := GridDist(resistance/grid, pointset/grid_rel, const(0, pointset, m));
+		}	
+		unit<uint32> wegen_P := subset(wegen_src/WEGBEHSRT == 'P'), FreeData = "False"
+		{
+		
+			attribute<geometries/rdc>  geometry (arc)  := wegen_src/geometry[nr_OrgEntity];
+			attribute<string>          HECTO_LTTR      := wegen_src/HECTO_LTTR[nr_OrgEntity];
+			
+			unit<uint32>      segments                := arc2segm(geometry);
+			unit<uint32>      pointset                := dyna_point(segments/point, segments/nextpoint, value(100, m)), DialogType = "Map", DialogData = "point"{attribute<NL_grid/domain> grid_rel  := point[NL_grid/domain];}
+			attribute<m>      DistTo (NL_grid/domain) := GridDist(resistance/grid, pointset/grid_rel, const(0, pointset, m));
+		}	
+		unit<uint32> wegen_G := subset(wegen_src/WEGBEHSRT == 'G'), FreeData = "False"
+		{
+		
+			attribute<geometries/rdc>  geometry (arc)  := wegen_src/geometry[nr_OrgEntity];
+			attribute<string>          HECTO_LTTR      := wegen_src/HECTO_LTTR[nr_OrgEntity];
+			
+			unit<uint32>      segments                := arc2segm(geometry);
+			unit<uint32>      pointset                := dyna_point(segments/point, segments/nextpoint, value(100, m)), DialogType = "Map", DialogData = "point"{attribute<NL_grid/domain> grid_rel  := point[NL_grid/domain];}
+			attribute<m>      DistTo (NL_grid/domain) := GridDist(resistance/grid, pointset/grid_rel, const(0, pointset, m));
+		}	
+		
+		unit<uint32> wegen_R_op_afrit := subset(wegen_src/HECTO_LTTR == 'a' || wegen_src/HECTO_LTTR == 'b' || wegen_src/HECTO_LTTR == 'c' || wegen_src/HECTO_LTTR == 'd'), FreeData = "False"
+		{
+			attribute<geometries/rdc> 	geometry (arc) := wegen_src/geometry[nr_OrgEntity];
+			
+			unit<uint32>      segments                := arc2segm(geometry);
+			unit<uint32>      pointset                := dyna_point(segments/point, segments/nextpoint, value(100, m)), DialogType = "Map", DialogData = "point"{attribute<NL_grid/domain> grid_rel  := point[NL_grid/domain];}
+			attribute<m>      DistTo (NL_grid/domain) := GridDist(resistance/grid, pointset/grid_rel, const(0, pointset, m));
+		}	
+		
+		unit<uint32> Spoorwegen 
+		:	StorageName     = "%SourceDataDir%/NWB/Spoorvakken.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<geometries/rdc> 	geometry (arc);	
+			unit<uint32> 			segments	:= arc2segm(geometry);
+			unit<uint32> pointset 				:= dyna_point(segments/point, segments/nextpoint, value(100, m))
+			,	DialogType = "Map"
+			,	DialogData = "point"
+			{
+				attribute<NL_grid/domain> grid_rel		:= point[NL_grid/domain];
+			}
+			attribute<m> 			DistTo (NL_grid/domain)	:= GridDist(resistance/grid, pointset/grid_rel, const(0, pointset, m));
+		}
+		
+		unit<uint32> Treinstations 
+		:	StorageName     = "%SourceDataDir%/SpatialData/NS_stations_2019_NL.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<geometries/rdc> 	geometry;	
+
+			attribute<NL_grid/domain> grid_rel		:= geometry[NL_grid/domain];
+
+			attribute<m>              DistTo (NL_grid/domain)      := GridDist(resistance/grid, grid_rel, const(0, Treinstations, m));
+			attribute<km>             DistTo_km (NL_grid/domain)   := convert(DistTo, km);
+		}
+	}
+	
+	container Jip
+	{
+		attribute<float32> ExploitatieSaldo_BuurtOP (NL_grid/domain)
+		:	StorageName     = "%ProjDir%/SourceData/SpatialData/WoningbouwSaldi/ExploitatieSaldo_BuurtOP.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> ExploitatieSaldo_BuurtOP_plus1 (NL_grid/domain)
+		:	StorageName     = "%ProjDir%/SourceData/SpatialData/WoningbouwSaldi/ExploitatieSaldo_BuurtOP_plus1.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> ExploitatieSaldo_BuurtOP_plus2 (NL_grid/domain)
+		:	StorageName     = "%ProjDir%/SourceData/SpatialData/WoningbouwSaldi/ExploitatieSaldo_BuurtOP_plus2.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		// attribute<float32> ExploitatieSaldo_OP_Rij_HD (NL_grid/domain)
+		// :	StorageName     = "%ProjDir%/SourceData/SpatialData/WoningbouwSaldi/ExploitatieSaldo_OP_Rij_HD.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+		
+		// attribute<float32> Reistijd_100k_inwoners (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/Reistijd100kInw.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+		// attribute<float32> Reistijd_100k_inw_edit (NL_grid/domain) := (Reistijd_100k_inwoners / 60f) < 1f ? 1f : (Reistijd_100k_inwoners / 60f);
+		attribute<float32> Reistijd_100k_inwoners (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd100kInw_2020_500m.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> Reistijd_100k_inw_edit (NL_grid/domain) := (Reistijd_100k_inwoners / 60f) < 1f ? 1f : (Reistijd_100k_inwoners / 60f);
+		
+		attribute<float32> Reistijd_500k_inwoners (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd500kInw_2020_500m.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> Reistijd_500k_inw_edit (NL_grid/domain) := (Reistijd_500k_inwoners / 60f) < 1f ? 1f : (Reistijd_500k_inwoners / 60f);
+		
+		attribute<float32> Reistijd_1000k_inwoners (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd1000kInw_2020_500m.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> Reistijd_1000k_inw_edit (NL_grid/domain) := (Reistijd_1000k_inwoners / 60f) < 1f ? 1f : (Reistijd_1000k_inwoners / 60f);
+	
+		attribute<float32> Reistijd_10k_m2_winkels (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd10kwinkel.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+	
+		attribute<float32> Reistijd_1m_m2_utiliteit (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd1mlnUtiliteit.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+	
+		attribute<float32> Reistijd_100k_woningen (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd100kwoningen.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		
+		attribute<float32> Reistijd_100k_banen (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd100kBanen.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		
+		attribute<float32> Reistijd_1h_groen (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd_1ha_groen.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		
+		attribute<float32> Reistijd_10h_groen (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd_10ha_groen.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		
+		/////
+		// attribute<float32> UAI_1000m_dc108 (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_1000m_dc108.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_2500m_dc108 (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_2500m_dc108.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_5000m_dc108 (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_5000m_dc108.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_1000m_kernen_dc108 (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_1000m_kernen_dc108.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_2500m_kernen_dc108 (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_2500m_kernen_dc108.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_5000m_kernen_dc108 (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_5000m_kernen_dc108.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	///
+		// attribute<float32> UAI_1000m_dcsq (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_1000m_dcsq.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_2500m_dcsq (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_2500m_dcsq.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		attribute<float32> UAI_5000m_dcsq (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_5000m_dcsq.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+	
+		attribute<float32> UAI_2021 (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/UAI_2021.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_1000m_kernen_dcsq (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_1000m_kernen_dcsq.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_2500m_kernen_dcsq (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_2500m_kernen_dcsq.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+	
+		// attribute<float32> UAI_5000m_kernen_dcsq (NL_grid/domain)
+		// :	StorageName     = "%SourceDataDir%/SpatialData/UAI/UAI_5000m_kernen_dcsq.tif"
+		// ,	StorageType     = "gdal.grid"
+		// ,	StorageReadOnly = "True";
+		
+		attribute<float32> HedonicLandprice2007 (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/Ruimtebeslag/Hedonic_landprice_2007.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+	}
+	
+	
+	container Dani
+	{
+		attribute<uint32> UAI (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/UrbanAttractivity_100.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		parameter<uint32> Max_UAI := max(UAI);
+		attribute<float32> UAI_norm (NL_grid/domain) := UAI[float32] / Max_UAI[float32];
+		
+		attribute<float32> Dist_100k_inh (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Dist_100000inh.asc"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> Dist_100k_inh_value (NL_grid/domain) := Dist_100k_inh == 999[float32] ? 100000[float32] : Dist_100k_inh * 1000[float32];
+		
+		attribute<float32> Traveltime_100k_inh (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd100kInw.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> Traveltime_100k_inh_value (NL_grid/domain) := Traveltime_100k_inh == 0[float32] ? 50000[float32] : Traveltime_100k_inh;
+		attribute<float32> Traveltime_100k_inh_min   (NL_grid/domain) := (Traveltime_100k_inh == 0[float32] ? (0/0)[float32] : Traveltime_100k_inh) / 60f;
+		
+		attribute<float32> Dist_100k_job (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Dist_100000jobs.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> Dist_100k_job_value (NL_grid/domain) := Dist_100k_job == -9999[float32] ? 100000[float32] : Dist_100k_job;
+		
+		attribute<float32> Dist_NSstation (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/Dist_NSstation2001.asc"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> Dist_NSstation_value (NL_grid/domain) := Dist_NSstation == 999[float32] ? 100000[float32] : Dist_NSstation * 1000[float32];
+		
+		attribute<uint32> Natura2000 (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/natura2000_0908.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		
+		attribute<float32> Reistijd_minuten_station_2006 (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/reistijd_minuten_station_2006.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<float32> Reistijd_station_value (NL_grid/domain) := Reistijd_minuten_station_2006 == 0[float32] ? 100[float32] : Reistijd_minuten_station_2006;
+		attribute<float32> Reistijd_stations_edit (NL_grid/domain) := Reistijd_station_value == 100f 
+																		? (0/0)[float32] 
+																		: Reistijd_station_value < 1f
+																			? 1f
+																			: (Reistijd_station_value > 15f ? 15f : Reistijd_station_value)[float32];
+		
+		attribute<uint32> VinexPlans (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/VinexPlans.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		
+		attribute<uint32> Bundelingsgebieden (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/nationaal_bundelingsgebied_def_juni09.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		
+		attribute<uint32> Vogelaar_wijken (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/SpatialData/vogelaar_areas.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+	}
+	
+}

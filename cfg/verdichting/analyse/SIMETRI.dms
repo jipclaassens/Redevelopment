@@ -1,0 +1,27 @@
+container SIMETRI:  using = "eenheden;geometries"
+{ 
+	unit<uint32>      RegioUnit_Wijk      := Brondata/RegioIndelingen/Wijken/j2019;
+	unit<uint32>      RegioUnit_Gem       := Brondata/RegioIndelingen/gemeenten/j2021;
+	unit<uint32>      RegioUnit_Aggl      := Brondata/RegioIndelingen/gemeenten/j2021/Agglomeration_uq;
+	unit<uint8>       WP2                 := typeringen/bag/type_woonpand_2;
+	unit<uint8>       WP4                 := typeringen/bag/type_woonpand_4;
+	unit<uint8>       WP5                 := typeringen/bag/type_woonpand;
+	
+	parameter<string> CSV_path := 'D:/OneDrive/OneDrive - Objectvision/VU/Projects/202210-SIMETRI_NVM/Output';
+	
+	unit<uint32> Result := RegioUnit_Wijk
+	{
+		attribute<float32> avg_price_terraced := rjoin(WK_CODE, unquote(read_csvs/avg_price_wijk_terraced/wijk_code), read_csvs/avg_price_wijk_terraced/price)[float32];
+	}
+	
+	container Read_CSVs
+	{
+		unit<uint32> avg_price_wijk_terraced
+		: StorageName = "=CSV_path+'/Avg_transprice_wijk_2021_terraced.csv'"
+		, StorageType = "gdal.vect"
+		, StorageReadOnly = "true"
+		{
+			attribute<RegioUnit_Wijk> wijk_rel := rlookup(unquote(Wijk_CODE), RegioUnit_Wijk/WK_CODE);
+		}
+	}
+}

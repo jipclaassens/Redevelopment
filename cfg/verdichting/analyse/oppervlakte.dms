@@ -1,0 +1,93 @@
+container Oppervlakte
+{
+	unit<uint32>				RegioUnit_buurt     	:= brondata/regios/buurten/src_2012;
+	unit<uint32>				RegioUnit_wijk    		:= brondata/regios/wijken/src_2012;
+	unit<uint32>				RegioUnit_gem    		:= BronData/regios/gemeenten/gem_2012/gem_uq;
+	unit<uint32>				RegioUnit_nvm    		:= BronData/regios/nvm/src;
+	unit<uint32>				RegioUnit_prov   		:= BronData/regios/provincies/src_2012;
+	unit<uint32>				RegioUnit_pc4   		:= BronData/regios/Postcode_gebieden/Postcode4;
+	unit<uint32>				RegioUnit_nl   			:= BronData/regios/nederland/src;
+
+	container PerJaar := 
+		for_each_ne(
+			typeringen/jaren/name
+			, 'MaakOppervlakte(' +string(typeringen/jaren/value)+ ')'
+		);
+	
+	Template MaakOppervlakte
+	{
+		///
+		parameter<uint32> Year;
+		///
+		unit<uint32>  vbo_domein            := ='Brondata/BAG/snapshots/VBOs/Y' + string(Year) + '01/src';
+		
+		unit<uint32> opp_sub   := ='subset(vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/oppervlakte[uint32] < 1000 
+											&& vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/oppervlakte[uint32] > 0 
+											&& vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/IsN_dens
+											// && IsDefined(vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/bbg2000_rel)
+											// && vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/gem_rel == 136  //136==Amsterdam
+											// && vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/woonpand_rel == typeringen/type_woonpand/v/appartement
+											&& vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar_trunc >= (' +string(year)+ ' - 1)[eenheden/jaar] 
+											&& vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar_trunc < (' +string(year)+ ')[eenheden/jaar]
+									)'
+		,	DialogType = "Map"
+		,	DialogData = "geometry_mm"
+		{
+		
+			attribute<geometries/rdc_mm>                           geometry_mm         := vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>                              geometry            := geometry_mm[geometries/rdc];
+			attribute<NL_grid/domain>                              NL_grid_domain_rel  := geometry[NL_grid/domain];
+			attribute<uint32>                                      oppervlakte         := uint32(vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/oppervlakte)[nr_OrgEntity];
+			attribute<uint32>                                      oppervlakte_trunc   := uint32(vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/oppervlakte_trunc)[nr_OrgEntity];
+			attribute<eenheden/jaar>                               bouwjaar            := vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar[nr_OrgEntity];
+			attribute<RegioUnit_nl>                                nl_rel              := vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/nl_rel[Nr_OrgEntity];
+			attribute<RegioUnit_buurt>                             buurt_rel           := vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/buurt_rel[Nr_OrgEntity];
+			attribute<RegioUnit_gem>                               gem_rel             := vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/gem_rel[Nr_OrgEntity];
+			attribute<typeringen/type_woonpand>                    woonpand_rel        := vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/woonpand_rel[Nr_OrgEntity];
+			attribute<RegioUnit_wijk>                              wijk_rel            := vbo_domein/GebruiksdoelSets/woon/GebruiksdoelSet/wijk_rel[Nr_OrgEntity];
+			
+			parameter<uint32>                                      avg_opp_nl          := mean(oppervlakte);
+			parameter<uint32>                                      count_opp_nl          := count(oppervlakte);
+		}
+	}
+	
+	attribute<uint32>  avg_opp_nl  (typeringen/jaren)          := ='union_data(typeringen/jaren,'+ AsItemList( '/Analyse/oppervlakte/PerJaar/'+ string(typeringen/jaren/name)+'/Opp_sub/avg_opp_nl')+')';
+	attribute<uint32>  count_opp_nl  (typeringen/jaren)          := ='union_data(typeringen/jaren,'+ AsItemList( '/Analyse/oppervlakte/PerJaar/'+ string(typeringen/jaren/name)+'/Opp_sub/count_opp_nl')+')';
+	
+	container Avg_opp_gem := 
+		for_each_nedv(
+			typeringen/jaren/name
+			, 'count(PerJaar/'+typeringen/jaren/name+'/opp_sub/oppervlakte, PerJaar/'+typeringen/jaren/name+'/opp_sub/gem_rel) > 5
+				? mean(PerJaar/'+typeringen/jaren/name+'/opp_sub/oppervlakte, PerJaar/'+typeringen/jaren/name+'/opp_sub/gem_rel)
+				: (0/0)'
+			, RegioUnit_gem
+			, uint32
+		)
+	{
+		attribute<string>   gem_label        (RegioUnit_gem)   := Brondata/regios/gemeenten/gem_2012/gem_uq/label;
+	}
+		
+	container Count_opp_gem := 
+		for_each_nedv(
+			typeringen/jaren/name
+			, 'count(PerJaar/'+typeringen/jaren/name+'/opp_sub/oppervlakte, PerJaar/'+typeringen/jaren/name+'/opp_sub/gem_rel)'
+			, RegioUnit_gem
+			, uint32
+		)
+	{
+		attribute<string>   gem_label        (RegioUnit_gem)   := Brondata/regios/gemeenten/gem_2012/gem_uq/label;
+	}
+		
+	container SD_opp_gem := 
+		for_each_nedv(
+			typeringen/jaren/name
+			, 'sd(PerJaar/'+typeringen/jaren/name+'/opp_sub/oppervlakte, PerJaar/'+typeringen/jaren/name+'/opp_sub/gem_rel)'
+			, RegioUnit_gem
+			, uint32
+		)
+	{
+		attribute<string>   gem_label        (RegioUnit_gem)   := Brondata/regios/gemeenten/gem_2012/gem_uq/label;
+	}
+		
+
+}

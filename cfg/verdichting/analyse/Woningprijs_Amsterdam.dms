@@ -1,0 +1,81 @@
+container Woningprijs_Amsterdam:  using = "eenheden"
+{
+	unit<uint32>				RegioUnit_buurt     	:= Brondata/RegioIndelingen/Buurten/j2020;
+	unit<uint32>				RegioUnit_wijk    		:= brondata/RegioIndelingen/wijken/j2020;
+	unit<uint32>				RegioUnit_pc4    		:= brondata/RegioIndelingen/PC4_vlakken;
+	unit<uint32>				RegioUnit_pc6    		:= brondata/RegioIndelingen/PC6_vlakken;
+	unit<uint32>				RegioUnit_gem    		:= BronData/RegioIndelingen/gemeenten/j2020;
+	unit<uint32>				RegioUnit_nvm    		:= BronData/RegioIndelingen/nvm;
+	unit<uint32>				RegioUnit_prov   		:= BronData/RegioIndelingen/provincies;
+	unit<uint32>				Vbo			    		:= /Brondata/BAG/Snapshots/VBOs/Y202101/vbo/GebruiksdoelSets/woon/GebruiksdoelSet;
+	unit<uint8>					type_woonpand			:= typeringen/bag/type_woonpand_4;
+
+	container NVM
+	{
+		unit<uint32> src := Brondata/NVM/points
+		, 	DialogType = "Map"
+		, 	DialogData = "geometry"
+		, 	FreeData = "False"
+		{
+			attribute<geometries/rdc>   geometry         := Brondata/NVM/points/geometry;
+			attribute<string>           street_nmbr      := Brondata/NVM/points/street_nmbr;
+			attribute<uint8>            d_apartment      := Brondata/NVM/points/d_apartment[uint8];
+			attribute<uint8>            d_terraced       := Brondata/NVM/points/d_terraced[uint8];
+			attribute<uint8>            d_semidetached   := Brondata/NVM/points/d_semidetached[uint8];
+			attribute<uint8>            d_detached       := Brondata/NVM/points/d_detached[uint8];
+			attribute<m2>               size             := Brondata/NVM/points/size;
+			attribute<m2>               lotsize          := Brondata/NVM/points/lotsize;
+			attribute<jaar>             trans_year       := Brondata/NVM/points/trans_year;
+			attribute<jaar>             bouwjaar         := Brondata/NVM/points/bouwjaar;
+			attribute<eur>              price            := Brondata/NVM/points/price;
+			attribute<eur>              pricelist        := Brondata/NVM/points/pricelist;
+			attribute<eur>              Diff_price_list  := price - pricelist;
+			attribute<procent>          Pr_price_list    := price / pricelist;
+			attribute<uint32>           buurt_rel        := Brondata/NVM/points/buurt_rel;
+			attribute<uint32>           wijk_rel         := Brondata/NVM/points/wijk_rel;
+		}
+	
+		// unit<uint32> selection := SubSet(src/trans_year >= 2017[jaar] && src/diff_price_list >= -50000[eur] && src/diff_price_list <= 50000[eur] && IsDefined(src/price) && src/pricelist >= 25000[eur] && src/d_apartment == 1b)
+		unit<uint32> selection := SubSet(src/trans_year >= 2010[jaar] && IsDefined(src/price) && src/pricelist >= 25000[eur] && src/d_apartment == 1b && src/buurt_rel == 4314) //wijk_rel==922==Jordaan buurt=4207=elandsgrachtbuurt
+		, 	DialogType = "Map"
+		, 	DialogData = "geometry"
+		, 	FreeData = "False"
+		{
+			attribute<geometries/rdc>    geometry         := src/geometry[nr_OrgEntity];
+			attribute<string>            street_nmbr      := src/street_nmbr[nr_OrgEntity];
+			attribute<m2>                size             := src/size[nr_OrgEntity];
+			attribute<m2>                lotsize          := src/lotsize[nr_OrgEntity];
+			attribute<jaar>              trans_year       := src/trans_year[nr_OrgEntity];
+			attribute<jaar>              bouwjaar         := src/bouwjaar[nr_OrgEntity];	
+			attribute<eur>               price            := src/price[nr_OrgEntity];
+			attribute<eur>               pricelist        := src/pricelist[nr_OrgEntity];
+			attribute<eur>               Diff_price_list  := src/Diff_price_list[nr_OrgEntity];
+			attribute<procent>           Pr_price_list    := src/Pr_price_list[nr_OrgEntity];
+			
+			attribute<eur_m2>            price_m2         := price / size;
+			
+			attribute<NL_grid/domain>    NL_grid_domain_rel  := geometry[NL_grid/domain];
+			attribute<RegioUnit_buurt>   buurt_rel           := point_in_polygon(geometry, RegioUnit_buurt/geometry);
+			attribute<RegioUnit_pc4>     pc4_rel             := point_in_polygon(geometry, RegioUnit_pc4/geometry);
+			attribute<RegioUnit_pc6>     pc6_rel             := point_in_polygon(geometry, RegioUnit_pc6/geometry);
+
+			
+			attribute<eur>               mean_price_buurt    (RegioUnit_buurt)    := mean(price, buurt_rel);
+			attribute<eur_m2>               mean_pricem2_buurt  (RegioUnit_buurt)    := mean(price_m2, buurt_rel);
+			attribute<uint32>            count_price_buurt   (RegioUnit_buurt)    := count(price, buurt_rel);
+			
+			attribute<eur>               mean_price_pc4    (RegioUnit_pc4)    := mean(price, pc4_rel);
+			attribute<eur_m2>               mean_pricem2_pc4  (RegioUnit_pc4)    := mean(price_m2, pc4_rel);
+			attribute<uint32>            count_price_pc4   (RegioUnit_pc4)    := count(price, pc4_rel);
+			
+			
+			attribute<eur>               mean_diff_grid    (NL_grid/domain)   := mean(diff_price_list, NL_grid_domain_rel);
+			attribute<eur>               mean_diff_pc4     (RegioUnit_pc4)    := mean(diff_price_list, pc4_rel);
+			attribute<procent>           mean_pr_diff_grid (NL_grid/domain)   := mean(Pr_price_list, NL_grid_domain_rel);
+			attribute<procent>           mean_pr_diff_pc4  (RegioUnit_pc4)    := count_pr_diff_pc4 >= 10 ? mean(Pr_price_list, pc4_rel) : (0/0)[procent];
+			attribute<uint32>            count_pr_diff_pc4 (RegioUnit_pc4)    := count(Pr_price_list, pc4_rel);
+			attribute<procent>           mean_pr_diff_pc6  (RegioUnit_pc6)    := mean(Pr_price_list, pc6_rel);
+		
+		}
+	}
+}

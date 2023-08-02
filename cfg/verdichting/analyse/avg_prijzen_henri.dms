@@ -1,0 +1,46 @@
+container Average_prices_Henri : using = "eenheden"
+{    
+	unit<uint32> NVM := /Brondata/NVM/points;
+	unit<uint32> PC4 := /Brondata/regios/Postcode_gebieden/Postcode4_areas/MRA;
+	unit<uint32> Gemeente := /Brondata/regios/Gemeenten/gem_src/j2019;
+	
+	unit<uint32> jaren := range(uint32, 1995, 2020)
+	{
+		attribute<uint32> value := id(.);
+		attribute<string> name  := 'Y' + string(value);
+	}
+	
+	// container avg_pm2_per_year :=
+		// for_each_nedv(
+			// jaren/name
+			// , 'mean(NVM/trans_year == '+string(jaren/value)+'[int16] && IsDefined(NVM/PC4_MRA_rel) ? NVM/price_m2 : (0/0)[eur_m2], NVM/PC4_MRA_rel)'
+			// , PC4
+			// , eur_m2
+		// ), FreeData = "false"
+	// {
+		// attribute<string> Postcode4       (PC4) := PC4/PC4;
+		// attribute<uint32> LISA_banen_2018 (PC4) := (Brondata/LISA2018/sum_banen_pc4_MRA[float32] / 1000f)[uint32] * 1000;
+	// }
+	
+	container Avg_Pm2 := 
+		for_each_nedv(
+			jaren/name
+			, 'mean(NVM/trans_year == '+string(jaren/value)+'[int16] ? NVM/price_m2 : (0/0)[eur_m2], NVM/gem_rel)'
+			, gemeente
+			, float32
+		)
+	{
+		attribute<string> gem_code (gemeente) := gemeente/GM_CODE;
+	}
+	
+	container Avg_Price := 
+		for_each_nedv(
+			jaren/name
+			, 'mean(NVM/trans_year == '+string(jaren/value)+'[int16] ? NVM/price : (0/0)[eur], NVM/gem_rel)'
+			, gemeente
+			, float32
+		)
+	{
+		attribute<string> gem_code (gemeente) := gemeente/GM_CODE;
+	}
+}

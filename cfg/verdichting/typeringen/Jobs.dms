@@ -1,0 +1,26 @@
+container Jobs: isHidden = "True", using = "eenheden"
+{ 
+	unit<uint8> TXLJobs7: NrOfrows = 7
+	{
+		attribute<string> name: ['landbouw', 'nijverheid', 'logistiek', 'detailhandel', 'ov_consumentendiensten', 'zak_dienstverlening', 'overheid_kw_diensten'];
+		attribute<string> Label := name, DialogType = "LabelText";
+		attribute<string> TXLTbl_Ref := name;
+	}
+	
+	unit<uint32> SBI08
+	:  StorageName = "%SourceDataDir%/RSL/Grondgebruik/SBI2008_2018_TIGRIS_sector.csv"
+	,  StorageType = "gdal.vect"
+	,  StorageReadOnly = "True" 
+	{
+		attribute<TXLJobs9> TXLJobs9_rel := Tigris_sector[TXLJobs9];
+		attribute<TXLJobs7> TXLJobs7_rel := TXLJobs9/TXLJobs7_rel[TXLJobs9_rel];
+	}
+	
+	unit<uint8> TXLJobs9: NrOfrows = 9
+	{
+		attribute<string>   name          : ['Onbekend', 'landbouw', 'nijverheid', 'logistiek', 'zak_dienstverlening', 'overheid_kw_diensten', 'ov_consumentendiensten', 'detailhandel', 'Zorg'];
+		attribute<TXLJobs7> TXLJobs7_rel  := union_data(., (0/0)[TXLJobs7], 0[TXLJobs7], 1[TXLJobs7], 2[TXLJobs7], 5[TXLJobs7], 6[TXLJobs7], 4[TXLJobs7], 3[TXLJobs7], 6[TXLJobs7]);
+		attribute<string>   Label         := name, DialogType = "LabelText";
+		attribute<string>   TXLTbl_Ref    := name;
+	}
+}

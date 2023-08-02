@@ -1,0 +1,49 @@
+// code van: https://github.com/RuudvandenWijngaart/VestaDV/blob/SAWEC-WP5/model/RuimtelijkeData/EigendomStaat.dms  (Hestia) 15 oktober 2021 a1ef8a9cbd37bc189e5302ba129b020f3313e223
+container Eigendom
+{
+	// inlezen puntenbestand woningcorporaties
+	unit<uint32> Corporatiebezit_data
+	:   StorageName     = "%SourceDataDir%/Eigendom/CorporatieBezit.shp"
+	,   StorageType     = "gdal2.vect"
+	,	DialogType      = "Map"
+	,	StorageReadOnly = "True"
+	,	Source          = "https://pbl.sliksvn.com/vesta/SD51/EigendomStaat revision 640"
+	{
+		attribute<string>                   Label        := 'C_'+string(OBJECTID), DialogType = "LabelText";
+		attribute<geometries/rdc>                geometry;
+		attribute<typeringen/Eigendom> Eigendom_rel := const(typeringen/Eigendom/V/WoonCorp,.); //eigendomstatus als attribuut
+	}
+
+	// inlezen puntenbestand particuliere huur
+	unit<uint32> Particulierehuur_data
+	:   StorageName     = "%SourceDataDir%/Eigendom/ParticuliereHuur.shp"
+	,   StorageType     = "gdal2.vect"
+	,	DialogType      = "Map"
+	,	StorageReadOnly = "True"
+	,	Source          = "https://pbl.sliksvn.com/vesta/SD51/EigendomStaat revision 640"
+	{
+		attribute<string>                   Label        := 'H_'+string(OBJECTID), DialogType = "LabelText";
+		attribute<geometries/rdc>                geometry;
+		attribute<typeringen/Eigendom> Eigendom_rel := const(typeringen/Eigendom/V/PartHuur,.); //eigendomstatus als attribuut
+	}
+	
+	//samenvoegen bovenstaande puntenbestanden tot gezamenlijke entiteit
+	unit<uint32> EigendomStaat_data := union_unit(Corporatiebezit_data, Particulierehuur_data)
+	{ 
+		attribute<string>                   Label        := union_data(., Corporatiebezit_data/Label       , Particulierehuur_data/Label);
+		attribute<geometries/rdc>                geometry     := union_data(., Corporatiebezit_data/geometry    , Particulierehuur_data/geometry);
+		attribute<typeringen/Eigendom> Eigendom_rel := union_data(., Corporatiebezit_data/Eigendom_rel, Particulierehuur_data/Eigendom_rel);
+
+		//ruimtelijke matching om bijbehorend BAG pand per punt te bepalen
+		attribute<pand>                     Pand_rel     := point_in_polygon(geometry, pand/Geometry);
+	}
+
+	//afgeleidde attributen vastgesteld per BAG pand
+	unit<uint32> pand := Brondata/BAG/Snapshots/Panden/Y202110/pand/voorraad
+	{
+		attribute<geometries/rdc>                   Geometry (poly) := /Brondata/BAG/Snapshots/Panden/Y202110/pand/voorraad/Geometry;
+
+		//eigendomstatus wordt afgeleid van gekoppelde puntattributen, uitgaande van meest voorkomende status. Indien onbekend wordt koop verondersteld.
+		attribute<typeringen/Eigendom>    Eigendom_rel    := makedefined(modus(EigendomStaat_data/Eigendom_rel,       EigendomStaat_data/Pand_rel), typeringen/Eigendom/V/Koop);
+	}
+}

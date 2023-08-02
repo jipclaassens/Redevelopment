@@ -1,0 +1,1623 @@
+container hedonisch_prijs_index:  using = "eenheden"
+{
+
+	unit<uint32>				RegioUnit_buurt     	:= brondata/regios/buurten/src_2012;
+	unit<uint32>				RegioUnit_wijk    		:= brondata/regios/wijken/src_2012;
+	unit<uint32>				RegioUnit_gem    		:= BronData/regios/gemeenten/gem_src/j2019;
+	unit<uint32>				RegioUnit_nvm    		:= BronData/regios/nvm/src;
+	unit<uint32>				RegioUnit_prov   		:= BronData/regios/provincies/src_2012;
+	unit<uint32>				RegioUnit_pc4   		:= BronData/regios/Postcode_gebieden/Postcode4;
+	unit<uint32>				RegioUnit_nl   			:= BronData/regios/nederland/src;
+	
+	
+	container coefficienten
+	{
+		container gem
+		{
+		attribute<float32>			eengezins_constant (NL_grid/domain) 		:= const(7.072[float32], NL_grid/domain);
+		attribute<float32>			eengezins_lnsize	(NL_grid/domain)		:= const(0.647[float32], NL_grid/domain);
+		attribute<float32>			eengezins_lnlotsize	(NL_grid/domain)		:= const(0.136[float32], NL_grid/domain);
+		attribute<float32>			eengezins_rooms	(NL_grid/domain)			:= const(0.0176[float32], NL_grid/domain);
+		attribute<float32>			eengezins_nbadk		(NL_grid/domain)		:= const(0.0353[float32], NL_grid/domain);
+		attribute<float32>			eengezins_maintinside(NL_grid/domain)		:= const(0.281[float32], NL_grid/domain);
+		attribute<float32>			eengezins_maintoutside(NL_grid/domain)		:= const(0.160[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_kk		(NL_grid/domain)		:= const(-0.0284[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_CV		(NL_grid/domain)		:= const(0.0553[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_erfpacht(NL_grid/domain)		:= const(-0.116[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_isol_compl(NL_grid/domain)		:= const(0.0104[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_privpark	(NL_grid/domain)	:= const(0.0767[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_detached	(NL_grid/domain)	:= const(0.183[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_semidetached	(NL_grid/domain):= const(0.0957[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_garden	(NL_grid/domain)		:= const(0.0410[float32], NL_grid/domain);
+		attribute<float32>			eengezins_2016 (NL_grid/domain)				:= const(0.261[float32], NL_grid/domain);
+		
+		attribute<float32>			eengezins_regio_constant(NL_grid/domain)	:= const(-12.13[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_lninkomen(NL_grid/domain)	:= const(1.340[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_uai(NL_grid/domain)			:= const(0.0169[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_lndist100kjob(NL_grid/domain):= const(-0.104[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_share_agr(NL_grid/domain)	:= const(-0.156[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_share_resi(NL_grid/domain)	:= const(-0.469[float32], NL_grid/domain);
+		
+		
+		attribute<float32>			meergezins_constant (NL_grid/domain) 		:= const(7.198[float32], NL_grid/domain);
+		attribute<float32>			meergezins_lnsize	(NL_grid/domain)		:= const(0.811[float32], NL_grid/domain);
+		attribute<float32>			meergezins_rooms	(NL_grid/domain)		:= const(-0.00380[float32], NL_grid/domain);
+		attribute<float32>			meergezins_nbadk		(NL_grid/domain)	:= const(0.0396[float32], NL_grid/domain);
+		attribute<float32>			meergezins_maintinside(NL_grid/domain)		:= const(0.367[float32], NL_grid/domain);
+		attribute<float32>			meergezins_maintoutside(NL_grid/domain)		:= const(0.216[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_kk		(NL_grid/domain)		:= const(0.0138[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_CV		(NL_grid/domain)		:= const(0.0566[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_erfpacht(NL_grid/domain)		:= const(-0.0812[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_isol_compl(NL_grid/domain)		:= const(0.0162[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_privpark	(NL_grid/domain)	:= const(0.122[float32], NL_grid/domain);
+		attribute<float32>			meergezins_2016 (NL_grid/domain)			:= const(0.304[float32], NL_grid/domain);
+		
+		attribute<float32>			meergezins_regio_constant(NL_grid/domain)	:= const(-7.290[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_lninkomen(NL_grid/domain)	:= const(0.799[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_uai(NL_grid/domain)		:= const(0.00634[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_lndist100kjob(NL_grid/domain):= const(-0.0467[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_share_agr(NL_grid/domain)	:= const(-0.0908[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_share_resi(NL_grid/domain)	:= const(-0.397[float32], NL_grid/domain);
+		}
+		container pc4
+		{
+		attribute<float32>			eengezins_constant (NL_grid/domain) 		:= const(7.064[float32], NL_grid/domain);
+		attribute<float32>			eengezins_lnsize	(NL_grid/domain)		:= const(0.576[float32], NL_grid/domain);
+		attribute<float32>			eengezins_lnlotsize	(NL_grid/domain)		:= const(0.154[float32], NL_grid/domain);
+		attribute<float32>			eengezins_rooms	(NL_grid/domain)			:= const(0.0148[float32], NL_grid/domain);
+		attribute<float32>			eengezins_nbadk		(NL_grid/domain)		:= const(0.0258[float32], NL_grid/domain);
+		attribute<float32>			eengezins_maintinside(NL_grid/domain)		:= const(0.298[float32], NL_grid/domain);
+		attribute<float32>			eengezins_maintoutside(NL_grid/domain)		:= const(0.139[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_kk		(NL_grid/domain)		:= const(-0.0399[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_CV		(NL_grid/domain)		:= const(0.0567[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_erfpacht(NL_grid/domain)		:= const(-0.0932[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_isol_compl(NL_grid/domain)		:= const(0.0178[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_privpark	(NL_grid/domain)	:= const(0.0712[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_detached	(NL_grid/domain)	:= const(0.194[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_semidetached	(NL_grid/domain):= const(0.0935[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_garden	(NL_grid/domain)		:= const(0.0337[float32], NL_grid/domain);
+		attribute<float32>			eengezins_2016 (NL_grid/domain)				:= const(0.259[float32], NL_grid/domain);
+		
+		attribute<float32>			eengezins_regio_constant(NL_grid/domain)	:= const(-13.50[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_lninkomen(NL_grid/domain)	:= const(1.545[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_uai(NL_grid/domain)			:= const(0.00745[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_lndist100kjob(NL_grid/domain):= const(-0.149[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_share_agr(NL_grid/domain)	:= const(-0.231[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_share_resi(NL_grid/domain)	:= const(-0.271[float32], NL_grid/domain);
+		
+		
+		attribute<float32>			meergezins_constant (NL_grid/domain) 		:= const(8.153[float32], NL_grid/domain);
+		attribute<float32>			meergezins_lnsize	(NL_grid/domain)		:= const(0.732[float32], NL_grid/domain);
+		attribute<float32>			meergezins_rooms	(NL_grid/domain)			:= const(0.0115[float32], NL_grid/domain);
+		attribute<float32>			meergezins_nbadk		(NL_grid/domain)		:= const(0.0274[float32], NL_grid/domain);
+		attribute<float32>			meergezins_maintinside(NL_grid/domain)		:= const(0.349[float32], NL_grid/domain);
+		attribute<float32>			meergezins_maintoutside(NL_grid/domain)		:= const(0.147[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_kk		(NL_grid/domain)		:= const(-0.0488[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_CV		(NL_grid/domain)		:= const(0.0429[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_erfpacht(NL_grid/domain)		:= const(-0.0236[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_isol_compl(NL_grid/domain)		:= const(0.0289[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_privpark	(NL_grid/domain)	:= const(0.114[float32], NL_grid/domain);
+		attribute<float32>			meergezins_2016 (NL_grid/domain)				:= const(0.259[float32], NL_grid/domain);
+		
+		attribute<float32>			meergezins_regio_constant(NL_grid/domain)	:= const(-12.53[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_lninkomen(NL_grid/domain)	:= const(1.248[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_uai(NL_grid/domain)			:= const(0.00633[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_lndist100kjob(NL_grid/domain):= const(-0.0435[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_share_agr(NL_grid/domain)	:= const(-0.0452[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_share_resi(NL_grid/domain)	:= const(-0.313[float32], NL_grid/domain);
+		}
+		container spec3
+		{
+		attribute<float32>			eengezins_constant (NL_grid/domain) 		:= const(4.248[float32], NL_grid/domain);
+		attribute<float32>			eengezins_lnsize	(NL_grid/domain)		:= const(0.651[float32], NL_grid/domain);
+		attribute<float32>			eengezins_lnlotsize	(NL_grid/domain)		:= const(0.143[float32], NL_grid/domain);
+		attribute<float32>			eengezins_rooms	(NL_grid/domain)			:= const(0.0162[float32], NL_grid/domain);
+		attribute<float32>			eengezins_nbadk		(NL_grid/domain)		:= const(0.0363[float32], NL_grid/domain);
+		attribute<float32>			eengezins_maintinside(NL_grid/domain)		:= const(0.276[float32], NL_grid/domain);
+		attribute<float32>			eengezins_maintoutside(NL_grid/domain)		:= const(0.166[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_kk		(NL_grid/domain)		:= const(-0.0499[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_CV		(NL_grid/domain)		:= const(0.0583[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_erfpacht(NL_grid/domain)		:= const(0.00487[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_isol_compl(NL_grid/domain)		:= const(0.0181[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_privpark	(NL_grid/domain)	:= const(0.0628[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_detached	(NL_grid/domain)	:= const(0.176[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_semidetached	(NL_grid/domain):= const(0.0826[float32], NL_grid/domain);
+		attribute<float32>			eengezins_d_garden	(NL_grid/domain)		:= const(0.0501[float32], NL_grid/domain);
+		attribute<float32>			eengezins_2016 (NL_grid/domain)				:= const(0.264[float32], NL_grid/domain);
+		
+		attribute<float32>			eengezins_regio_lninkomen(NL_grid/domain)	:= const(1.346[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_uai(NL_grid/domain)			:= const(0.00500[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_lndist100kjob(NL_grid/domain):= const(-0.121[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_share_agr(NL_grid/domain)	:= const(-0.0887[float32], NL_grid/domain);
+		attribute<float32>			eengezins_regio_share_nat(NL_grid/domain)	:= const(0.0236[float32], NL_grid/domain);
+		
+		
+		attribute<float32>			meergezins_constant (NL_grid/domain) 		:= const(4.213[float32], NL_grid/domain);
+		attribute<float32>			meergezins_lnsize	(NL_grid/domain)		:= const(0.764[float32], NL_grid/domain);
+		attribute<float32>			meergezins_rooms	(NL_grid/domain)		:= const(-0.00432[float32], NL_grid/domain);
+		attribute<float32>			meergezins_nbadk		(NL_grid/domain)	:= const(0.0467[float32], NL_grid/domain);
+		attribute<float32>			meergezins_maintinside(NL_grid/domain)		:= const(0.372[float32], NL_grid/domain);
+		attribute<float32>			meergezins_maintoutside(NL_grid/domain)		:= const(0.204[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_kk		(NL_grid/domain)		:= const(-0.00659[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_CV		(NL_grid/domain)		:= const(0.0559[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_erfpacht(NL_grid/domain)		:= const(0.0236[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_isol_compl(NL_grid/domain)		:= const(0.0249[float32], NL_grid/domain);
+		attribute<float32>			meergezins_d_privpark	(NL_grid/domain)	:= const(0.116[float32], NL_grid/domain);
+		attribute<float32>			meergezins_2016 (NL_grid/domain)			:= const(0.309[float32], NL_grid/domain);
+		
+		attribute<float32>			meergezins_regio_lninkomen(NL_grid/domain)	:= const(1.076[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_uai(NL_grid/domain)		:= const(0.00624[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_lndist100kjob(NL_grid/domain):= const(-0.00800[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_share_agr(NL_grid/domain)	:= const(0.0205[float32], NL_grid/domain);
+		attribute<float32>			meergezins_regio_share_nat(NL_grid/domain)	:= const(-0.0997[float32], NL_grid/domain);
+		}
+	
+		container region_coefficients
+		{
+			container eengezins
+			{
+				unit<uint32> mun
+				:  StorageName = "%SourceDataDir%/SpatialData/Region_coefficients_mun_2018apr.csv"
+				,  StorageType = "gdal.vect"
+				,  StorageReadOnly = "True"
+				,  SyncMode = "None"
+				{
+					attribute<string>    parm;
+					attribute<string>    parm_edit := parm == '2016.trans_year' ? 'y2016' : parm; 
+					attribute<string>    estimate;
+					attribute<float32>   estimate_value := estimate[float32];
+					attribute<string>    stderr;
+					attribute<float32>   stderr_value   := stderr[float32];
+					attribute<string>    variable_name  := substr(parm_edit, 14);
+					
+					unit<uint32> gem_coeff := subset(left(parm_edit, 1) == 'g')
+					{
+						attribute<string>          parm           := mun/parm[nr_OrgEntity];
+						attribute<string>          gem_code       := replace(parm, '.gem_code_12', '', 'g', '');
+						attribute<string>          estimate       := mun/estimate[nr_OrgEntity];
+						attribute<string>          stderr         := mun/stderr[nr_OrgEntity];
+						attribute<float32>         estimate_value := estimate[float32];
+						attribute<float32>         stderr_value   := stderr[float32];
+						attribute<uint32>          gem_rel        := rlookup(gem_code, Brondata/regios/gemeenten/gem_2012/gem_uq/gem_code);
+						attribute<geometries/rdc>  geometry         (Brondata/regios/gemeenten/gem_2012/gem_uq, poly) := Brondata/regios/gemeenten/gem_2012/gem_uq/Geometry;
+						attribute<float32>         estimate_gem     (Brondata/regios/gemeenten/gem_2012/gem_uq)       := estimate_value[invert(gem_rel)];
+						attribute<float32>         stderr_gem       (Brondata/regios/gemeenten/gem_2012/gem_uq)       := stderr_value[invert(gem_rel)];
+						attribute<float32>         estimate_gem_sig (Brondata/regios/gemeenten/gem_2012/gem_uq)       := stderr_gem >= 0.05f ? 0f : estimate_gem;
+						attribute<float32>         estimate_gem_procent (Brondata/regios/gemeenten/gem_2012/gem_uq)       := exp(estimate_gem_sig)*100f;
+						
+						attribute<float32>         est_gem_grid (NL_grid/domain)       := estimate_gem_sig[Brondata/regios/gemeenten/gem_2012/gem_uq/grid];
+						attribute<float32>         est_gem_procent_grid (NL_grid/domain)       := estimate_gem_procent[Brondata/regios/gemeenten/gem_2012/gem_uq/grid];
+						attribute<float32>         est_gem_procent_grid_NL (NL_grid/domain)    := Brondata/regios/nederland/src/IsNederland ? est_gem_procent_grid : float32((0/0));
+					}
+					
+					unit<uint32> spatial_vars := subset(left(parm_edit, 1) != 'g' && left(parm_edit, 1) != '2')
+					{
+						attribute<string>          parm           := mun/parm_edit[nr_OrgEntity];
+						attribute<string>          estimate       := mun/estimate[nr_OrgEntity];
+						attribute<string>          stderr         := mun/stderr[nr_OrgEntity];
+						attribute<float32>         estimate_value := estimate[float32];
+						attribute<float32>         stderr_value   := stderr[float32];
+						
+						attribute<string>          name := parm;
+					}
+					// left(parm, 1) != '0' && left(parm, 1) != '1'
+					// unit<uint32> spatial_vars := subset(left(parm, 2) != 'pc' && left(parm, 1) != '2')
+					// {
+						// attribute<string>          parm           := pc4/parm[nr_OrgEntity];
+						// attribute<string>          estimate       := pc4/estimate[nr_OrgEntity];
+						// attribute<string>          stderr         := pc4/stderr[nr_OrgEntity];
+						// attribute<float32>         estimate_value := estimate[float32];
+						// attribute<float32>         stderr_value   := stderr[float32];
+						
+						// attribute<string>          name := parm;
+					// }
+					
+					container estimate_params:=
+						for_each_nedv(
+							spatial_vars/name
+							, 'spatial_vars/estimate_value[' + string(id(spatial_vars)) + ']'
+							, void
+							, float32
+						);
+					
+				}
+				
+				unit<uint32> pc4
+				:  StorageName = "%SourceDataDir%/SpatialData/Region_coefficients_pc4_2018apr.csv"
+				,  StorageType = "gdal.vect"
+				,  StorageReadOnly = "True"
+				,  SyncMode = "None"
+				{
+					attribute<string>    parm;
+					attribute<string>    estimate;
+					attribute<float32>   estimate_value := estimate[float32];
+					attribute<string>    stderr;
+					attribute<float32>   stderr_value   := stderr[float32];
+					attribute<string>    variable_name  := substr(parm, 14);
+					
+					unit<uint32> pc4_coeff := subset(left(parm, 2) == 'pc')
+					{
+						attribute<string>          parm           := pc4/parm[nr_OrgEntity];
+						attribute<string>          pc4_code       := replace(parm, '.pc4', '', 'pc', '');
+						attribute<string>          estimate       := pc4/estimate[nr_OrgEntity];
+						attribute<string>          stderr         := pc4/stderr[nr_OrgEntity];
+						attribute<float32>         estimate_value := estimate[float32];
+						attribute<float32>         stderr_value   := stderr[float32];
+						attribute<uint32>          pc4_rel        := rlookup(pc4_code, Brondata/regios/postcode_gebieden/postcode4/name);
+						attribute<geometries/rdc>  geometry         (Brondata/regios/postcode_gebieden/postcode4, poly) := Brondata/regios/postcode_gebieden/postcode4/Geometry;
+						attribute<float32>         estimate_pc4     (Brondata/regios/postcode_gebieden/postcode4)       := estimate_value[invert(pc4_rel)];
+						attribute<float32>         stderr_pc4       (Brondata/regios/postcode_gebieden/postcode4)       := stderr_value[invert(pc4_rel)];
+						attribute<float32>         estimate_pc4_sig (Brondata/regios/postcode_gebieden/postcode4)       := stderr_pc4 >= 0.05f ? 0f : estimate_pc4;
+						attribute<float32>         estimate_pc4_procent (Brondata/regios/postcode_gebieden/postcode4)       := exp(estimate_pc4_sig)*100f;
+						
+						attribute<float32>         est_pc4_grid (NL_grid/domain)       := estimate_pc4_sig[Brondata/regios/postcode_gebieden/postcode4/grid];
+						attribute<float32>         est_pc4_procent_grid (NL_grid/domain)       := estimate_pc4_procent[Brondata/regios/postcode_gebieden/postcode4/grid];
+						attribute<float32>         est_pc4_procent_grid_NL (NL_grid/domain)    := Brondata/regios/nederland/src/IsNederland ? est_pc4_procent_grid : float32((0/0));
+					}
+					
+					unit<uint32> spatial_vars := subset(left(parm, 2) != 'pc' && left(parm, 1) != '2')
+					{
+						attribute<string>          parm           := pc4/parm[nr_OrgEntity];
+						attribute<string>          estimate       := pc4/estimate[nr_OrgEntity];
+						attribute<string>          stderr         := pc4/stderr[nr_OrgEntity];
+						attribute<float32>         estimate_value := estimate[float32];
+						attribute<float32>         stderr_value   := stderr[float32];
+						
+						attribute<string>          name := parm;
+					}
+					container estimate_params:=
+						for_each_nedv(
+							spatial_vars/name
+							, 'spatial_vars/estimate_value[' + string(id(spatial_vars)) + ']'
+							, void
+							, float32
+						);
+				}
+				
+				// unit<uint32> mun_parkinginteraction
+				// :  StorageName = "%SourceDataDir%/SpatialData/region_coefficients_mun_int.csv"
+				// ,  StorageType = "gdal.vect"
+				// ,  StorageReadOnly = "True"
+				// ,  SyncMode = "None"
+				// {
+					// attribute<string>    parm;
+					// attribute<string>    estimate;
+					// attribute<float32>   estimate_value := estimate[float32];
+					// attribute<string>    stderr;
+					// attribute<float32>   stderr_value   := stderr[float32];
+					// attribute<string>    variable_name  := substr(parm, 14);
+					
+					
+					// unit<uint32> parkeerplaats_gem := subset(left(parm, 1) == '1' && parm != '1o.d_privpark#1987o.gem_code_12')
+					// {
+						// attribute<string>          parm           := mun_parkinginteraction/parm[nr_OrgEntity];
+						// attribute<string>          gem_code       := substr(substr(parm, 13), 0, (strlen(substr(parm, 13)) - strlen(right(substr(parm, 13), 12))));
+						// attribute<string>          estimate       := mun_parkinginteraction/estimate[nr_OrgEntity];
+						// attribute<string>          stderr         := mun_parkinginteraction/stderr[nr_OrgEntity];
+						// attribute<float32>         estimate_value := estimate[float32];
+						// attribute<float32>         stderr_value   := stderr[float32];
+						// attribute<uint32>          gem_rel        := rlookup(gem_code, Brondata/regios/gemeenten/gem_2012/gem_uq/gem_code);
+						// attribute<geometries/rdc>  geometry         (Brondata/regios/gemeenten/gem_2012/gem_uq, poly) := Brondata/regios/gemeenten/gem_2012/gem_uq/Geometry;
+						// attribute<float32>         estimate_gem     (Brondata/regios/gemeenten/gem_2012/gem_uq)       := estimate_value[invert(gem_rel)];
+						// attribute<float32>         stderr_gem       (Brondata/regios/gemeenten/gem_2012/gem_uq)       := stderr_value[invert(gem_rel)];
+						// attribute<float32>         estimate_gem_sig (Brondata/regios/gemeenten/gem_2012/gem_uq)       := stderr_gem >= 0.05f ? 0f : estimate_gem;
+						
+						// attribute<float32>         est_gem_grid (NL_grid/domain)       := estimate_gem_sig[Brondata/regios/gemeenten/gem_2012/gem_uq/grid];
+					// }
+					
+					// unit<uint32> gem_coeff := subset(left(parm, 1) == 'g')
+					// {
+						// attribute<string>          parm           := mun_parkinginteraction/parm[nr_OrgEntity];
+						// attribute<string>          gem_code       := replace(parm, '.gem_code_12', '', 'g', '');
+						// attribute<string>          estimate       := mun_parkinginteraction/estimate[nr_OrgEntity];
+						// attribute<string>          stderr         := mun_parkinginteraction/stderr[nr_OrgEntity];
+						// attribute<float32>         estimate_value := estimate[float32];
+						// attribute<float32>         stderr_value   := stderr[float32];
+						// attribute<uint32>          gem_rel        := rlookup(gem_code, Brondata/regios/gemeenten/gem_2012/gem_uq/gem_code);
+						// attribute<geometries/rdc>  geometry         (Brondata/regios/gemeenten/gem_2012/gem_uq, poly) := Brondata/regios/gemeenten/gem_2012/gem_uq/Geometry;
+						// attribute<float32>         estimate_gem     (Brondata/regios/gemeenten/gem_2012/gem_uq)       := estimate_value[invert(gem_rel)];
+						// attribute<float32>         stderr_gem       (Brondata/regios/gemeenten/gem_2012/gem_uq)       := stderr_value[invert(gem_rel)];
+						// attribute<float32>         estimate_gem_sig (Brondata/regios/gemeenten/gem_2012/gem_uq)       := stderr_gem >= 0.05f ? 0f : estimate_gem;
+						
+						// attribute<float32>         est_gem_grid (NL_grid/domain)       := estimate_gem_sig[Brondata/regios/gemeenten/gem_2012/gem_uq/grid];
+					// }
+					
+					// unit<uint32> spatial_vars := subset(left(parm, 1) != '0' && left(parm, 1) != '1' && left(parm, 1) != 'g')
+					// {
+						// attribute<string>          parm           := mun_parkinginteraction/parm[nr_OrgEntity];
+						// attribute<string>          estimate       := mun_parkinginteraction/estimate[nr_OrgEntity];
+						// attribute<string>          stderr         := mun_parkinginteraction/stderr[nr_OrgEntity];
+						// attribute<float32>         estimate_value := estimate[float32];
+						// attribute<float32>         stderr_value   := stderr[float32];
+					// }
+					
+					// attribute<float32>			eengezins_constant (NL_grid/domain) 		:= const(7.08274[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_lnsize	(NL_grid/domain)		:= const(0.644[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_lnlotsize	(NL_grid/domain)		:= const(0.136[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_rooms	(NL_grid/domain)			:= const(0.0177[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_nbadk		(NL_grid/domain)		:= const(0.035[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_maintinside(NL_grid/domain)		:= const(0.282[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_maintoutside(NL_grid/domain)		:= const(0.160[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_d_kk		(NL_grid/domain)		:= const(-0.0263[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_d_CV		(NL_grid/domain)		:= const(0.0555[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_d_erfpacht(NL_grid/domain)		:= const(-0.115[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_d_isol_compl(NL_grid/domain)		:= const(0.0105[float32], NL_grid/domain);
+					attribute<float32>			eengezins_d_privpark	(NL_grid/domain)	:= const(0.0767[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_d_detached	(NL_grid/domain)	:= const(0.184[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_d_semidetached	(NL_grid/domain):= const(0.0968[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_d_garden	(NL_grid/domain)		:= const(0.0414[float32], NL_grid/domain);
+					// attribute<float32>			eengezins_2016 (NL_grid/domain)				:= const(0.260[float32], NL_grid/domain);
+					
+					attribute<float32>			eengezins_regio_constant(NL_grid/domain)	:= const(-12.13[float32], NL_grid/domain);
+					attribute<float32>			eengezins_regio_lninkomen(NL_grid/domain)	:= const(0.116[float32], NL_grid/domain);
+					attribute<float32>			eengezins_regio_uai(NL_grid/domain)			:= const(0.00409[float32], NL_grid/domain);
+					attribute<float32>			eengezins_regio_lndist100kjob(NL_grid/domain):= const(-0.0928[float32], NL_grid/domain);
+					attribute<float32>			eengezins_regio_share_agr(NL_grid/domain)	:= const(0.0482[float32], NL_grid/domain);
+					attribute<float32>			eengezins_regio_share_nat(NL_grid/domain)	:= const(0.0362[float32], NL_grid/domain);
+				// }
+			}
+		}
+	}
+	
+	unit<uint32> values := Brondata/regios/gemeenten/gem_2012/gem_uq
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	{
+		attribute<geometries/rdc> 	geometry (polygon);
+		attribute<uint32>			id;
+		attribute<string> 			name;
+		attribute<string> 			label;
+		attribute<string>			GM_CODE;
+		
+		container avg_size
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/size, Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/size, Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_lotsize
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/lotsize, Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/lotsize, Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_rooms
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/rooms[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/rooms[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_nbadk
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nbadk[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nbadk[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_maintinside
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/maintinside[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/maintinside[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_maintoutside
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/maintoutside[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/maintoutside[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+		
+		container avg_d_kk
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_kk[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_kk[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_CV
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_CV[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_CV[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_erfpacht
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_erfpacht[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_erfpacht[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_isol_compl
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_isol_compl[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_isol_compl[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_privpark
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_privpark[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_privpark[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_garden
+		{
+			container pc4 :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_garden[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/pc4_rel)'
+					, RegioUnit_pc4
+					, float32				
+					);
+			
+			container gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_garden[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/gem_rel)'
+					, RegioUnit_gem
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(pc4/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_pc4/grid], gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+			container grid_gem :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'max_elem(gem/'+typeringen/type_woonpand_2_net/name+'[BronData/regios/gemeenten/gem_2012/gem_uq/grid])'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		
+		attribute<float32>			avg_lninkomen_grid(NL_grid/domain)			:= log(Spatial_data/var_per_gem/inkomen[float32])[RegioUnit_gem/grid];
+		attribute<float32>			avg_inkomen_grid(NL_grid/domain)			:= (Spatial_data/var_per_gem/inkomen[float32] / 1000[float32])[RegioUnit_gem/grid];
+		// attribute<float32>			avg_banen_per_beb_ha_grid(NL_grid/domain)	:= Spatial_data/var_per_gem/banen_per_beb_ha[RegioUnit_gem/grid];
+		// attribute<float32>			avg_lnreistijd_station_grid(NL_grid/domain)	:= log(Spatial_data/var_per_gem/avg_reistijd_station[float32])[RegioUnit_gem/grid];
+		// attribute<float32>			avg_lndistoprit_grid(NL_grid/domain)		:= log(Spatial_data/var_per_gem/avg_distoprit[float32])[RegioUnit_gem/grid];
+		attribute<float32>			share_agriculture_grid(NL_grid/domain)		:= Spatial_data/var_per_gem/share_agriculture[RegioUnit_gem/grid];
+		attribute<float32>			share_nature_grid(NL_grid/domain)			:= Spatial_data/var_per_gem/share_nature[RegioUnit_gem/grid];
+		attribute<float32>			share_urbangreen_grid(NL_grid/domain)		:= Spatial_data/var_per_gem/share_urbangreen[RegioUnit_gem/grid];
+		attribute<float32>			share_residential_grid(NL_grid/domain)		:= Spatial_data/var_per_gem/share_residential[RegioUnit_gem/grid];
+		
+		
+	}
+	
+	unit<uint32> values_NL := Brondata/regios/nederland/src
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	{
+		attribute<geometries/rdc> 	geometry (polygon);
+		// attribute<uint32>			id;
+		// attribute<string> 			name;
+		// attribute<string> 			label;
+		// attribute<string>			GM_CODE;
+		
+		container avg_size
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/size, Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_lotsize
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/lotsize, Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_rooms
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/rooms[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_nbadk
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nbadk[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_maintinside
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/maintinside[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_maintoutside
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/maintoutside[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+		
+		container avg_d_kk
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_kk[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_CV
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_CV[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_erfpacht
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_erfpacht[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_isol_compl
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_isol_compl[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_privpark
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_privpark[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		container avg_d_garden
+		{
+			container nl :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'mean(Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/d_garden[float32], Brondata/NVM/'+typeringen/type_woonpand_2_net/name+'/nl_rel)'
+					, RegioUnit_nl
+					, float32				
+					);
+			
+			container grid :=
+				for_each_nedv(
+					typeringen/type_woonpand_2_net/name
+					, 'nl/'+typeringen/type_woonpand_2_net/name+'[RegioUnit_nl/grid]'
+					, NL_grid/domain
+					, float32	
+				);
+		}	
+				
+		
+		attribute<float32>			avg_lninkomen_grid (NL_grid/domain)			:= log(Spatial_data/var_per_gem/inkomen[float32])[RegioUnit_gem/grid];
+		attribute<float32>			avg_inkomen_grid (NL_grid/domain)			:= (Spatial_data/var_per_gem/inkomen[float32] / 1000[float32])[RegioUnit_gem/grid];
+		// attribute<float32>			avg_banen_per_beb_ha_grid(NL_grid/domain)	:= Spatial_data/var_per_gem/banen_per_beb_ha[RegioUnit_gem/grid];
+		// attribute<float32>			avg_lnreistijd_station_grid(NL_grid/domain)	:= log(Spatial_data/var_per_gem/avg_reistijd_station[float32])[RegioUnit_gem/grid];
+		// attribute<float32>			avg_lndistoprit_grid(NL_grid/domain)		:= log(Spatial_data/var_per_gem/avg_distoprit[float32])[RegioUnit_gem/grid];
+		attribute<float32>			share_agriculture_grid (NL_grid/domain)		:= Spatial_data/var_per_gem/share_agriculture[RegioUnit_gem/grid];
+		attribute<float32>			share_nature_grid (NL_grid/domain)			:= Spatial_data/var_per_gem/share_nature[RegioUnit_gem/grid];
+		attribute<float32>			share_urbangreen_grid (NL_grid/domain)		:= Spatial_data/var_per_gem/share_urbangreen[RegioUnit_gem/grid];
+		attribute<float32>			share_residential_grid (NL_grid/domain)		:= Spatial_data/var_per_gem/share_residential[RegioUnit_gem/grid];
+		
+		
+	}
+	
+	container opbrengsten: using = "hedonisch_prijs_index/values"
+	{
+		parameter<string>	region		:= "gem";
+				
+		container eengezins: 
+			StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<float32>			opbrengsten_rij_struc_gem	(NL_grid/domain)	:= 
+					Brondata/regios/nederland/src/IsNederland ? 
+					exp(
+						coefficienten/gem/eengezins_constant 
+						+ log(avg_size/grid_gem/eengezins) * coefficienten/region_coefficients/eengezins/mun/estimate_params/lnsize
+						+ log(avg_lotsize/grid_gem/eengezins) * coefficienten/region_coefficients/eengezins/mun/estimate_params/lnlotsize
+						+ avg_rooms/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/rooms
+						+ avg_nbadk/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/nbadk
+						+ avg_maintinside/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/maintinside
+						+ avg_maintoutside/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/maintoutside
+						+ avg_d_kk/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/d_kk
+						+ avg_d_CV/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/d_centralheating
+						+ avg_d_erfpacht/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/d_erfpacht
+						+ avg_d_isol_compl/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/d_isol_compl
+						+ avg_d_privpark/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/d_privpark
+						+ avg_d_garden/grid_gem/eengezins * coefficienten/region_coefficients/eengezins/mun/estimate_params/d_garden
+						+ 1[float32] * coefficienten/region_coefficients/eengezins/mun/estimate_params/y2016
+					)
+					: (0/0)[float32];
+					
+			attribute<float32>			opbrengsten_rij_struc_pc4	(NL_grid/domain)	:= 
+					Brondata/regios/nederland/src/IsNederland ? 
+					exp(
+						coefficienten/pc4/eengezins_constant 
+						+ log(avg_size/grid/eengezins) * coefficienten/pc4/eengezins_lnsize
+						+ log(avg_lotsize/grid/eengezins) * coefficienten/pc4/eengezins_lnlotsize
+						+ avg_rooms/grid/eengezins * coefficienten/pc4/eengezins_rooms
+						+ avg_nbadk/grid/eengezins * coefficienten/pc4/eengezins_nbadk
+						+ avg_maintinside/grid/eengezins * coefficienten/pc4/eengezins_maintinside
+						+ avg_maintoutside/grid/eengezins * coefficienten/pc4/eengezins_maintoutside
+						+ avg_d_kk/grid/eengezins * coefficienten/pc4/eengezins_d_kk
+						+ avg_d_CV/grid/eengezins * coefficienten/pc4/eengezins_d_CV
+						+ avg_d_erfpacht/grid/eengezins * coefficienten/pc4/eengezins_d_erfpacht
+						+ avg_d_isol_compl/grid/eengezins * coefficienten/pc4/eengezins_d_isol_compl
+						+ avg_d_privpark/grid/eengezins * coefficienten/pc4/eengezins_d_privpark
+						+ avg_d_garden/grid/eengezins * coefficienten/pc4/eengezins_d_garden
+						+ 1[float32] * coefficienten/pc4/eengezins_2016
+					)
+					: (0/0)[float32];
+					
+			attribute<float32>			opbrengsten_rij_spatial_gem	(NL_grid/domain)	:= 
+				exp(
+					coefficienten/gem/eengezins_regio_constant
+					+ avg_lninkomen_grid * coefficienten/gem/eengezins_regio_lninkomen
+					+ Brondata/Spatial_data/Dani/UAI[float32] * coefficienten/gem/eengezins_regio_uai
+					+ log(Brondata/Spatial_data/Dani/Dist_100k_job_value[float32]) * coefficienten/gem/eengezins_regio_lndist100kjob
+					+ share_agriculture_grid * coefficienten/gem/eengezins_regio_share_agr 
+					+ share_residential_grid * coefficienten/gem/eengezins_regio_share_resi
+				)
+				;			
+			
+			attribute<float32>			opbrengsten_rij_spatial_pc4	(NL_grid/domain)	:= 
+				exp(
+					coefficienten/pc4/eengezins_regio_constant
+					+ avg_lninkomen_grid * coefficienten/pc4/eengezins_regio_lninkomen
+					+ Brondata/Spatial_data/Dani/UAI[float32] * coefficienten/pc4/eengezins_regio_uai
+					+ log(Brondata/Spatial_data/Dani/Dist_100k_job_value[float32]) * coefficienten/pc4/eengezins_regio_lndist100kjob
+					+ share_agriculture_grid * coefficienten/pc4/eengezins_regio_share_agr 
+					+ share_residential_grid * coefficienten/pc4/eengezins_regio_share_resi
+				)
+				;			
+			
+			attribute<float32>			opbrengsten_rij_gem	(NL_grid/domain)	:= opbrengsten_rij_struc_gem * opbrengsten_rij_spatial_gem;
+			attribute<float32>			opbrengsten_rij_pc4	(NL_grid/domain)	:= opbrengsten_rij_struc_pc4 * opbrengsten_rij_spatial_pc4;
+				
+			attribute<float32>			opbrengsten_rij_spec3	(NL_grid/domain)	:= 
+					Brondata/regios/nederland/src/IsNederland ? 
+					exp(
+						coefficienten/spec3/eengezins_constant 
+						+ log(avg_size/grid/eengezins) * coefficienten/spec3/eengezins_lnsize
+						+ log(avg_lotsize/grid/eengezins) * coefficienten/spec3/eengezins_lnlotsize
+						+ avg_rooms/grid/eengezins * coefficienten/spec3/eengezins_rooms
+						+ avg_nbadk/grid/eengezins * coefficienten/spec3/eengezins_nbadk
+						+ avg_maintinside/grid/eengezins * coefficienten/spec3/eengezins_maintinside
+						+ avg_maintoutside/grid/eengezins * coefficienten/spec3/eengezins_maintoutside
+						+ avg_d_kk/grid/eengezins * coefficienten/spec3/eengezins_d_kk
+						+ avg_d_CV/grid/eengezins * coefficienten/spec3/eengezins_d_CV
+						+ avg_d_erfpacht/grid/eengezins * coefficienten/spec3/eengezins_d_erfpacht
+						+ avg_d_isol_compl/grid/eengezins * coefficienten/spec3/eengezins_d_isol_compl
+						+ avg_d_privpark/grid/eengezins * coefficienten/spec3/eengezins_d_privpark
+						+ avg_d_garden/grid/eengezins * coefficienten/spec3/eengezins_d_garden
+						+ 1[float32] * coefficienten/spec3/eengezins_2016
+						+ log(avg_inkomen_grid) * coefficienten/spec3/eengezins_regio_lninkomen
+						+ Brondata/Spatial_data/Dani/UAI[float32] * coefficienten/spec3/eengezins_regio_uai
+						+ log(Brondata/Spatial_data/Dani/Dist_100k_job_value[float32]) * coefficienten/spec3/eengezins_regio_lndist100kjob
+						+ share_agriculture_grid * coefficienten/spec3/eengezins_regio_share_agr 
+						+ share_nature_grid * coefficienten/spec3/eengezins_regio_share_nat
+					)
+					: (0/0)[float32];
+					
+			// attribute<float32>			opbrengsten_rij_gem_parkint	(NL_grid/domain)	:= 
+					// Brondata/regios/nederland/src/IsNederland ? 
+					// exp(
+						// coefficienten/region_coefficients/mun_parkinginteraction/eengezins_constant 
+						// + log(avg_size/grid_gem/eengezins) * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_lnsize
+						// + log(avg_lotsize/grid_gem/eengezins) * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_lnlotsize
+						// + avg_rooms/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_rooms
+						// + avg_nbadk/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_nbadk
+						// + avg_maintinside/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_maintinside
+						// + avg_maintoutside/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_maintoutside
+						// + avg_d_kk/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_kk
+						// + avg_d_CV/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_CV
+						// + avg_d_erfpacht/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_erfpacht
+						// + avg_d_isol_compl/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_isol_compl
+						// + avg_d_privpark/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/parkeerplaats_gem/est_gem_grid
+						// + avg_d_garden/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_garden
+						// + 1[float32] * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_2016
+						// + 1[float32] * coefficienten/region_coefficients/mun_parkinginteraction/gem_coeff/est_gem_grid
+					// )
+					// : (0/0)[float32];
+					
+			// attribute<float32>			opbrengsten_zonderparkeerplaats	(NL_grid/domain)	:= 
+					// Brondata/regios/nederland/src/IsNederland ? 
+					// exp(
+						// coefficienten/region_coefficients/mun_parkinginteraction/eengezins_constant 
+						// + log(avg_size/grid_gem/eengezins) * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_lnsize
+						// + log(avg_lotsize/grid_gem/eengezins) * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_lnlotsize
+						// + avg_rooms/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_rooms
+						// + avg_nbadk/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_nbadk
+						// + avg_maintinside/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_maintinside
+						// + avg_maintoutside/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_maintoutside
+						// + avg_d_kk/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_kk
+						// + avg_d_CV/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_CV
+						// + avg_d_erfpacht/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_erfpacht
+						// + avg_d_isol_compl/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_isol_compl
+						// + avg_d_garden/grid_gem/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_garden
+						// + 1[float32] * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_2016
+						// + 1[float32] * coefficienten/region_coefficients/mun_parkinginteraction/gem_coeff/est_gem_grid
+					// )
+					// : (0/0)[float32];
+			
+			// attribute<float32>			opbrengsten_parkeerplaats_som	(NL_grid/domain)	:= opbrengsten_rij_gem_parkint - opbrengsten_zonderparkeerplaats;
+			// attribute<float32>			opbrengsten_parkeerplaats_procent	(NL_grid/domain)	:= opbrengsten_rij_gem_parkint_avgNL * ( coefficienten/region_coefficients/mun_parkinginteraction/parkeerplaats_gem/est_gem_grid);
+			
+			// attribute<float32>			opbrengsten_rij_gem_parkint_avgNL	(NL_grid/domain)	:= 
+					// Brondata/regios/nederland/src/IsNederland ? 
+					// exp(
+						// coefficienten/region_coefficients/mun_parkinginteraction/eengezins_constant 
+						// + log(values_NL/avg_size/grid/eengezins) * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_lnsize
+						// + log(values_NL/avg_lotsize/grid/eengezins) * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_lnlotsize
+						// + values_NL/avg_rooms/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_rooms
+						// + values_NL/avg_nbadk/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_nbadk
+						// + values_NL/avg_maintinside/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_maintinside
+						// + values_NL/avg_maintoutside/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_maintoutside
+						// + values_NL/avg_d_kk/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_kk
+						// + values_NL/avg_d_CV/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_CV
+						// + values_NL/avg_d_erfpacht/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_erfpacht
+						// + values_NL/avg_d_isol_compl/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_isol_compl
+						// + values_NL/avg_d_privpark/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/parkeerplaats_gem/est_gem_grid
+						// + values_NL/avg_d_garden/grid/eengezins * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_d_garden
+						// + 1[float32] * coefficienten/region_coefficients/mun_parkinginteraction/eengezins_2016
+						// + 1[float32] * coefficienten/region_coefficients/mun_parkinginteraction/gem_coeff/est_gem_grid
+					// )
+					// : (0/0)[float32];
+				
+			// attribute<float32>			opbrengsten_vrij_struc	(NL_grid/domain)	:= 
+				// Brondata/regios/nederland/src/IsNederland ? 
+				// exp(
+					// coefficienten/eengezins_constant 
+					// + log(avg_size/grid/vrijstaand) * coefficienten/eengezins_lnsize
+					// + log(avg_lotsize/grid/vrijstaand) * coefficienten/eengezins_lnlotsize
+					// + avg_rooms/grid/vrijstaand * coefficienten/eengezins_rooms
+					// + avg_nbadk/grid/vrijstaand * coefficienten/eengezins_nbadk
+					// + avg_maintinside/grid/vrijstaand * coefficienten/eengezins_maintinside
+					// + avg_maintoutside/grid/vrijstaand * coefficienten/eengezins_maintoutside
+					// + avg_d_kk/grid/vrijstaand * coefficienten/eengezins_d_kk
+					// + avg_d_CV/grid/vrijstaand * coefficienten/eengezins_d_CV
+					// + avg_d_erfpacht/grid/vrijstaand * coefficienten/eengezins_d_erfpacht
+					// + avg_d_isol_compl/grid/vrijstaand * coefficienten/eengezins_d_isol_compl
+					// + avg_d_privpark/grid/vrijstaand * coefficienten/eengezins_d_privpark
+					// + avg_d_garden/grid/vrijstaand * coefficienten/eengezins_d_garden
+					// * exp(1[float32] * coefficienten/eengezins_d_detached)
+					// + 1[float32] * coefficienten/eengezins_2016
+				// )
+				// : (0/0)[float32]
+				// ;
+			// attribute<float32>			opbrengsten_vrij_spatial	(NL_grid/domain)	:= 
+				// exp(
+					// coefficienten/eengezins_regio_constant
+					// + avg_lninkomen_grid * coefficienten/eengezins_regio_lninkomen
+					// + avg_banen_per_beb_ha_grid * coefficienten/eengezins_regio_banen_per_beb_ha
+					// + log(Brondata/Spatial_data/Dani/Reistijd_station_value[float32]) * coefficienten/eengezins_regio_lnreistijd
+					// + share_agriculture_grid * coefficienten/eengezins_regio_share_agr 
+					// + share_nature_grid * coefficienten/eengezins_regio_share_nat
+				// )
+				// ;			
+			
+			// attribute<float32>			opbrengsten_vrij	(NL_grid/domain)	:= opbrengsten_vrij_struc * opbrengsten_vrij_spatial;
+				
+			// attribute<float32>			opbrengsten_2o1_struc	(NL_grid/domain)	:= 
+				// Brondata/regios/nederland/src/IsNederland ? 
+				// exp(
+					// coefficienten/eengezins_constant 
+					// + log(avg_size/grid/twee_onder_1_kap) * coefficienten/eengezins_lnsize
+					// + log(avg_lotsize/grid/twee_onder_1_kap) * coefficienten/eengezins_lnlotsize
+					// + avg_rooms/grid/twee_onder_1_kap * coefficienten/eengezins_rooms
+					// + avg_nbadk/grid/twee_onder_1_kap * coefficienten/eengezins_nbadk
+					// + avg_maintinside/grid/twee_onder_1_kap * coefficienten/eengezins_maintinside
+					// + avg_maintoutside/grid/twee_onder_1_kap * coefficienten/eengezins_maintoutside
+					// + avg_d_kk/grid/twee_onder_1_kap * coefficienten/eengezins_d_kk
+					// + avg_d_CV/grid/twee_onder_1_kap * coefficienten/eengezins_d_CV
+					// + avg_d_erfpacht/grid/twee_onder_1_kap * coefficienten/eengezins_d_erfpacht
+					// + avg_d_isol_compl/grid/twee_onder_1_kap * coefficienten/eengezins_d_isol_compl
+					// + avg_d_privpark/grid/twee_onder_1_kap * coefficienten/eengezins_d_privpark
+					// + avg_d_garden/grid/twee_onder_1_kap * coefficienten/eengezins_d_garden
+					// * exp(1[float32] * coefficienten/eengezins_d_semidetached)
+					// + 1[float32] * coefficienten/eengezins_2016
+				// )
+				// : (0/0)[float32]
+				// ;
+			// attribute<float32>			opbrengsten_2o1_spatial	(NL_grid/domain)	:= 
+				// exp(
+					// coefficienten/eengezins_regio_constant
+					// + avg_lninkomen_grid * coefficienten/eengezins_regio_lninkomen
+					// + avg_banen_per_beb_ha_grid * coefficienten/eengezins_regio_banen_per_beb_ha
+					// + log(Brondata/Spatial_data/Dani/Reistijd_station_value[float32]) * coefficienten/eengezins_regio_lnreistijd
+					// + share_agriculture_grid * coefficienten/eengezins_regio_share_agr 
+					// + share_nature_grid * coefficienten/eengezins_regio_share_nat
+				// )
+				// ;			
+			
+			// attribute<float32>			opbrengsten_2o1	(NL_grid/domain)	:= opbrengsten_2o1_struc * opbrengsten_2o1_spatial;
+		
+		}
+		
+		container meergezins:
+			StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<float32>			opbrengsten_app_struc_gem	(NL_grid/domain)	:= 
+					Brondata/regios/nederland/src/IsNederland ? 
+					exp(
+						coefficienten/gem/meergezins_constant 
+						+ log(avg_size/grid_gem/appartement) * coefficienten/gem/meergezins_lnsize
+						+ avg_rooms/grid_gem/appartement * coefficienten/gem/meergezins_rooms
+						+ avg_nbadk/grid_gem/appartement * coefficienten/gem/meergezins_nbadk
+						+ avg_maintinside/grid_gem/appartement * coefficienten/gem/meergezins_maintinside
+						+ avg_maintoutside/grid_gem/appartement * coefficienten/gem/meergezins_maintoutside
+						+ avg_d_kk/grid_gem/appartement * coefficienten/gem/meergezins_d_kk
+						+ avg_d_CV/grid_gem/appartement * coefficienten/gem/meergezins_d_CV
+						+ avg_d_erfpacht/grid_gem/appartement * coefficienten/gem/meergezins_d_erfpacht
+						+ avg_d_isol_compl/grid_gem/appartement * coefficienten/gem/meergezins_d_isol_compl
+						+ avg_d_privpark/grid_gem/appartement * coefficienten/gem/meergezins_d_privpark
+						+ 1[float32] * coefficienten/gem/meergezins_2016
+					)
+					: (0/0)[float32];
+					
+			attribute<float32>			opbrengsten_app_struc_pc4	(NL_grid/domain)	:= 
+					Brondata/regios/nederland/src/IsNederland ? 
+					exp(
+						coefficienten/pc4/meergezins_constant 
+						+ log(avg_size/grid/appartement) * coefficienten/pc4/meergezins_lnsize
+						+ avg_rooms/grid/appartement * coefficienten/pc4/meergezins_rooms
+						+ avg_nbadk/grid/appartement * coefficienten/pc4/meergezins_nbadk
+						+ avg_maintinside/grid/appartement * coefficienten/pc4/meergezins_maintinside
+						+ avg_maintoutside/grid/appartement * coefficienten/pc4/meergezins_maintoutside
+						+ avg_d_kk/grid/appartement * coefficienten/pc4/meergezins_d_kk
+						+ avg_d_CV/grid/appartement * coefficienten/pc4/meergezins_d_CV
+						+ avg_d_erfpacht/grid/appartement * coefficienten/pc4/meergezins_d_erfpacht
+						+ avg_d_isol_compl/grid/appartement * coefficienten/pc4/meergezins_d_isol_compl
+						+ avg_d_privpark/grid/appartement * coefficienten/pc4/meergezins_d_privpark
+						+ 1[float32] * coefficienten/pc4/meergezins_2016
+					)
+					: (0/0)[float32];
+					
+			attribute<float32>			opbrengsten_app_spatial_gem	(NL_grid/domain)	:= 
+				exp(
+					coefficienten/gem/meergezins_regio_constant
+					+ avg_lninkomen_grid * coefficienten/gem/meergezins_regio_lninkomen
+					+ Brondata/Spatial_data/Dani/UAI[float32] * coefficienten/gem/meergezins_regio_uai
+					+ log(Brondata/Spatial_data/Dani/Dist_100k_job_value[float32]) * coefficienten/gem/meergezins_regio_lndist100kjob
+					+ share_agriculture_grid * coefficienten/gem/meergezins_regio_share_agr 
+					+ share_residential_grid * coefficienten/gem/meergezins_regio_share_resi
+				)
+				;			
+			
+			attribute<float32>			opbrengsten_app_spatial_pc4	(NL_grid/domain)	:= 
+				exp(
+					coefficienten/pc4/meergezins_regio_constant
+					+ avg_lninkomen_grid * coefficienten/pc4/meergezins_regio_lninkomen
+					+ Brondata/Spatial_data/Dani/UAI[float32] * coefficienten/pc4/meergezins_regio_uai
+					+ log(Brondata/Spatial_data/Dani/Dist_100k_job_value[float32]) * coefficienten/pc4/meergezins_regio_lndist100kjob
+					+ share_agriculture_grid * coefficienten/pc4/meergezins_regio_share_agr 
+					+ share_residential_grid * coefficienten/pc4/meergezins_regio_share_resi
+				)
+				;			
+			
+			attribute<float32>			opbrengsten_app_gem	(NL_grid/domain)	:= opbrengsten_app_struc_gem * opbrengsten_app_spatial_gem;
+			attribute<float32>			opbrengsten_app_pc4	(NL_grid/domain)	:= opbrengsten_app_struc_pc4 * opbrengsten_app_spatial_pc4;
+				
+			attribute<float32>			opbrengsten_app_spec3	(NL_grid/domain)	:= 
+					Brondata/regios/nederland/src/IsNederland ? 
+					exp(
+						coefficienten/spec3/meergezins_constant 
+						+ log(avg_size/grid/appartement) * coefficienten/spec3/meergezins_lnsize
+						+ avg_rooms/grid/appartement * coefficienten/spec3/meergezins_rooms
+						+ avg_nbadk/grid/appartement * coefficienten/spec3/meergezins_nbadk
+						+ avg_maintinside/grid/appartement * coefficienten/spec3/meergezins_maintinside
+						+ avg_maintoutside/grid/appartement * coefficienten/spec3/meergezins_maintoutside
+						+ avg_d_kk/grid/appartement * coefficienten/spec3/meergezins_d_kk
+						+ avg_d_CV/grid/appartement * coefficienten/spec3/meergezins_d_CV
+						+ avg_d_erfpacht/grid/appartement * coefficienten/spec3/meergezins_d_erfpacht
+						+ avg_d_isol_compl/grid/appartement * coefficienten/spec3/meergezins_d_isol_compl
+						+ avg_d_privpark/grid/appartement * coefficienten/spec3/meergezins_d_privpark
+						+ 1[float32] * coefficienten/spec3/meergezins_2016
+						+ log(avg_inkomen_grid) * coefficienten/spec3/meergezins_regio_lninkomen
+						+ Brondata/Spatial_data/Dani/UAI[float32] * coefficienten/spec3/meergezins_regio_uai
+						+ log(Brondata/Spatial_data/Dani/Dist_100k_job_value[float32]) * coefficienten/spec3/meergezins_regio_lndist100kjob
+						+ share_agriculture_grid * coefficienten/spec3/meergezins_regio_share_agr 
+						+ share_nature_grid * coefficienten/spec3/meergezins_regio_share_nat
+					)
+					: (0/0)[float32];
+		}
+	}
+	
+	container Pakketjes
+	: FreeData = "False"
+	{
+		attribute<float32>   opbrengsten_eengezins_pc4  (NL_grid/domain) := opbrengsten/eengezins/opbrengsten_rij_pc4;
+		attribute<float32>   opbrengsten_meergezins_pc4 (NL_grid/domain) := opbrengsten/meergezins/opbrengsten_app_pc4;
+		
+		parameter<float32>   Density_P0_30        := 14f;
+		parameter<float32>   Density_P90_100      := 91f;
+		parameter<float32>   Fr_Single_P0_30      := 0.9f;
+		parameter<float32>   Fr_Single_P90_100    := 0.15f;
+		
+		attribute<float32>   P0_30                      (NL_grid/domain) := (Density_P0_30 * Fr_Single_P0_30) * opbrengsten_eengezins_pc4 
+																				+ (Density_P0_30 * (1f - Fr_Single_P0_30)) * opbrengsten_meergezins_pc4;
+		attribute<float32>   P90_100                    (NL_grid/domain) := (Density_P90_100 * Fr_Single_P90_100) * opbrengsten_eengezins_pc4 
+																				+ (Density_P90_100 * (1f - Fr_Single_P90_100)) * opbrengsten_meergezins_pc4;
+	}
+	
+	
+	container spatial_data
+	{
+		unit<uint32> RegioUnit := RegioUnit_pc4;
+		
+/*		unit<uint32> var_per_pc4 := BronData/regios/Postcode_gebieden/Postcode4
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<geometries/rdc> 	geometry (polygon);
+			attribute<uint32>			id;
+			attribute<uint32> 			pc4_gem_rel;
+			
+			attribute<string> 			label;
+			attribute<string>			GM_CODE;	
+			attribute<string>			name;
+			attribute<uint32>			count_cells_in_region				:= count(urbangreen, RegioUnit/grid);
+			attribute<uint32>			count_cells_in_gem  (RegioUnit_gem)				:= count(urbangreen, RegioUnit_gem/grid);
+
+			attribute<uint32>			bebouwd_gebied (NL_grid/domain)		:= brondata/bestand_bodem_gebruik/src/bebouwd_gebied_2012;
+			attribute<uint32>			count_cells_in_bebouwd				:= sum(bebouwd_gebied, RegioUnit/grid);
+			attribute<uint32>			count_cells_in_bebouwd_gem (RegioUnit_gem)			:= sum(bebouwd_gebied, RegioUnit_gem/grid);
+			
+			attribute<uint32>			UAI	 (NL_grid/domain)				:= bebouwd_gebied == 1[uint32] ? brondata/spatial_data/Dani/UAI : (0/0)[uint32];
+			attribute<uint32>			avg_UAI								:= mean(UAI, RegioUnit/grid);
+			attribute<float32>			dist100kinh (NL_grid/domain)		:= bebouwd_gebied[float32] == 1[float32] ? brondata/spatial_data/Dani/Dist_100k_inh_value : (0/0)[float32];
+			attribute<float32>			avg_dist100kinh						:= mean(dist100kinh, RegioUnit/grid);
+			attribute<float32>			avg_dist100kinh_alles				:= mean(brondata/spatial_data/Dani/Dist_100k_inh_value, RegioUnit/grid);
+			attribute<float32>			avg_dist100kinh_comb				:= !IsDefined(avg_dist100kinh) ? avg_dist100kinh_alles : avg_dist100kinh;
+			attribute<float32>			dist100kjob (NL_grid/domain)		:= bebouwd_gebied[float32] == 1[float32] ? brondata/spatial_data/Dani/Dist_100k_job_value : (0/0)[float32];
+			attribute<float32>			avg_dist100kjob						:= mean(dist100kjob, RegioUnit/grid);
+			attribute<float32>			avg_dist100kjob_alles				:= mean(brondata/spatial_data/Dani/Dist_100k_job_value, RegioUnit/grid);
+			attribute<float32>			avg_dist100kjob_comb				:= !IsDefined(avg_dist100kjob) ? avg_dist100kjob_alles : avg_dist100kjob;
+			attribute<float32>			distNSstation (NL_grid/domain)		:= bebouwd_gebied[float32] == 1[float32] ? brondata/spatial_data/Dani/Dist_NSstation_value : (0/0)[float32];
+			attribute<float32>			avg_distNSstation					:= mean(distNSstation, RegioUnit/grid);
+			attribute<float32>			avg_distNSstation_alles				:= mean(brondata/spatial_data/Dani/Dist_NSstation_value, RegioUnit/grid);
+			attribute<float32>			avg_distNSstation_comb				:= !IsDefined(avg_distNSstation) ? avg_distNSstation_alles : avg_distNSstation;
+			attribute<float32>			reistijd_station (NL_grid/domain)	:= bebouwd_gebied[float32] == 1[float32] ? brondata/spatial_data/Dani/Reistijd_station_value : (0/0)[float32];
+			attribute<float32>			avg_reistijd_station				:= mean(Reistijd_station, RegioUnit/grid);
+			attribute<float32>			avg_reistijd_station_alles			:= mean(brondata/spatial_data/Dani/Reistijd_station_value, RegioUnit/grid);
+			attribute<float32>			avg_reistijd_station_comb			:= !IsDefined(avg_reistijd_station) ? avg_reistijd_station_alles : avg_reistijd_station;
+			attribute<float32>			distoprit (NL_grid/domain)			:= bebouwd_gebied == 1[uint32] ? (Brondata/Spatial_data/NWB/wegen_R_oprit/DistTo[float32] / 1000[float32])[float32] : (0/0)[float32];
+			attribute<float32>			distoprit_NL (NL_grid/domain)		:= (Brondata/Spatial_data/NWB/wegen_R_oprit/DistTo[float32] / 1000[float32]) < 1[float32] ? 1[float32] : (Brondata/Spatial_data/NWB/wegen_R_oprit/DistTo[float32] / 1000[float32]);
+			attribute<float32>			avg_distoprit						:= mean(distoprit, RegioUnit/grid) < 1[float32] ? 1[float32] : mean(distoprit, RegioUnit/grid);
+			attribute<float32>			avg_distoprit_alles					:= mean(distoprit_NL, RegioUnit/grid);
+			attribute<float32>			avg_distoprit_comb					:= !IsDefined(avg_distoprit) ? avg_distoprit_alles : avg_distoprit;
+			attribute<float32>			avg_lndistoprit						:= log(avg_distoprit_comb);
+
+			
+			//per gemeente
+			attribute<uint32>			urbangreen	(NL_grid/domain)		:= brondata/bestand_bodem_gebruik/src/bbg2012_100m_10k[uint32] == 5[uint32] ? 1[uint32] : 0[uint32];
+			attribute<float32>			share_urbangreen (RegioUnit_gem)					:= sum(urbangreen, RegioUnit_gem/grid)[float32] / count_cells_in_gem[float32];
+			attribute<float32>			share_urbangreen_grid(NL_grid/domain)	:= share_urbangreen[RegioUnit_gem/grid];
+			attribute<uint32>			residential	(NL_grid/domain)		:= brondata/bestand_bodem_gebruik/src/bbg2012_100m_10k[uint32] == 1[uint32] ? 1[uint32] : 0[uint32];
+			attribute<float32>			share_residential (RegioUnit_gem)				:= sum(residential, RegioUnit_gem/grid)[float32] / count_cells_in_gem[float32];
+			attribute<float32>			share_residential_grid(NL_grid/domain)	:= share_residential[RegioUnit_gem/grid];
+			attribute<uint32>			agriculture	(NL_grid/domain)		:= brondata/bestand_bodem_gebruik/src/bbg2012_100m_10k[uint32] == 6[uint32] ? 1[uint32] : 0[uint32];
+			attribute<float32>			share_agriculture (RegioUnit_gem)					:= sum(agriculture, RegioUnit_gem/grid)[float32] / count_cells_in_gem[float32];
+			attribute<float32>			share_agriculture_grid(NL_grid/domain)	:= share_agriculture[RegioUnit_gem/grid];
+			attribute<uint32>			nature	(NL_grid/domain)			:= brondata/bestand_bodem_gebruik/src/bbg2012_100m_10k[uint32] == 7[uint32] ? 1[uint32] : 0[uint32];
+			attribute<float32>			share_nature (RegioUnit_gem)						:= sum(nature, RegioUnit_gem/grid)[float32] / count_cells_in_gem[float32];
+			attribute<float32>			share_nature_grid(NL_grid/domain)		:= share_nature[RegioUnit_gem/grid];
+			
+			attribute<nrwoningen>		dens_2012 (NL_grid/domain)			:= Brondata/BAG/snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus/type_woonpand/totaal[nrwoningen] == 0[nrwoningen] ? (0/0)[nrwoningen] : Brondata/BAG/snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus/type_woonpand/totaal[nrwoningen];
+			attribute<nrwoningen>		avg_dens 							:= mean(dens_2012, RegioUnit/grid);
+			attribute<nrwoningen>		totaal_woningen 					:= sum(dens_2012, RegioUnit/grid);
+			attribute<string>			GM_CODE_gem	(RegioUnit_gem)				:= Brondata/regios/gemeenten/gem_2012/gem_uq/GM_CODE;
+			attribute<float32>			inkomen								:= (rjoin(GM_CODE, coefficienten/region_coefficients/mun/GM_CODE, coefficienten/region_coefficients/mun/inkomen))[float32];
+			attribute<float32>			inkomen_grid (NL_grid/domain)		:= inkomen[RegioUnit_pc4/grid];
+																										
+			attribute<float32> 			gg_region_coefficients				:= (rjoin(name, coefficienten/region_coefficients/pc4/pc4, coefficienten/region_coefficients/pc4/gg_estimate_pc4))[float32];
+			attribute<float32> 			gg_region_coefficients_p			:= (rjoin(name, coefficienten/region_coefficients/pc4/pc4, coefficienten/region_coefficients/pc4/gg_p_pc4))[float32];
+			attribute<float32> 			gg_region_coefficients_sign			:= gg_region_coefficients_p < 0.05[float32] ? gg_region_coefficients : (0/0)[float32];
+			attribute<float32> 			gg_region_coefficients_sign_grid (NL_grid/domain)		:= gg_region_coefficients_sign[RegioUnit_pc4/grid];
+			attribute<float32> 			gg_region_coefficients_sign_grid_nl (NL_grid/domain)	:= Brondata/regios/nederland/src/IsNederland ? gg_region_coefficients_sign_grid : (0/0)[float32];
+			
+			attribute<float32> 			app_region_coefficients				:= (rjoin(name, coefficienten/region_coefficients/pc4/pc4, coefficienten/region_coefficients/pc4/app_estimate_pc4))[float32];
+			attribute<float32> 			app_region_coefficients_p			:= (rjoin(name, coefficienten/region_coefficients/pc4/pc4, coefficienten/region_coefficients/pc4/app_p_pc4))[float32];
+			attribute<float32> 			app_region_coefficients_sign			:= app_region_coefficients_p < 0.05[float32] ? app_region_coefficients : (0/0)[float32];
+			attribute<float32> 			app_region_coefficients_sign_grid (NL_grid/domain)		:= app_region_coefficients_sign[RegioUnit_pc4/grid];
+			attribute<float32> 			app_region_coefficients_sign_grid_nl (NL_grid/domain)	:= Brondata/regios/nederland/src/IsNederland ? app_region_coefficients_sign_grid : (0/0)[float32];
+			
+			container PC4_c
+			{
+				attribute<string>			GM_CODE						(RegioUnit_pc4)		:= var_per_pc4/GM_CODE;
+				attribute<string> 			label 						(RegioUnit_pc4)		:= var_per_pc4/Label;
+				attribute<uint32>			avg_UAI						(RegioUnit_pc4)		:= var_per_pc4/avg_UAI;
+				attribute<float32>			avg_dist100kinh_comb		(RegioUnit_pc4)		:= var_per_pc4/avg_dist100kinh_comb;
+				attribute<float32>			avg_dist100kjob_comb		(RegioUnit_pc4)		:= var_per_pc4/avg_dist100kjob_comb;
+				
+				attribute<float32>			avg_distNSstation_comb		(RegioUnit_pc4)		:= var_per_pc4/avg_distNSstation_comb;
+				attribute<float32>			avg_reistijd_station_comb	(RegioUnit_pc4)		:= var_per_pc4/avg_reistijd_station_comb;
+				attribute<float32>			avg_lnreistijd_station_comb	(RegioUnit_pc4)		:= log(var_per_pc4/avg_reistijd_station_comb[float32]);
+				attribute<float32>			avg_distoprit_comb			(RegioUnit_pc4)		:= var_per_pc4/avg_distoprit_comb;
+				attribute<float32>			avg_lndistoprit_comb		(RegioUnit_pc4)		:= log(var_per_pc4/avg_distoprit_comb);
+				
+				attribute<float32>			share_urbangreen			(RegioUnit_pc4)		:= var_per_pc4/share_urbangreen[RegioUnit_pc4/pc4_gem_rel];
+				attribute<float32>			share_residential			(RegioUnit_pc4)		:= var_per_pc4/share_residential[RegioUnit_pc4/pc4_gem_rel];
+				attribute<float32>			share_agriculture			(RegioUnit_pc4)		:= var_per_pc4/share_agriculture[RegioUnit_pc4/pc4_gem_rel];
+				attribute<float32>			share_nature				(RegioUnit_pc4)		:= var_per_pc4/share_nature[RegioUnit_pc4/pc4_gem_rel];
+				attribute<nrwoningen>		avg_dens 					(RegioUnit_pc4)		:= var_per_pc4/avg_dens;
+				attribute<nrwoningen>		totaal_woningen 			(RegioUnit_pc4)		:= var_per_pc4/totaal_woningen;
+				attribute<float32>			inkomen						(RegioUnit_pc4)		:= var_per_pc4/inkomen;
+				attribute<float32>			lninkomen					(RegioUnit_pc4)		:= log(var_per_pc4/inkomen);
+				
+			}
+			container gem
+			{
+				attribute<string>			GM_CODE						(RegioUnit_gem)		:= var_per_pc4/GM_CODE;
+				attribute<string> 			label 						(RegioUnit_gem)		:= var_per_pc4/Label;
+				attribute<uint32>			avg_UAI						(RegioUnit_gem)		:= var_per_pc4/avg_UAI;
+				attribute<float32>			avg_dist100kinh_comb		(RegioUnit_gem)		:= var_per_pc4/avg_dist100kinh_comb;
+				attribute<float32>			avg_dist100kjob_comb		(RegioUnit_gem)		:= var_per_pc4/avg_dist100kjob_comb;
+				
+				attribute<float32>			avg_distNSstation_comb		(RegioUnit_gem)		:= var_per_pc4/avg_distNSstation_comb;
+				attribute<float32>			avg_reistijd_station_comb	(RegioUnit_gem)		:= var_per_pc4/avg_reistijd_station_comb;
+				attribute<float32>			avg_lnreistijd_station_comb	(RegioUnit_gem)		:= log(var_per_pc4/avg_reistijd_station_comb[float32]);
+				attribute<float32>			avg_distoprit_comb			(RegioUnit_gem)		:= var_per_pc4/avg_distoprit_comb;
+				attribute<float32>			avg_lndistoprit_comb		(RegioUnit_gem)		:= log(var_per_pc4/avg_distoprit_comb);
+				
+				attribute<float32>			share_urbangreen			(RegioUnit_gem)		:= var_per_pc4/share_urbangreen[RegioUnit/pc4_gem_rel];
+				attribute<float32>			share_residential			(RegioUnit_gem)		:= var_per_pc4/share_residential[RegioUnit/pc4_gem_rel];
+				attribute<float32>			share_agriculture			(RegioUnit_gem)		:= var_per_pc4/share_agriculture[RegioUnit/pc4_gem_rel];
+				attribute<float32>			share_nature				(RegioUnit_gem)		:= var_per_pc4/share_nature[RegioUnit/pc4_gem_rel];
+				attribute<nrwoningen>		avg_dens 					(RegioUnit_gem)		:= var_per_pc4/avg_dens;
+				attribute<nrwoningen>		totaal_woningen 			(RegioUnit_gem)		:= var_per_pc4/totaal_woningen;
+				attribute<float32>			inkomen						(RegioUnit_gem)		:= var_per_pc4/inkomen;
+				attribute<float32>			lninkomen					(RegioUnit_gem)		:= log(var_per_pc4/inkomen);
+				
+			}
+		}
+*/
+		unit<uint32> var_per_gem := RegioUnit_gem
+		{
+			attribute<geometries/rdc> 	geometry (polygon);
+			attribute<uint32>			id;
+			attribute<string> 			name;
+			
+			attribute<string> 			label;
+			attribute<string>			GM_CODE;							
+			attribute<uint32>			count_cells_in_region				:= count(urbangreen, RegioUnit_gem/grid);
+			attribute<uint32>			count_cells_in_gem  				:= count(urbangreen, RegioUnit_gem/grid);
+
+			attribute<uint32>			bebouwd_gebied (NL_grid/domain)		:= brondata/bestand_bodem_gebruik/src/bebouwd_gebied_2012;
+			attribute<uint32>			count_cells_in_bebouwd				:= sum(bebouwd_gebied, RegioUnit_gem/grid);
+			attribute<uint32>			count_cells_in_bebouwd_gem 			:= sum(bebouwd_gebied, RegioUnit_gem/grid);
+			
+			attribute<uint32>			UAI	 (NL_grid/domain)				:= bebouwd_gebied == 1[uint32] ? brondata/spatial_data/Dani/UAI : (0/0)[uint32];
+			attribute<uint32>			avg_UAI								:= mean(UAI, RegioUnit_gem/grid);
+			attribute<float32>			dist100kinh (NL_grid/domain)		:= bebouwd_gebied[float32] == 1[float32] ? brondata/spatial_data/Dani/Dist_100k_inh_value : (0/0)[float32];
+			attribute<float32>			avg_dist100kinh						:= mean(dist100kinh, RegioUnit_gem/grid);
+			attribute<float32>			avg_dist100kinh_alles				:= mean(brondata/spatial_data/Dani/Dist_100k_inh_value, RegioUnit_gem/grid);
+			attribute<float32>			avg_dist100kinh_comb				:= !IsDefined(avg_dist100kinh) ? avg_dist100kinh_alles : avg_dist100kinh;
+			attribute<float32>			dist100kjob (NL_grid/domain)		:= bebouwd_gebied[float32] == 1[float32] ? brondata/spatial_data/Dani/Dist_100k_job_value : (0/0)[float32];
+			attribute<float32>			avg_dist100kjob						:= mean(dist100kjob, RegioUnit_gem/grid);
+			attribute<float32>			avg_dist100kjob_alles				:= mean(brondata/spatial_data/Dani/Dist_100k_job_value, RegioUnit_gem/grid);
+			attribute<float32>			avg_dist100kjob_comb				:= !IsDefined(avg_dist100kjob) ? avg_dist100kjob_alles : avg_dist100kjob;
+			attribute<float32>			distNSstation (NL_grid/domain)		:= bebouwd_gebied[float32] == 1[float32] ? brondata/spatial_data/Dani/Dist_NSstation_value : (0/0)[float32];
+			attribute<float32>			avg_distNSstation					:= mean(distNSstation, RegioUnit_gem/grid);
+			attribute<float32>			avg_distNSstation_alles				:= mean(brondata/spatial_data/Dani/Dist_NSstation_value, RegioUnit_gem/grid);
+			attribute<float32>			avg_distNSstation_comb				:= !IsDefined(avg_distNSstation) ? avg_distNSstation_alles : avg_distNSstation;
+			attribute<float32>			reistijd_station (NL_grid/domain)	:= bebouwd_gebied[float32] == 1[float32] ? brondata/spatial_data/Dani/Reistijd_station_value : (0/0)[float32];
+			attribute<float32>			avg_reistijd_station				:= mean(Reistijd_station, RegioUnit_gem/grid);
+			attribute<float32>			avg_reistijd_station_alles			:= mean(brondata/spatial_data/Dani/Reistijd_station_value, RegioUnit_gem/grid);
+			attribute<float32>			avg_reistijd_station_comb			:= !IsDefined(avg_reistijd_station) ? avg_reistijd_station_alles : avg_reistijd_station;
+			attribute<float32>			distoprit (NL_grid/domain)			:= bebouwd_gebied == 1[uint32] ? (Brondata/Spatial_data/NWB/wegen_R_oprit/DistTo[float32] / 1000[float32])[float32] : (0/0)[float32];
+			attribute<float32>			distoprit_NL (NL_grid/domain)		:= (Brondata/Spatial_data/NWB/wegen_R_oprit/DistTo[float32] / 1000[float32]) < 1[float32] ? 1[float32] : (Brondata/Spatial_data/NWB/wegen_R_oprit/DistTo[float32] / 1000[float32]);
+			attribute<float32>			avg_distoprit						:= mean(distoprit, RegioUnit_gem/grid) < 1[float32] ? 1[float32] : mean(distoprit, RegioUnit_gem/grid);
+			attribute<float32>			avg_distoprit_alles					:= mean(distoprit_NL, RegioUnit_gem/grid);
+			attribute<float32>			avg_distoprit_comb					:= !IsDefined(avg_distoprit) ? avg_distoprit_alles : avg_distoprit;
+			attribute<float32>			avg_lndistoprit						:= log(avg_distoprit_comb);
+
+			
+			//per gemeente
+			attribute<uint32>			urbangreen	(NL_grid/domain)		:= brondata/bestand_bodem_gebruik/src/bbg2012_100m_10k[uint32] == 5[uint32] ? 1[uint32] : 0[uint32];
+			attribute<float32>			share_urbangreen 					:= sum(urbangreen, RegioUnit_gem/grid)[float32] / count_cells_in_gem[float32];
+			attribute<float32>			share_urbangreen_grid (NL_grid/domain)	:= share_urbangreen[RegioUnit_gem/grid];
+			attribute<uint32>			residential	(NL_grid/domain)		:= brondata/bestand_bodem_gebruik/src/bbg2012_100m_10k[uint32] == 1[uint32] ? 1[uint32] : 0[uint32];
+			attribute<float32>			share_residential 				:= sum(residential, RegioUnit_gem/grid)[float32] / count_cells_in_gem[float32];
+			attribute<float32>			share_residential_grid(NL_grid/domain)	:= share_residential[RegioUnit_gem/grid];
+			attribute<uint32>			agriculture	(NL_grid/domain)		:= brondata/bestand_bodem_gebruik/src/bbg2012_100m_10k[uint32] == 6[uint32] ? 1[uint32] : 0[uint32];
+			attribute<float32>			share_agriculture 					:= sum(agriculture, RegioUnit_gem/grid)[float32] / count_cells_in_gem[float32];
+			attribute<float32>			share_agriculture_grid (NL_grid/domain)	:= share_agriculture[RegioUnit_gem/grid], StorageName = "%SourceDataDir%/SpatialData/share_agriculture.tif";
+			attribute<uint32>			nature	(NL_grid/domain)			:= brondata/bestand_bodem_gebruik/src/bbg2012_100m_10k[uint32] == 7[uint32] ? 1[uint32] : 0[uint32];
+			attribute<float32>			share_nature 						:= sum(nature, RegioUnit_gem/grid)[float32] / count_cells_in_gem[float32];
+			attribute<float32>			share_nature_grid (NL_grid/domain)		:= share_nature[RegioUnit_gem/grid], StorageName = "%SourceDataDir%/SpatialData/share_nature.tif";
+			
+			attribute<nrwoningen>		dens_2012 (NL_grid/domain)			:= Brondata/BAG/snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus/type_woonpand/totaal[nrwoningen] == 0[nrwoningen] ? (0/0)[nrwoningen] : Brondata/BAG/snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus/type_woonpand/totaal[nrwoningen];
+			attribute<nrwoningen>		avg_dens 							:= mean(dens_2012, RegioUnit_gem/grid);
+			attribute<nrwoningen>		totaal_woningen 					:= sum(dens_2012, RegioUnit_gem/grid);
+			attribute<string>			GM_CODE_gem							:= Brondata/regios/gemeenten/gem_2012/gem_uq/GM_CODE;
+			attribute<float32>			inkomen								:= (rjoin(GM_CODE, Brondata/Overig/inkomen_gemeente/GM_CODE, /Brondata/Overig/inkomen_gemeente/inkomen))[float32];
+			attribute<float32>			inkomen_grid (NL_grid/domain)		:= inkomen[RegioUnit_gem/grid];
+			
+			attribute<float32> 			gg_region_coefficients				:= (rjoin(GM_CODE, coefficienten/region_coefficients/mun/GM_CODE, coefficienten/region_coefficients/mun/gg_estimate_gem))[float32];
+			attribute<float32> 			gg_region_coefficients_p			:= (rjoin(GM_CODE, coefficienten/region_coefficients/mun/GM_CODE, coefficienten/region_coefficients/mun/gg_p_gem))[float32];
+			attribute<float32> 			gg_region_coefficients_sign			:= gg_region_coefficients_p < 0.05[float32] ? gg_region_coefficients : (0/0)[float32];
+			attribute<float32> 			gg_region_coefficients_sign_grid (NL_grid/domain)		:= gg_region_coefficients_sign[RegioUnit_gem/grid];
+			attribute<float32> 			gg_region_coefficients_sign_grid_nl (NL_grid/domain)	:= Brondata/regios/nederland/src/IsNederland ? gg_region_coefficients_sign_grid : (0/0)[float32];
+			
+			attribute<float32> 			app_region_coefficients				:= (rjoin(GM_CODE, coefficienten/region_coefficients/mun/GM_CODE, coefficienten/region_coefficients/mun/app_estimate_gem))[float32];
+			attribute<float32> 			app_region_coefficients_p			:= (rjoin(GM_CODE, coefficienten/region_coefficients/mun/GM_CODE, coefficienten/region_coefficients/mun/app_p_gem))[float32];
+			attribute<float32> 			app_region_coefficients_sign		:= app_region_coefficients_p < 0.05[float32] ? app_region_coefficients : (0/0)[float32];
+			attribute<float32> 			app_region_coefficients_sign_grid (NL_grid/domain)		:= app_region_coefficients_sign[RegioUnit_gem/grid];
+			attribute<float32> 			app_region_coefficients_sign_grid_nl (NL_grid/domain)	:= Brondata/regios/nederland/src/IsNederland ? app_region_coefficients_sign_grid : (0/0)[float32];
+			
+			container gem
+			{
+				attribute<string>			GM_CODE						(RegioUnit_gem)		:= var_per_gem/GM_CODE;
+				attribute<string> 			label 						(RegioUnit_gem)		:= var_per_gem/Label;
+				attribute<uint32>			avg_UAI						(RegioUnit_gem)		:= var_per_gem/avg_UAI;
+				attribute<float32>			avg_dist100kinh_comb		(RegioUnit_gem)		:= var_per_gem/avg_dist100kinh_comb;
+				attribute<float32>			avg_dist100kjob_comb		(RegioUnit_gem)		:= var_per_gem/avg_dist100kjob_comb;
+				
+				attribute<float32>			avg_distNSstation_comb		(RegioUnit_gem)		:= var_per_gem/avg_distNSstation_comb;
+				attribute<float32>			avg_reistijd_station_comb	(RegioUnit_gem)		:= var_per_gem/avg_reistijd_station_comb;
+				attribute<float32>			avg_lnreistijd_station_comb	(RegioUnit_gem)		:= log(var_per_gem/avg_reistijd_station_comb[float32]);
+				attribute<float32>			avg_distoprit_comb			(RegioUnit_gem)		:= var_per_gem/avg_distoprit_comb;
+				attribute<float32>			avg_lndistoprit_comb		(RegioUnit_gem)		:= log(var_per_gem/avg_distoprit_comb);
+				
+				attribute<float32>			share_urbangreen			(RegioUnit_gem)		:= var_per_gem/share_urbangreen;
+				attribute<float32>			share_residential			(RegioUnit_gem)		:= var_per_gem/share_residential;
+				attribute<float32>			share_agriculture			(RegioUnit_gem)		:= var_per_gem/share_agriculture;
+				attribute<float32>			share_nature				(RegioUnit_gem)		:= var_per_gem/share_nature;
+				attribute<nrwoningen>		avg_dens 					(RegioUnit_gem)		:= var_per_gem/avg_dens;
+				attribute<nrwoningen>		totaal_woningen 			(RegioUnit_gem)		:= var_per_gem/totaal_woningen;
+				attribute<float32>			inkomen						(RegioUnit_gem)		:= var_per_gem/inkomen;
+				attribute<float32>			lninkomen					(RegioUnit_gem)		:= log(var_per_gem/inkomen);
+				
+			}
+		}
+	
+	}
+	
+	
+	
+	
+}

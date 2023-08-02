@@ -1,0 +1,1702 @@
+container sloop_nieuwbouw_snapshots :  using = "eenheden;typeringen"
+{    
+	// unit<uint32>      RegioUnit_wijk      := brondata/regios/wijken/src_2019;
+	// unit<uint32>      RegioUnit_AgglWijk  := ='brondata/regios/wijken/src_2019/BuurtInAggl';
+	unit<uint32>      RegioUnit_wijk18    := brondata/regios/wijken/src_2018;
+	// unit<uint32>      RegioUnit_gem       := BronData/regios/gemeenten/gem_src/j2019;
+	unit<uint32>      RegioUnit_Aggl      := Brondata/regios/gemeenten/gem_src/j2019/Agglomeration_uq;
+	// unit<uint32>      RegioUnit_corop     := Brondata/regios/corop/src_2012;
+	
+	
+	unit<uint32>      Vbo_2012            := /Brondata/BAG/Snapshots/VBOs/Y201201/src;
+	unit<uint32>      Vbo_2013            := /Brondata/BAG/Snapshots/VBOs/Y201301/src;
+	unit<uint32>      Vbo_2014            := /Brondata/BAG/Snapshots/VBOs/Y201401/src;
+	unit<uint32>      Vbo_2015            := /Brondata/BAG/Snapshots/VBOs/Y201501/src;
+	unit<uint32>      Vbo_2016            := /Brondata/BAG/Snapshots/VBOs/Y201601/src;
+	unit<uint32>      Vbo_2017            := /Brondata/BAG/Snapshots/VBOs/Y201701/src;
+	unit<uint32>      Vbo_2018            := /Brondata/BAG/Snapshots/VBOs/Y201801/src;
+	unit<uint32>      Vbo_2019            := /Brondata/BAG/Snapshots/VBOs/Y201901/src;
+	unit<uint32>      Vbo_2020            := /Brondata/BAG/Snapshots/VBOs/Y202001/src;
+	unit<uint32>      Vbo_2021            := /Brondata/BAG/Snapshots/VBOs/Y202101/src;
+	unit<uint32>      Pand_2012           := /Brondata/BAG/Snapshots/Panden/Y201201/pand;
+	unit<uint32>      Pand_2013           := /Brondata/BAG/Snapshots/Panden/Y201301/pand;
+	unit<uint32>      Pand_2014           := /Brondata/BAG/Snapshots/Panden/Y201401/pand;
+	unit<uint32>      Pand_2015           := /Brondata/BAG/Snapshots/Panden/Y201501/pand;
+	unit<uint32>      Pand_2016           := /Brondata/BAG/Snapshots/Panden/Y201601/pand;
+	unit<uint32>      Pand_2017           := /Brondata/BAG/Snapshots/Panden/Y201701/pand;
+	unit<uint32>      Pand_2018           := /Brondata/BAG/Snapshots/Panden/Y201801/pand;
+	unit<uint32>      Pand_2019           := /Brondata/BAG/Snapshots/Panden/Y201901/pand;
+	unit<uint32>      Pand_2020           := /Brondata/BAG/Snapshots/Panden/Y202001/pand;
+	unit<uint32>      Pand_2021           := /Brondata/BAG/Snapshots/Panden/Y202101/pand;
+	unit<uint32>      Perceel             := /Brondata/BRK/Perceel;
+	
+	unit<uint8> Redev_Types : nrofrows = 13
+	{
+		attribute<string> name : ['SN_Woon_Woon','SN_NietWoon_Woon','SN_Mixed_Woon'
+									, 'Toevoeging_Woon', 'Onttrekking_Woon'
+									, 'Onveranderd_Woon','Onveranderd_NietWoon','Onveranderd_Mixed'
+									, 'Nieuwbouw_Wonen_OpOnbebouwd', 'Nieuwbouw_Mixed_OpOnbebouwd'
+									, 'Nieuwbouw_Wonen_OpBebouwd', 'Nieuwbouw_Mixed_OpBebouwd'
+									, 'Transformatie_Woon'
+								];
+		attribute<string> Label    := name, DialogType = "LabelText";
+		
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+	
+	unit<uint8> Woon_NietWoon : nrofrows = 2
+	{
+		attribute<string> name : ['Woon','NietWoon'];
+		attribute<string> Label    := name, DialogType = "LabelText";
+		
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+	
+	
+	unit<uint8> RedevMainTypes : nrofrows = 6
+	{
+		attribute<string> name :  ['Sloop','Nieuwbouw', 'Toevoeging', 'Onttrekking','Transformatie','Onveranderd'];
+		attribute<string> Label   := name, DialogType = "LabelText";
+		
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+	
+	
+	unit<uint8> RedevSub_Types := combine_uint8(Woon_NietWoon, RedevMainTypes)
+	{
+		attribute<string> WoonNietWoon := Woon_NietWoon/name[nr_1];
+		attribute<string> MainTypes    := RedevMainTypes/name[nr_2];
+		attribute<string> Sub_Types    := MainTypes + '_' + WoonNietWoon;
+		
+	}
+	unit<uint8> RedevSubMixed_Types : nrofrows = 5
+	{
+		attribute<string> name : ['Sloop_Mixed','Nieuwbouw_Mixed','Toevoeging_Mixed','Onttrekking_Mixed','Onveranderd_Mixed'];
+		attribute<string>   Main :  ['Sloop','Nieuwbouw','Toevoeging','Onttrekking','Onveranderd'];
+		attribute<string> Label   := name, DialogType = "LabelText";
+		
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+	
+	unit<uint32> vbos := ='union_unit('+AsList('VBO_'+string(typeringen/jaren12_21/VALUE),',')+')'
+	{ 
+		attribute<geometries/rdc>       geometry                                   := ='union_data(.,'+AsList('VBO_'+string(typeringen/jaren12_21/VALUE)+'/geometry',',')+')';
+		attribute<vbo_status>           status_rel                                 := ='union_data(.,'+AsList('VBO_'+string(typeringen/jaren12_21/VALUE)+'/status_rel',',')+')';
+		attribute<jaar>                 BAG_jaar                                   := union_data(., const(2012,Vbo_2012), const(2013,Vbo_2013) , const(2014,Vbo_2014) , const(2015,Vbo_2015) , const(2016,Vbo_2016) , const(2017,Vbo_2017) , const(2018,Vbo_2018) , const(2019,Vbo_2019) , const(2020,Vbo_2020), const(2021,Vbo_2021))[jaar];
+		attribute<string>               identificatie                              := ='union_data(.,'+AsList('VBO_'+string(typeringen/jaren12_21/VALUE)+'/identificatie',',')+')';
+		attribute<uq_identificatie>     uq_rel                                     := rlookup(identificatie, uq_identificatie/identificatie);
+		attribute<string>               pand_id_geom                               := ='union_data(.,'+AsList('VBO_'+string(typeringen/jaren12_21/VALUE)+'/pand_id_geom',',')+')';
+		attribute<pand_status>          pand_status_rel                            := ='union_data(.,'+AsList('VBO_'+string(typeringen/jaren12_21/VALUE)+'/pand_status_rel',',')+')';
+		attribute<vbo_gebruiksdoel>     gebruiksdoel                               := ='union_data(.,'+AsList('VBO_'+string(typeringen/jaren12_21/VALUE)+'/gebruiksdoel_class',',')+')';
+		attribute<m2>                   oppervlakte                                := ='union_data(.,'+AsList('VBO_'+string(typeringen/jaren12_21/VALUE)+'/oppervlakte_trunc',',')+')[m2]';
+	
+		unit<uint32> uq_identificatie := unique(identificatie)
+		, FreeData = "false"
+		{ 
+			attribute<geometries/rdc>       geometry                         := rjoin(identificatie, ../identificatie, ../geometry);
+			attribute<string>               identificatie                    := values;
+			attribute<vbo_gebruiksdoel>     gebruiksdoel                     := modus(../gebruiksdoel, ../uq_rel);
+			attribute<vbo_gebruiksdoel>     gebruiksdoel_first               := first(../gebruiksdoel, ../uq_rel);
+			attribute<vbo_gebruiksdoel>     gebruiksdoel_last                := last(../gebruiksdoel, ../uq_rel);
+			attribute<vbo_status>           vbo_status_first                 := first(../status_rel, ../uq_rel);
+			attribute<vbo_status>           vbo_status_last                  := last(../status_rel, ../uq_rel);
+			attribute<pand_status>          pand_status_first                := first(../pand_status_rel, ../uq_rel);
+			attribute<pand_status>          pand_status_last                 := last(../pand_status_rel, ../uq_rel);
+			attribute<string>               pand_id_geom                     := first(../pand_id_geom, ../uq_rel);
+			
+			attribute<m2>                   O_vbo_opp_woon                   := gebruiksdoel_first == vbo_gebruiksdoel/v/woon ? first( ../oppervlakte, ../uq_rel) : 0[m2];
+			attribute<m2>                   O_vbo_opp_niet_woon              := (gebruiksdoel_first != vbo_gebruiksdoel/v/woon && IsDefined(gebruiksdoel_first)) ? first( ../oppervlakte, ../uq_rel) : 0[m2];
+			attribute<m2>                   N_vbo_opp_woon                   := gebruiksdoel_last == vbo_gebruiksdoel/v/woon ? last( ../oppervlakte, ../uq_rel) : 0[m2];
+			attribute<m2>                   N_vbo_opp_niet_woon              := (gebruiksdoel_last != vbo_gebruiksdoel/v/woon && IsDefined(gebruiksdoel_last)) ? last( ../oppervlakte, ../uq_rel) : 0[m2];
+			
+			container Gebruiksdoel_PerJaar :=
+				for_each_nedv(
+					jaren12_21/name
+					, 'rjoin(identificatie, vbo_'+string(jaren12_21/value)+'/identificatie, vbo_'+string(jaren12_21/value)+'/gebruiksdoel_class)'
+					, uq_identificatie
+					, vbo_gebruiksdoel
+				);
+			
+			container IsWoon_Perjaar :=
+				for_each_nedv(
+					jaren12_21/name
+					, 'Gebruiksdoel_PerJaar/'+jaren12_21/name+' == vbo_gebruiksdoel/v/woon'
+					, uq_identificatie
+					, bool
+				);
+				
+			container IsNietWoon_PerJaar :=
+				for_each_nedv(
+					jaren12_21/name
+					, 'Gebruiksdoel_PerJaar/'+jaren12_21/name+' != vbo_gebruiksdoel/v/woon'
+					, uq_identificatie
+					, bool
+				);
+
+			container VBO_Status_perJaar :=
+				for_each_nedv(
+					jaren12_21/name
+					, 'rjoin(identificatie, vbo_'+string(jaren12_21/value)+'/identificatie, vbo_'+string(jaren12_21/value)+'/status_rel)'
+					, uq_identificatie
+					, vbo_status
+				);
+			
+			container Pand_Status_perJaar :=
+				for_each_nedv(
+					jaren12_21/name
+					, 'rjoin(identificatie, vbo_'+string(jaren12_21/value)+'/identificatie, vbo_'+string(jaren12_21/value)+'/pand_status_rel)'
+					, uq_identificatie
+					, pand_status
+				)
+			{
+				attribute<bool> PandHasSloopStatussen (..) := =AsList(jaren12_21/name+' == pand_status/v/sloopvergunning_verleend', ' || ')+ ' || ' +AsList(jaren12_21/name+' == pand_status/v/pand_gesloopt', ' || ');
+			}
+				
+			container IsVBOVoorraad_PerJaar :=
+				for_each_nedv(
+					jaren12_21/name
+					, 'VBO_Status_PerJaar/'+jaren12_21/name+' == vbo_status/v/verblijfsobject_in_gebruik || VBO_Status_PerJaar/'+jaren12_21/name+' == vbo_status/v/verblijfsobject_in_gebruik_niet_ingemeten || VBO_Status_PerJaar/'+jaren12_21/name+' == vbo_status/v/verblijfsobject_buiten_gebruik'
+					, uq_identificatie
+					, bool
+				)
+			{
+				attribute<bool>                 IsNietVBOVoorraad_Period  (..)             := =AsList('!./'+Jaren12_21/name, '&&');
+			}
+			
+			container IsPandVoorraad_PerJaar :=
+				for_each_nedv(
+					jaren12_21/name
+					, 'Pand_Status_PerJaar/'+jaren12_21/name+' == pand_status/v/pand_in_gebruik || Pand_Status_PerJaar/'+jaren12_21/name+' == pand_status/v/pand_in_gebruik_niet_ingemeten || Pand_Status_PerJaar/'+jaren12_21/name+' == pand_status/v/pand_buiten_gebruik'
+					, uq_identificatie
+					, bool
+				)
+			{
+				attribute<bool>                 IsNietPandVoorraad_Period  (..)             := =AsList('!./'+Jaren12_21/name, '&&');
+			}
+			
+			
+			container GevormdMetBouwstatus_PerJaar :=
+				for_each_nedv(
+					jaren12_20/name
+					, 'VBO_Status_PerJaar/'+jaren12_20/name+' == vbo_status/v/verblijfsobject_gevormd && (Pand_Status_PerJaar/'+jaren12_20/name+' == pand_status/v/bouwvergunning_verleend || Pand_Status_PerJaar/'+jaren12_20/name+' == pand_status/v/bouw_gestart)'
+					, uq_identificatie
+					, bool
+				)
+			{
+				attribute<bool>                 Period   (..) :=  =AsList('./'+Jaren12_20/name, '||');
+			}
+				
+
+			////////////////////////////////////////////
+			
+			container IsToevoegingFunctie_PerJaar :=
+				for_each_nedv(
+					jaren12_20/name
+					, 'IsVBOVoorraad_PerJaar/'+jaren12_20/name+' && IsNietWoon_Perjaar/'+jaren12_20/name+' && IsVBOVoorraad_PerJaar/'+jaren12_20/next_name+' && IsWoon_Perjaar/'+jaren12_20/next_name+''
+					, uq_identificatie
+					, bool
+				)
+			{
+				attribute<bool>                 Period (..) :=  =AsList('./'+string(Jaren12_20/name), '||');
+				attribute<jaren12_20_nodata>    Jaar   (..) := ='(argmax(!Period,'+AsItemList('./'+string(Jaren12_20/name))+'))[jaren12_20_nodata]';
+			}
+			
+			container IsOnttrekkingFunctie_perJaar :=
+				for_each_nedv(
+					jaren12_20/name
+					, 'IsVBOVoorraad_PerJaar/'+jaren12_20/name+' && IsWoon_Perjaar/'+jaren12_20/name+' && IsVBOVoorraad_PerJaar/'+jaren12_20/next_name+' && IsNietWoon_Perjaar/'+jaren12_20/next_name+''
+					, uq_identificatie
+					, bool
+				)
+			{
+				attribute<bool>                 Period (..) :=  =AsList('./'+string(Jaren12_20/name), '||');
+				attribute<jaren12_20_nodata>    Jaar   (..) := ='(argmax(!Period,'+AsItemList('./'+string(Jaren12_20/name))+'))[jaren12_20_nodata]';
+			}
+			
+			////////////////////
+			container Cplus
+			{
+				container PerJaar :=
+					for_each_nedv(
+						jaren12_20/name
+						, '(VBO_Status_PerJaar/'+jaren12_20/name+' == vbo_status/v/verblijfsobject_ingetrokken || VBO_Status_PerJaar/'+jaren12_20/name+' == vbo_status/v/niet_gerealiseerd_verblijfsobject) && IsVBOVoorraad_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+					
+				container PerJaar_Woon :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar/'+jaren12_20/name+' && IsWoon_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container PerJaar_NietWoon :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar/'+jaren12_20/name+' && IsNietWoon_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+			}
+			
+			container Cmin
+			{
+				container PerJaar :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'IsVBOVoorraad_PerJaar/'+jaren12_20/name+' && (VBO_Status_PerJaar/'+jaren12_20/next_name+' == vbo_status/v/verblijfsobject_gevormd || VBO_Status_PerJaar/'+jaren12_20/next_name+' == vbo_status/v/niet_gerealiseerd_verblijfsobject)'
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+					
+				container PerJaar_Woon :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar/'+jaren12_20/name+' && IsWoon_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container PerJaar_NietWoon :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar/'+jaren12_20/name+' && IsNietWoon_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+			}
+
+			container Onttrekking
+			{
+				container PerJaar_src :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'IsVBOVoorraad_PerJaar/'+jaren12_20/name+' && VBO_Status_PerJaar/'+jaren12_20/next_name+' == vbo_status/v/verblijfsobject_ingetrokken && ((Pand_Status_PerJaar/'+jaren12_20/next_name+' != pand_status/v/sloopvergunning_verleend && Pand_Status_PerJaar/'+jaren12_20/next_name+' != pand_status/v/pand_gesloopt) || !IsDefined(Pand_Status_PerJaar/'+jaren12_20/next_name+'))'
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container PerJaar :=
+					for_each_nedv(
+						jaren12_20/name
+						, '(PerJaar_src/'+jaren12_20/name+' || OnttrekkingMetOnlogischeTussenstap_PerJaar/'+jaren12_20/name+') && !Sloop/IngetrokkenVoorSloop/Period && !Sloop/IngetrokkenEnSloopInReeks/Period' 
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+					
+				container OnttrekkingMetOnlogischeTussenstap_PerJaar //vbo voorraad - vbo niet bestaand - vbo teruggetrokken / pand voorraad - pand niet bestaand - pand voorraad
+				{
+					attribute<bool>                 Y2012  (...) := const(false,...);
+					attribute<bool>                 Y2013  (...) := IsVBOVoorraad_PerJaar/Y2012 && !IsDefined(VBO_Status_PerJaar/Y2013) && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2012 && !IsDefined(Pand_Status_PerJaar/Y2013) && IsPandVoorraad_PerJaar/Y2014;
+					attribute<bool>                 Y2014  (...) := IsVBOVoorraad_PerJaar/Y2013 && !IsDefined(VBO_Status_PerJaar/Y2014) && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2013 && !IsDefined(Pand_Status_PerJaar/Y2014) && IsPandVoorraad_PerJaar/Y2015;
+					attribute<bool>                 Y2015  (...) := IsVBOVoorraad_PerJaar/Y2014 && !IsDefined(VBO_Status_PerJaar/Y2015) && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2014 && !IsDefined(Pand_Status_PerJaar/Y2015) && IsPandVoorraad_PerJaar/Y2016;
+					attribute<bool>                 Y2016  (...) := IsVBOVoorraad_PerJaar/Y2015 && !IsDefined(VBO_Status_PerJaar/Y2016) && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2015 && !IsDefined(Pand_Status_PerJaar/Y2016) && IsPandVoorraad_PerJaar/Y2017;
+					attribute<bool>                 Y2017  (...) := IsVBOVoorraad_PerJaar/Y2016 && !IsDefined(VBO_Status_PerJaar/Y2017) && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2016 && !IsDefined(Pand_Status_PerJaar/Y2017) && IsPandVoorraad_PerJaar/Y2018;
+					attribute<bool>                 Y2018  (...) := IsVBOVoorraad_PerJaar/Y2017 && !IsDefined(VBO_Status_PerJaar/Y2018) && VBO_Status_PerJaar/Y2019 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2017 && !IsDefined(Pand_Status_PerJaar/Y2018) && IsPandVoorraad_PerJaar/Y2019;
+					attribute<bool>                 Y2019  (...) := IsVBOVoorraad_PerJaar/Y2018 && !IsDefined(VBO_Status_PerJaar/Y2019) && VBO_Status_PerJaar/Y2020 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2018 && !IsDefined(Pand_Status_PerJaar/Y2019) && IsPandVoorraad_PerJaar/Y2020;
+					attribute<bool>                 Y2020  (...) := IsVBOVoorraad_PerJaar/Y2019 && !IsDefined(VBO_Status_PerJaar/Y2020) && VBO_Status_PerJaar/Y2021 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2019 && !IsDefined(Pand_Status_PerJaar/Y2020) && IsPandVoorraad_PerJaar/Y2021;
+					attribute<bool>                 Period (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar   (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+					
+				container PerJaar_Woon :=
+					for_each_nedv(
+						jaren12_20/name
+						, '(PerJaar/'+jaren12_20/name+' && IsWoon_PerJaar/'+jaren12_20/next_name+') || IsOnttrekkingFunctie_perJaar/'+jaren12_20/name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container PerJaar_NietWoon :=
+					for_each_nedv(
+						jaren12_20/name
+						, '(PerJaar/'+jaren12_20/name+' && IsNietWoon_PerJaar/'+jaren12_20/next_name+') || IsToevoegingFunctie_PerJaar/'+jaren12_20/name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+			}
+
+			container Sloop
+			{
+				container PerJaar_src :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'IsVBOVoorraad_PerJaar/'+jaren12_20/name+' && VBO_Status_PerJaar/'+jaren12_20/next_name+' == vbo_status/v/verblijfsobject_ingetrokken && (Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/pand_gesloopt)'
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container IngetrokkenVoorSloop // gebruik - ingetrokken - ingetrokken / gebruik - gebruik - sloop
+				{
+					attribute<bool>                 Y2012  (...)           := const(false,...);
+					attribute<bool>                 Y2013  (...)           := IsVBOVoorraad_PerJaar/Y2012 && VBO_Status_PerJaar/Y2013 == vbo_status/v/verblijfsobject_ingetrokken && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2012 && IsPandVoorraad_PerJaar/Y2013 && (Pand_Status_PerJaar/Y2014 == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/Y2014 == pand_status/v/pand_gesloopt);
+					attribute<bool>                 Y2014  (...)           := IsVBOVoorraad_PerJaar/Y2013 && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_ingetrokken && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2013 && IsPandVoorraad_PerJaar/Y2014 && (Pand_Status_PerJaar/Y2015 == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/Y2015 == pand_status/v/pand_gesloopt);
+					attribute<bool>                 Y2015  (...)           := IsVBOVoorraad_PerJaar/Y2014 && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_ingetrokken && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2014 && IsPandVoorraad_PerJaar/Y2015 && (Pand_Status_PerJaar/Y2016 == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/Y2016 == pand_status/v/pand_gesloopt);
+					attribute<bool>                 Y2016  (...)           := IsVBOVoorraad_PerJaar/Y2015 && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_ingetrokken && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2015 && IsPandVoorraad_PerJaar/Y2016 && (Pand_Status_PerJaar/Y2017 == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/Y2017 == pand_status/v/pand_gesloopt);
+					attribute<bool>                 Y2017  (...)           := IsVBOVoorraad_PerJaar/Y2016 && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_ingetrokken && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2016 && IsPandVoorraad_PerJaar/Y2017 && (Pand_Status_PerJaar/Y2018 == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/Y2018 == pand_status/v/pand_gesloopt);
+					attribute<bool>                 Y2018  (...)           := IsVBOVoorraad_PerJaar/Y2017 && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_ingetrokken && VBO_Status_PerJaar/Y2019 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2017 && IsPandVoorraad_PerJaar/Y2018 && (Pand_Status_PerJaar/Y2019 == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/Y2019 == pand_status/v/pand_gesloopt);
+					attribute<bool>                 Y2019  (...)           := IsVBOVoorraad_PerJaar/Y2018 && VBO_Status_PerJaar/Y2019 == vbo_status/v/verblijfsobject_ingetrokken && VBO_Status_PerJaar/Y2020 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2018 && IsPandVoorraad_PerJaar/Y2019 && (Pand_Status_PerJaar/Y2020 == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/Y2020 == pand_status/v/pand_gesloopt);
+					attribute<bool>                 Y2020  (...)           := IsVBOVoorraad_PerJaar/Y2019 && VBO_Status_PerJaar/Y2020 == vbo_status/v/verblijfsobject_ingetrokken && VBO_Status_PerJaar/Y2021 == vbo_status/v/verblijfsobject_ingetrokken && IsPandVoorraad_PerJaar/Y2019 && IsPandVoorraad_PerJaar/Y2020 && (Pand_Status_PerJaar/Y2021 == pand_status/v/sloopvergunning_verleend || Pand_Status_PerJaar/Y2021 == pand_status/v/pand_gesloopt);
+					attribute<bool>                 Period (...) :=  =AsList('./'+Jaren12_20/name, '||');
+				}
+				container IngetrokkenEnSloopInReeks // first(vbo)=voorraad - last(vbo)=onttrokken / any(pand=sloopvergunning_verleend) - last(pand)=gesloopt
+				{
+					attribute<bool>                 Period (...)           := (vbo_status_first == vbo_status/v/verblijfsobject_in_gebruik || vbo_status_first == vbo_status/v/verblijfsobject_in_gebruik_niet_ingemeten || vbo_status_first == vbo_status/v/verblijfsobject_buiten_gebruik) && vbo_status_last == vbo_status/v/verblijfsobject_ingetrokken && pand_status_last == pand_status/v/pand_gesloopt && Pand_Status_perJaar/PandHasSloopStatussen && !PerJaar_src/Period;
+				}
+				
+				container PerJaar :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar_src/'+jaren12_20/name+' || IngetrokkenVoorSloop/'+jaren12_20/name+' || IngetrokkenEnSloopInReeks/Period'
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+
+				container PerJaar_Woon :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar/'+jaren12_20/name+' && IsWoon_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container PerJaar_NietWoon :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar/'+jaren12_20/name+' && IsNietWoon_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+			}
+
+			container Nieuwbouw
+			{
+				container PerJaar_src :=
+					for_each_nedv(
+						jaren12_20/name
+						, '((VBO_Status_PerJaar/'+jaren12_20/name+' == vbo_status/v/verblijfsobject_gevormd && Pand_Status_PerJaar/'+jaren12_20/name+' == pand_status/v/bouwvergunning_verleend && IsVBOVoorraad_PerJaar/'+jaren12_20/next_name+' && (Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/bouwvergunning_verleend || Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/bouw_gestart || Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/pand_in_gebruik || Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/pand_in_gebruik_niet_ingemeten))
+								|| (VBO_Status_PerJaar/'+jaren12_20/name+' == vbo_status/v/verblijfsobject_gevormd && Pand_Status_PerJaar/'+jaren12_20/name+' == pand_status/v/bouw_gestart            && IsVBOVoorraad_PerJaar/'+jaren12_20/next_name+' && (Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/bouw_gestart || Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/pand_in_gebruik || Pand_Status_PerJaar/'+jaren12_20/next_name+' == pand_status/v/pand_in_gebruik_niet_ingemeten)))'
+						, uq_identificatie
+						, bool
+					);
+					
+				container NieuwbouwSwitch_PerJaar
+				{
+					attribute<bool>                 Y2012  (...)           := const(false,...);
+					attribute<bool>                 Y2013  (...)           := Toevoeging/PerJaar_src/Y2013 &&  GevormdMetBouwstatus_PerJaar/Y2012;
+					attribute<bool>                 Y2014  (...)           := Toevoeging/PerJaar_src/Y2014 && (GevormdMetBouwstatus_PerJaar/Y2013 || (GevormdMetBouwstatus_PerJaar/Y2012 && VBO_Status_PerJaar/Y2013 == vbo_status/v/verblijfsobject_gevormd));
+					attribute<bool>                 Y2015  (...)           := Toevoeging/PerJaar_src/Y2015 && (GevormdMetBouwstatus_PerJaar/Y2014 || (GevormdMetBouwstatus_PerJaar/Y2013 && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2012 && VBO_Status_PerJaar/Y2013 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_gevormd));
+					attribute<bool>                 Y2016  (...)           := Toevoeging/PerJaar_src/Y2016 && (GevormdMetBouwstatus_PerJaar/Y2015 || (GevormdMetBouwstatus_PerJaar/Y2014 && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2013 && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2012 && VBO_Status_PerJaar/Y2013 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_gevormd));
+					attribute<bool>                 Y2017  (...)           := Toevoeging/PerJaar_src/Y2017 && (GevormdMetBouwstatus_PerJaar/Y2016 || (GevormdMetBouwstatus_PerJaar/Y2015 && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2014 && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2013 && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_gevormd));
+					attribute<bool>                 Y2018  (...)           := Toevoeging/PerJaar_src/Y2018 && (GevormdMetBouwstatus_PerJaar/Y2017 || (GevormdMetBouwstatus_PerJaar/Y2016 && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2015 && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2014 && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_gevormd));
+					attribute<bool>                 Y2019  (...)           := Toevoeging/PerJaar_src/Y2019 && (GevormdMetBouwstatus_PerJaar/Y2018 || (GevormdMetBouwstatus_PerJaar/Y2017 && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2016 && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2015 && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_gevormd));
+					attribute<bool>                 Y2020  (...)           := Toevoeging/PerJaar_src/Y2020 && (GevormdMetBouwstatus_PerJaar/Y2019 || (GevormdMetBouwstatus_PerJaar/Y2018 && VBO_Status_PerJaar/Y2019 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2017 && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2019 == vbo_status/v/verblijfsobject_gevormd) || (GevormdMetBouwstatus_PerJaar/Y2016 && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_gevormd && VBO_Status_PerJaar/Y2019 == vbo_status/v/verblijfsobject_gevormd));
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<bool>                 ExtraHardeCheck  (...) := GevormdMetBouwstatus_PerJaar/Period && Toevoeging/PerJaar_src/Period && !Period && !NieuwbouwMetOnlogischeTussenstap_PerJaar/Period && !NieuwbouwSwitch_TelaatNogGevormd_PerJaar/Period;
+				}
+				
+				container NieuwbouwSwitch_TelaatNogGevormd_PerJaar // gevormd - gevormd - gebruik / gestart - gebruik - gebruik
+				{
+					attribute<bool>                 Y2012  (...)           := const(false,...);
+					attribute<bool>                 Y2013  (...)           := GevormdMetBouwstatus_PerJaar/Y2012 && VBO_Status_PerJaar/Y2013 == vbo_status/v/verblijfsobject_gevormd && IsPandVoorraad_PerJaar/Y2013 && IsVBOVoorraad_PerJaar/Y2014 && IsPandVoorraad_PerJaar/Y2014;
+					attribute<bool>                 Y2014  (...)           := GevormdMetBouwstatus_PerJaar/Y2013 && VBO_Status_PerJaar/Y2014 == vbo_status/v/verblijfsobject_gevormd && IsPandVoorraad_PerJaar/Y2014 && IsVBOVoorraad_PerJaar/Y2015 && IsPandVoorraad_PerJaar/Y2015;
+					attribute<bool>                 Y2015  (...)           := GevormdMetBouwstatus_PerJaar/Y2014 && VBO_Status_PerJaar/Y2015 == vbo_status/v/verblijfsobject_gevormd && IsPandVoorraad_PerJaar/Y2015 && IsVBOVoorraad_PerJaar/Y2016 && IsPandVoorraad_PerJaar/Y2016;
+					attribute<bool>                 Y2016  (...)           := GevormdMetBouwstatus_PerJaar/Y2015 && VBO_Status_PerJaar/Y2016 == vbo_status/v/verblijfsobject_gevormd && IsPandVoorraad_PerJaar/Y2016 && IsVBOVoorraad_PerJaar/Y2017 && IsPandVoorraad_PerJaar/Y2017;
+					attribute<bool>                 Y2017  (...)           := GevormdMetBouwstatus_PerJaar/Y2016 && VBO_Status_PerJaar/Y2017 == vbo_status/v/verblijfsobject_gevormd && IsPandVoorraad_PerJaar/Y2017 && IsVBOVoorraad_PerJaar/Y2018 && IsPandVoorraad_PerJaar/Y2018;
+					attribute<bool>                 Y2018  (...)           := GevormdMetBouwstatus_PerJaar/Y2017 && VBO_Status_PerJaar/Y2018 == vbo_status/v/verblijfsobject_gevormd && IsPandVoorraad_PerJaar/Y2018 && IsVBOVoorraad_PerJaar/Y2019 && IsPandVoorraad_PerJaar/Y2019;
+					attribute<bool>                 Y2019  (...)           := GevormdMetBouwstatus_PerJaar/Y2018 && VBO_Status_PerJaar/Y2019 == vbo_status/v/verblijfsobject_gevormd && IsPandVoorraad_PerJaar/Y2019 && IsVBOVoorraad_PerJaar/Y2020 && IsPandVoorraad_PerJaar/Y2020;
+					attribute<bool>                 Y2020  (...)           := GevormdMetBouwstatus_PerJaar/Y2019 && VBO_Status_PerJaar/Y2020 == vbo_status/v/verblijfsobject_gevormd && IsPandVoorraad_PerJaar/Y2020 && IsVBOVoorraad_PerJaar/Y2021 && IsPandVoorraad_PerJaar/Y2021;
+					attribute<bool>                 Period (...) :=  =AsList('./'+Jaren12_20/name, '||');
+
+
+					// if T+ and Y==Y VBO == gevormd en pand = bouw ? N+ 
+					
+
+				}
+				
+				container NieuwbouwMetOnlogischeTussenstap_PerJaar
+				{
+					attribute<bool>                 Y2012  (...)           := const(false,...);
+					attribute<bool>                 Y2013  (...)           := GevormdMetBouwstatus_PerJaar/Y2012 && IsVBOVoorraad_PerJaar/Y2013 && (Pand_Status_PerJaar/Y2013 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2013 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2014 && IsVBOVoorraad_PerJaar/Y2014;
+					attribute<bool>                 Y2014  (...)           := GevormdMetBouwstatus_PerJaar/Y2013 && IsVBOVoorraad_PerJaar/Y2014 && (Pand_Status_PerJaar/Y2014 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2014 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2015 && IsVBOVoorraad_PerJaar/Y2015
+																				|| (GevormdMetBouwstatus_PerJaar/Y2012 && IsVBOVoorraad_PerJaar/Y2013 && (Pand_Status_PerJaar/Y2013 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2013 == pand_status/v/niet_gerealiseerd_pand) && IsVBOVoorraad_PerJaar/Y2014 && (Pand_Status_PerJaar/Y2014 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2014 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2015 && IsVBOVoorraad_PerJaar/Y2015);
+					attribute<bool>                 Y2015  (...)           := GevormdMetBouwstatus_PerJaar/Y2014 && IsVBOVoorraad_PerJaar/Y2015 && (Pand_Status_PerJaar/Y2015 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2015 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2016 && IsVBOVoorraad_PerJaar/Y2016
+																				|| (GevormdMetBouwstatus_PerJaar/Y2013 && IsVBOVoorraad_PerJaar/Y2014 && (Pand_Status_PerJaar/Y2014 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2014 == pand_status/v/niet_gerealiseerd_pand) && IsVBOVoorraad_PerJaar/Y2015 && (Pand_Status_PerJaar/Y2015 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2015 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2016 && IsVBOVoorraad_PerJaar/Y2016);
+					attribute<bool>                 Y2016  (...)           := GevormdMetBouwstatus_PerJaar/Y2015 && IsVBOVoorraad_PerJaar/Y2016 && (Pand_Status_PerJaar/Y2016 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2016 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2017 && IsVBOVoorraad_PerJaar/Y2017
+																				|| (GevormdMetBouwstatus_PerJaar/Y2014 && IsVBOVoorraad_PerJaar/Y2015 && (Pand_Status_PerJaar/Y2015 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2015 == pand_status/v/niet_gerealiseerd_pand) && IsVBOVoorraad_PerJaar/Y2016 && (Pand_Status_PerJaar/Y2016 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2016 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2017 && IsVBOVoorraad_PerJaar/Y2017);
+					attribute<bool>                 Y2017  (...)           := GevormdMetBouwstatus_PerJaar/Y2016 && IsVBOVoorraad_PerJaar/Y2017 && (Pand_Status_PerJaar/Y2017 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2017 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2018 && IsVBOVoorraad_PerJaar/Y2018
+																				|| (GevormdMetBouwstatus_PerJaar/Y2015 && IsVBOVoorraad_PerJaar/Y2016 && (Pand_Status_PerJaar/Y2016 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2016 == pand_status/v/niet_gerealiseerd_pand) && IsVBOVoorraad_PerJaar/Y2017 && (Pand_Status_PerJaar/Y2017 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2017 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2018 && IsVBOVoorraad_PerJaar/Y2018);
+					attribute<bool>                 Y2018  (...)           := GevormdMetBouwstatus_PerJaar/Y2017 && IsVBOVoorraad_PerJaar/Y2018 && (Pand_Status_PerJaar/Y2018 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2018 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2019 && IsVBOVoorraad_PerJaar/Y2019
+																				|| (GevormdMetBouwstatus_PerJaar/Y2016 && IsVBOVoorraad_PerJaar/Y2017 && (Pand_Status_PerJaar/Y2017 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2017 == pand_status/v/niet_gerealiseerd_pand) && IsVBOVoorraad_PerJaar/Y2018 && (Pand_Status_PerJaar/Y2018 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2018 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2019 && IsVBOVoorraad_PerJaar/Y2019);
+					attribute<bool>                 Y2019  (...)           := GevormdMetBouwstatus_PerJaar/Y2018 && IsVBOVoorraad_PerJaar/Y2019 && (Pand_Status_PerJaar/Y2019 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2019 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2020 && IsVBOVoorraad_PerJaar/Y2020
+																				|| (GevormdMetBouwstatus_PerJaar/Y2017 && IsVBOVoorraad_PerJaar/Y2018 && (Pand_Status_PerJaar/Y2018 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2018 == pand_status/v/niet_gerealiseerd_pand) && IsVBOVoorraad_PerJaar/Y2019 && (Pand_Status_PerJaar/Y2019 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2019 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2020 && IsVBOVoorraad_PerJaar/Y2020);
+					attribute<bool>                 Y2020  (...)           := GevormdMetBouwstatus_PerJaar/Y2019 && IsVBOVoorraad_PerJaar/Y2020 && (Pand_Status_PerJaar/Y2020 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2020 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2021 && IsVBOVoorraad_PerJaar/Y2021
+																				|| (GevormdMetBouwstatus_PerJaar/Y2018 && IsVBOVoorraad_PerJaar/Y2019 && (Pand_Status_PerJaar/Y2019 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2019 == pand_status/v/niet_gerealiseerd_pand) && IsVBOVoorraad_PerJaar/Y2020 && (Pand_Status_PerJaar/Y2020 == pand_status/v/pand_gesloopt || Pand_Status_PerJaar/Y2020 == pand_status/v/niet_gerealiseerd_pand) && IsPandVoorraad_PerJaar/Y2021 && IsVBOVoorraad_PerJaar/Y2021);
+					attribute<bool>                 Period (...)           :=  =AsList('./'+Jaren12_20/name, '||');
+				}
+
+				container PerJaar :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar_src/'+jaren12_20/name+' || NieuwbouwSwitch_PerJaar/'+jaren12_20/name+' || NieuwbouwMetOnlogischeTussenstap_PerJaar/'+jaren12_20/name+' || NieuwbouwSwitch_TelaatNogGevormd_PerJaar/'+jaren12_20/name+' || NieuwbouwSwitch_PerJaar/ExtraHardeCheck'
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+					
+				container PerJaar_Woon :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar/'+jaren12_20/name+' && IsWoon_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container PerJaar_NietWoon :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar/'+jaren12_20/name+' && IsNietWoon_PerJaar/'+jaren12_20/next_name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+			}
+			
+			container Toevoeging
+			{
+				container PerJaar_src :=
+					for_each_nedv(
+						jaren12_20/name
+						, '((!IsDefined(VBO_Status_PerJaar/'+jaren12_20/name+') && IsVBOVoorraad_PerJaar/'+jaren12_20/next_name+') || (VBO_Status_PerJaar/'+jaren12_20/name+' == vbo_status/v/verblijfsobject_gevormd && (Pand_Status_PerJaar/'+jaren12_20/name+' != pand_status/v/bouwvergunning_verleend && Pand_Status_PerJaar/'+jaren12_20/name+' != pand_status/v/bouw_gestart || !IsDefined(Pand_Status_PerJaar/'+jaren12_20/name+')) && IsVBOVoorraad_PerJaar/'+jaren12_20/next_name+'))'
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container PerJaar :=
+					for_each_nedv(
+						jaren12_20/name
+						, 'PerJaar_src/'+jaren12_20/name+' && !Nieuwbouw/NieuwbouwSwitch_PerJaar/'+jaren12_20/name+' && !Nieuwbouw/NieuwbouwMetOnlogischeTussenstap_PerJaar/'+jaren12_20/name+' && !Nieuwbouw/NieuwbouwSwitch_TelaatNogGevormd_PerJaar/'+jaren12_20/name+' && !Nieuwbouw/NieuwbouwSwitch_PerJaar/ExtraHardeCheck'
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+					
+				container PerJaar_Woon :=
+					for_each_nedv(
+						jaren12_20/name
+						, '(PerJaar/'+jaren12_20/name+' && IsWoon_PerJaar/'+jaren12_20/next_name+') || IsToevoegingFunctie_PerJaar/'+jaren12_20/name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+				
+				container PerJaar_NietWoon :=
+					for_each_nedv(
+						jaren12_20/name
+						, '(PerJaar/'+jaren12_20/name+' && IsNietWoon_PerJaar/'+jaren12_20/next_name+') || IsOnttrekkingFunctie_perJaar/'+jaren12_20/name
+						, uq_identificatie
+						, bool
+					)
+				{
+					attribute<bool>                 Period   (...) :=  =AsList('./'+Jaren12_20/name, '||');
+					attribute<jaren12_20_nodata>    Jaar     (...) := ='(argmax(!Period,'+AsItemList('./'+Jaren12_20/name)+'))[jaren12_20_nodata]';
+				}
+			}
+
+			container Onveranderd
+			{
+				container PerJaar_Woon 
+				{
+					attribute<bool>                 Period   (...)          := =AsList('IsVBOVoorraad_PerJaar/'+Jaren12_21/name, '&&')+'&& IsWoon_Perjaar/y2021 && !IsToevoegingFunctie_PerJaar/Period && !IsOnttrekkingFunctie_PerJaar/period';
+					attribute<jaren12_21_nodata>    Jaar     (...)          := const(jaren12_21_nodata/v/y2021,...);
+				}
+				container PerJaar_NietWoon 
+				{
+					attribute<bool>                 Period   (...)          := =AsList('IsVBOVoorraad_PerJaar/'+Jaren12_21/name, '&&')+'&& IsNietWoon_Perjaar/Y2021 && !IsToevoegingFunctie_PerJaar/Period && !IsOnttrekkingFunctie_PerJaar/period';
+					attribute<jaren12_21_nodata>    Jaar     (...)          := const(jaren12_21_nodata/v/y2021,...);
+				}
+			}
+			
+			container Transformatie
+			{
+				container PerJaar_Woon 
+				{
+					attribute<bool>                 Period   (...)          := IsToevoegingFunctie_PerJaar/Period;
+					attribute<jaren12_21_nodata>    Jaar     (...)          := IsToevoegingFunctie_PerJaar/Jaar;
+				}
+				container PerJaar_NietWoon 
+				{
+					attribute<bool>                 Period   (...)          := IsOnttrekkingFunctie_perJaar/Period;
+					attribute<jaren12_21_nodata>    Jaar     (...)          := IsOnttrekkingFunctie_perJaar/Jaar;
+				}
+				
+			}
+
+			
+			attribute<bool>                 Nieuwbouw_Woon                   := Nieuwbouw/PerJaar_Woon/Period;
+			attribute<bool>                 Toevoeging_Woon                  := Toevoeging/PerJaar_Woon/Period;
+			attribute<bool>                 Sloop_Woon                       := Sloop/PerJaar_Woon/Period;
+			attribute<bool>                 Onttrekking_Woon                 := Onttrekking/PerJaar_Woon/Period;
+			attribute<bool>                 Cmin_Woon                        := Cmin/PerJaar_Woon/Period;
+			attribute<bool>                 Cplus_Woon                       := Cplus/PerJaar_Woon/Period;
+			attribute<bool>                 Onveranderd_Woon                 := Onveranderd/PerJaar_Woon/Period;
+			
+			attribute<bool>                 Nieuwbouw_NietWoon               := Nieuwbouw/PerJaar_NietWoon/Period;
+			attribute<bool>                 Toevoeging_NietWoon              := Toevoeging/PerJaar_NietWoon/Period;
+			attribute<bool>                 Sloop_NietWoon                   := Sloop/PerJaar_NietWoon/Period;
+			attribute<bool>                 Onttrekking_NietWoon             := Onttrekking/PerJaar_NietWoon/Period;
+			attribute<bool>                 Cmin_NietWoon                    := Cmin/PerJaar_NietWoon/Period;
+			attribute<bool>                 Cplus_NietWoon                   := Cplus/PerJaar_NietWoon/Period;
+			attribute<bool>                 Onveranderd_NietWoon             := Onveranderd/PerJaar_NietWoon/Period;
+			
+			attribute<bool>                 Transformatie_Woon               := IsToevoegingFunctie_PerJaar/Period;
+			attribute<bool>                 Transformatie_NietWoon           := IsOnttrekkingFunctie_PerJaar/Period;
+			
+			attribute<bool>                 Unclassified                     :=  =AsList('!'+RedevSub_Types/Sub_Types, ' && ')+' && !IsVBOVoorraad_PerJaar/IsNietVBOVoorraad_Period && !IsPandVoorraad_PerJaar/IsNietPandVoorraad_Period';
+			attribute<uint32>               Check_dubbelidentificatie        :=  =AsList(RedevSub_Types/Sub_Types+'[uint32]', ' + ')+' + IsVBOVoorraad_PerJaar/IsNietVBOVoorraad_Period[uint32] + IsPandVoorraad_PerJaar/IsNietPandVoorraad_Period[uint32]';
+			
+			// unit<uint32> Subtest := subset(Onttrekking/PerJaar/Period)
+			// {
+				// container VBO_Status_perJaar :=
+					// for_each_nedv(
+						// jaren12_21/name
+						// , 'uq_identificatie/VBO_Status_perJaar/'+jaren12_21/name+'[nr_OrgEntity]'
+						// , subtest
+						// , vbo_status
+					// );
+				
+				// container Pand_Status_perJaar :=
+					// for_each_nedv(
+						// jaren12_21/name
+						// , 'uq_identificatie/Pand_Status_perJaar/'+jaren12_21/name+'[nr_OrgEntity]'
+						// , subtest
+						// , pand_status
+					// );
+			// }
+			
+			
+			container TussenExport 
+			{
+				parameter<uint32> Nieuwbouw_Woon           := sum(../Nieuwbouw_Woon[uint32]);
+				parameter<uint32> Toevoeging_Woon          := sum(../Toevoeging_Woon[uint32]);
+				parameter<uint32> Sloop_Woon               := sum(../Sloop_Woon[uint32]);
+				parameter<uint32> Onttrekking_Woon         := sum(../Onttrekking_Woon[uint32]);
+				parameter<uint32> Cmin_Woon                := sum(../Cmin_Woon[uint32]);
+				parameter<uint32> Cplus_Woon               := sum(../Cplus_Woon[uint32]);
+				parameter<uint32> Onveranderd_Woon         := sum(../Onveranderd_Woon[uint32]);
+				
+				parameter<uint32> Nieuwbouw_NietWoon       := sum(../Nieuwbouw_NietWoon[uint32]);
+				parameter<uint32> Toevoeging_NietWoon      := sum(../Toevoeging_NietWoon[uint32]);
+				parameter<uint32> Sloop_NietWoon           := sum(../Sloop_NietWoon[uint32]);
+				parameter<uint32> Onttrekking_NietWoon     := sum(../Onttrekking_NietWoon[uint32]);
+				parameter<uint32> Cmin_NietWoon            := sum(../Cmin_NietWoon[uint32]);
+				parameter<uint32> Cplus_NietWoon           := sum(../Cplus_NietWoon[uint32]);
+				parameter<uint32> Onveranderd_NietWoon     := sum(../Onveranderd_NietWoon[uint32]);
+				
+				parameter<uint32> Toevoeging_Functie       := sum(../Toevoeging_Functie[uint32]);
+				parameter<uint32> Onttrekking_Functie      := sum(../Onttrekking_Functie[uint32]);
+			}
+			
+		}
+	} 
+	
+	container MakeRedevTypes :=
+		for_each_ne(
+			RedevSub_Types/Sub_Types
+			, 'MakeRedevTypes_T('+quote(RedevSub_Types/Sub_Types)+','+quote(RedevSub_Types/MainTypes)+','+quote(RedevSub_Types/WoonNietWoon)+')'
+		);
+		
+	container MakeRedevTypes_Mixed :=
+		for_each_ne(
+			RedevSubMixed_Types/name
+			, 'MakeRedevTypes_Mixed_T('+quote(RedevSubMixed_Types/name)+','+quote(RedevSubMixed_Types/main)+')'
+		);
+
+	Template MakeRedevTypes_T
+	{
+		parameter<string> SubType_str;
+		parameter<string> MainType_str;
+		parameter<string> WoonNietWoon_str;
+		
+		unit<uint32> Subtype := ='subset(VBOs/uq_identificatie/'+SubType_str+')'
+		, DialogData = "pand_geometry"
+		, DialogType = "map"
+		{
+			attribute<geometries/rdc>        point                      := VBOs/uq_identificatie/geometry[nr_OrgEntity];
+			attribute<string>                pand_id                    := VBOs/uq_identificatie/pand_id_geom[nr_OrgEntity];
+			attribute<jaren12_21_nodata>     RelevantJaar_src           := ='VBOs/uq_identificatie/'+MainType_str+'/PerJaar_'+WoonNietWoon_str+'/Jaar[nr_OrgEntity]';
+			attribute<jaren12_21_nodata>     RelevantJaar               := MainType_str == 'Nieuwbouw' || MainType_str == 'Toevoeging'  
+																				? RelevantJaar_src + 1 
+																				: MainType_str == 'Sloop' || MainType_str == 'Onttrekking' 
+																					? RelevantJaar_src  
+																					: RelevantJaar_src;
+																					
+			attribute<uq_pand>               uq_rel                     := rlookup(pand_id, uq_pand/identificatie);
+			attribute<m2>                    O_vbo_opp_woon             := VBOs/uq_identificatie/O_vbo_opp_woon[nr_OrgEntity];
+			attribute<m2>                    O_vbo_opp_niet_woon        := VBOs/uq_identificatie/O_vbo_opp_niet_woon[nr_OrgEntity];
+			attribute<m2>                    N_vbo_opp_woon             := VBOs/uq_identificatie/N_vbo_opp_woon[nr_OrgEntity];
+			attribute<m2>                    N_vbo_opp_niet_woon        := VBOs/uq_identificatie/N_vbo_opp_niet_woon[nr_OrgEntity];
+			
+			attribute<vbo_gebruiksdoel>      gebruiksdoel_first         := VBOs/uq_identificatie/gebruiksdoel_first[nr_OrgEntity];
+			attribute<vbo_gebruiksdoel>      gebruiksdoel_last          := VBOs/uq_identificatie/gebruiksdoel_last[nr_OrgEntity];
+			
+			attribute<geometries/rdc>        pand_geometry (poly)       := switch(
+																			  case(RelevantJaar==jaren12_21_nodata/v/y2012[jaren12_21_nodata], rjoin(pand_id, pand_2012/identificatie, pand_2012/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2013[jaren12_21_nodata], rjoin(pand_id, pand_2013/identificatie, pand_2013/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2014[jaren12_21_nodata], rjoin(pand_id, pand_2014/identificatie, pand_2014/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2015[jaren12_21_nodata], rjoin(pand_id, pand_2015/identificatie, pand_2015/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2016[jaren12_21_nodata], rjoin(pand_id, pand_2016/identificatie, pand_2016/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2017[jaren12_21_nodata], rjoin(pand_id, pand_2017/identificatie, pand_2017/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2018[jaren12_21_nodata], rjoin(pand_id, pand_2018/identificatie, pand_2018/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2019[jaren12_21_nodata], rjoin(pand_id, pand_2019/identificatie, pand_2019/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2020[jaren12_21_nodata], rjoin(pand_id, pand_2020/identificatie, pand_2020/geometry))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2021[jaren12_21_nodata], rjoin(pand_id, pand_2021/identificatie, pand_2021/geometry))
+																			, points2polygon(point(0f,0f,geometries/rdc))
+																			);
+			attribute<jaar>                  pand_bouwjaar              := switch(
+																			  case(RelevantJaar==jaren12_21_nodata/v/y2012[jaren12_21_nodata], rjoin(pand_id, pand_2012/identificatie, pand_2012/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2013[jaren12_21_nodata], rjoin(pand_id, pand_2013/identificatie, pand_2013/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2014[jaren12_21_nodata], rjoin(pand_id, pand_2014/identificatie, pand_2014/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2015[jaren12_21_nodata], rjoin(pand_id, pand_2015/identificatie, pand_2015/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2016[jaren12_21_nodata], rjoin(pand_id, pand_2016/identificatie, pand_2016/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2017[jaren12_21_nodata], rjoin(pand_id, pand_2017/identificatie, pand_2017/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2018[jaren12_21_nodata], rjoin(pand_id, pand_2018/identificatie, pand_2018/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2019[jaren12_21_nodata], rjoin(pand_id, pand_2019/identificatie, pand_2019/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2020[jaren12_21_nodata], rjoin(pand_id, pand_2020/identificatie, pand_2020/bouwjaar_trunc))
+																			, case(RelevantJaar==jaren12_21_nodata/v/y2021[jaren12_21_nodata], rjoin(pand_id, pand_2021/identificatie, pand_2021/bouwjaar_trunc))
+																			, (0/0)[jaar]
+																			);
+
+			unit<uint32> uq_pand := unique(pand_id)
+			{
+				attribute<geometries/rdc>       geometry_rd (poly)                  := rjoin(identificatie, ../pand_id, ../pand_geometry);
+				attribute<string>               identificatie                       := values;
+				attribute<Jaar>                 bouwjaar                            := rjoin(identificatie, ../pand_id, ../pand_bouwjaar);
+				parameter<bool>                 IsTransformatie                     := MainType_str == 'Transformatie';
+				attribute<bool>                 IsMixed                             := = IsTransformatie
+																							? 'const(FALSE,.)'
+																							: 'rjoin(identificatie, MakeRedevTypes_Mixed/'+MainType_str+'_Mixed/Subtype/uq_pand/values, MakeRedevTypes_Mixed/'+MainType_str+'_Mixed/Subtype/uq_pand/IsMixed)';
+				attribute<m2>                   O_vbo_opp_woon                      := rjoin(identificatie, ../pand_id, ../O_vbo_opp_woon);
+				attribute<m2>                   O_vbo_opp_niet_woon                 := rjoin(identificatie, ../pand_id, ../O_vbo_opp_niet_woon);
+				attribute<m2>                   N_vbo_opp_woon                      := rjoin(identificatie, ../pand_id, ../N_vbo_opp_woon);
+				attribute<m2>                   N_vbo_opp_niet_woon                 := rjoin(identificatie, ../pand_id, ../N_vbo_opp_niet_woon);
+				
+				
+				container O_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(.../gebruiksdoel_first == vbo_gebruiksdoel/v/'+vbo_gebruiksdoel/name+' ? 1 : 0, .../uq_rel)'
+						, uq_pand
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)           := sum(.../gebruiksdoel_first != vbo_gebruiksdoel/v/woon ? 1 : 0, .../uq_rel);
+				}
+				container N_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(.../gebruiksdoel_last == vbo_gebruiksdoel/v/'+vbo_gebruiksdoel/name+' ? 1 : 0, .../uq_rel)'
+						, uq_pand
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)           := sum(.../gebruiksdoel_last != vbo_gebruiksdoel/v/woon ? 1 : 0, .../uq_rel);
+				}
+				
+				unit<uint32> sub := subset(!IsMixed)
+				, DialogData = "geometry_rd", DialogType = "map"
+				{
+					attribute<geometries/rdc>       geometry_rd (poly)                  := ../geometry_rd[nr_OrgEntity];
+					attribute<geometries/rdc_mm>    geometry_mm (poly)                  := geometry_rd[geometries/rdc_mm];
+					attribute<geometries/rdc>       centroid                            := centroid_or_mid(geometry_rd);
+					attribute<perceel>              perceel_rel                         := point_in_polygon(centroid, perceel/geometry);
+					
+					// unit<uint32>  DefineCorrespondingPerceelSet  := overlay_polygon(geometry_mm, perceel/geometry_mm) //intersect geometry met percelem. Want relevante geometry zou in meerdere percelen kunnen vallen.
+					// {
+						// unit<uint32> RelevantePercelen := subset(IsDefined(second_rel)) 
+						// , DialogType = "map"
+						// , DialogData = "geometry_mm"
+						// {
+							// attribute<uint32>            second_rel         := ../second_rel[nr_OrgEntity];
+							// attribute<geometries/rdc_mm> geometry_mm (poly) := perceel/geometry_mm[second_rel];
+						// }
+					// }
+					attribute<string>               identificatie                       := ../identificatie[nr_OrgEntity];
+					attribute<Jaar>                 bouwjaar_src                        := ../bouwjaar[nr_OrgEntity];
+					attribute<Jaar>                 bouwjaar                            := !IsDefined(bouwjaar_src) ? (0/0)[jaar] : bouwjaar_src;
+					attribute<Jaar>                 O_mod_bouwjaar                      := bouwjaar;
+					attribute<m2>                   buildingfootprint                   := area(geometry_rd, m2);
+					attribute<m2>                   O_sum_buildingfootprint             := buildingfootprint;
+					attribute<m2>                   N_sum_buildingfootprint             := buildingfootprint;
+					attribute<m2>                   O_vbo_opp_woon                      := ../O_vbo_opp_woon[nr_OrgEntity];
+					attribute<m2>                   O_vbo_opp_niet_woon                 := ../O_vbo_opp_niet_woon[nr_OrgEntity];
+					attribute<m2>                   N_vbo_opp_woon                      := ../N_vbo_opp_woon[nr_OrgEntity];
+					attribute<m2>                   N_vbo_opp_niet_woon                 := ../N_vbo_opp_niet_woon[nr_OrgEntity];
+					attribute<RegioUnit_Aggl>       Aggl_rel                            := point_in_polygon(centroid, RegioUnit_Aggl/geometry);
+					attribute<bool>                 IsBeschermdStadsgezicht             := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/Beschermd/geometry));
+					attribute<RegioUnit_wijk18>     Wijk18_rel                          := point_in_polygon(centroid, RegioUnit_wijk18/Geometry);
+					attribute<int32>                Wijk_P_woningcorporatie             := RegioUnit_wijk18/p_wcorpw[Wijk18_rel];
+				
+					container O_Count_vbo_pand_perfunctie :=
+						for_each_nedv(
+							vbo_gebruiksdoel/name
+							, '.../O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+'[nr_OrgEntity]'
+							, sub
+							, uint32
+						)
+					{
+						attribute<uint32>               niet_woon (..)                  := .../O_Count_vbo_pand_perfunctie/niet_woon[nr_OrgEntity];
+					}
+					container N_Count_vbo_pand_perfunctie :=
+						for_each_nedv(
+							vbo_gebruiksdoel/name
+							, '.../N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+'[nr_OrgEntity]'
+							, sub
+							, uint32
+						)
+					{
+						attribute<uint32>               niet_woon (..)                  := .../N_Count_vbo_pand_perfunctie/niet_woon[nr_OrgEntity];
+					}
+				}
+			}
+		}
+	}
+	
+	Template MakeRedevTypes_Mixed_T
+	{
+		parameter<string> SubType_str;
+		parameter<string> MainType_str;
+		
+		unit<uint32> Subtype := ='union_unit(MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand)'
+		{
+			attribute<geometries/rdc>       geometry_rd (poly)                  := ='union_data(., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/geometry_rd, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/geometry_rd)';
+			attribute<string>               identificatie                       := ='union_data(., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/identificatie, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/identificatie)';
+			attribute<uq_pand>              uq_rel                              := rlookup(identificatie, uq_pand/values);
+			attribute<Jaar>                 bouwjaar                            := ='union_data(., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/bouwjaar, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/bouwjaar)';
+			attribute<m2>                   O_vbo_opp_woon                        := ='union_data(., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/O_vbo_opp_woon, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/O_vbo_opp_woon)';
+			attribute<m2>                   O_vbo_opp_niet_woon                   := ='union_data(., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/O_vbo_opp_niet_woon, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/O_vbo_opp_niet_woon)';
+			attribute<m2>                   N_vbo_opp_woon                        := ='union_data(., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/N_vbo_opp_woon, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/N_vbo_opp_woon)';
+			attribute<m2>                   N_vbo_opp_niet_woon                   := ='union_data(., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/N_vbo_opp_niet_woon, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/N_vbo_opp_niet_woon)';
+			
+			attribute<bool>                 IsMixed                             := rjoin(identificatie, uq_pand/values, uq_pand/IsMixed);
+			
+			container O_Count_vbo_pand_perfunctie :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'union_data(.., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+')'
+					, Subtype
+					, uint32
+				)
+			{
+				attribute<uint32>               niet_woon (..)           := ='union_data(.., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/O_Count_vbo_pand_perfunctie/niet_woon, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/O_Count_vbo_pand_perfunctie/niet_woon)';
+			}
+			container N_Count_vbo_pand_perfunctie :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'union_data(.., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+')'
+					, Subtype
+					, uint32
+				)
+			{
+				attribute<uint32>               niet_woon (..)           := ='union_data(.., MakeRedevTypes/'+MainType_str+'_Woon/Subtype/uq_pand/N_Count_vbo_pand_perfunctie/niet_woon, MakeRedevTypes/'+MainType_str+'_NietWoon/Subtype/uq_pand/N_Count_vbo_pand_perfunctie/niet_woon)';
+			}
+			
+			unit<uint32> uq_pand := unique(identificatie)
+			{
+				attribute<uint32> count := count(../uq_rel, ../uq_rel);
+				attribute<bool>   IsMixed := count == 2;
+				
+				unit<uint32> sub := subset(../IsMixed)
+				{
+					attribute<geometries/rdc>       geometry_rd (poly)                  := .../geometry_rd[nr_OrgEntity];
+					attribute<geometries/rdc_mm>    geometry_mm (poly)                  := geometry_rd[geometries/rdc_mm];
+					attribute<geometries/rdc>       centroid                            := centroid_or_mid(geometry_rd);
+					attribute<perceel>              perceel_rel                         := point_in_polygon(centroid, perceel/geometry);
+					attribute<string>               identificatie                       := .../identificatie[nr_OrgEntity];
+					attribute<Jaar>                 bouwjaar                            := .../bouwjaar[nr_OrgEntity];
+					attribute<m2>                   buildingfootprint                   := area(geometry_rd, m2);
+					attribute<m2>                   O_vbo_opp_woon                      := .../O_vbo_opp_woon[nr_OrgEntity];
+					attribute<m2>                   O_vbo_opp_niet_woon                 := .../O_vbo_opp_niet_woon[nr_OrgEntity];
+					attribute<m2>                   N_vbo_opp_woon                      := .../N_vbo_opp_woon[nr_OrgEntity];
+					attribute<m2>                   N_vbo_opp_niet_woon                 := .../N_vbo_opp_niet_woon[nr_OrgEntity];
+					
+					attribute<RegioUnit_Aggl>       Aggl_rel                            := point_in_polygon(centroid, RegioUnit_Aggl/geometry);
+					attribute<bool>                 IsBeschermdStadsgezicht             := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/Beschermd/geometry));
+					attribute<RegioUnit_wijk18>     Wijk18_rel                          := point_in_polygon(centroid, RegioUnit_wijk18/Geometry);
+					attribute<int32>                Wijk_P_woningcorporatie             := RegioUnit_wijk18/p_wcorpw[Wijk18_rel];
+					
+					container O_Count_vbo_pand_perfunctie :=
+						for_each_nedv(
+							vbo_gebruiksdoel/name
+							, '..../O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+'[nr_OrgEntity]'
+							, sub
+							, uint32
+						)
+					{
+						attribute<uint32>               niet_woon (..)                  := ..../O_Count_vbo_pand_perfunctie/niet_woon[nr_OrgEntity];
+					}
+					container N_Count_vbo_pand_perfunctie :=
+						for_each_nedv(
+							vbo_gebruiksdoel/name
+							, '..../N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+'[nr_OrgEntity]'
+							, sub
+							, uint32
+						)
+					{
+						attribute<uint32>               niet_woon (..)                  := ..../N_Count_vbo_pand_perfunctie/niet_woon[nr_OrgEntity];
+					}
+				}
+			}
+		}
+	}
+
+	container AdditionalOperations 
+	{
+		container Onveranderd :=
+			for_each_ne(
+				Onveranderd_types/name
+				,'AdditionalOperationsT_onveranderd('+quote(Onveranderd_types/name)+')'
+			)
+		{
+			parameter<String> Generate_AllAggl := 'Ready', ExplicitSuppliers = "Woon/Generate_AllAggl;NietWoon/Generate_AllAggl;Mixed/Generate_AllAggl";
+		}
+			
+		container SN :=
+			for_each_ne(
+				SN_types/name
+				,'AdditionalOperationsT_SN('+quote(SN_types/name)+')'
+			)
+		{
+			parameter<String> Generate_AllAggl := 'Ready', ExplicitSuppliers = "Woon/Generate_AllAggl;NietWoon/Generate_AllAggl;Mixed/Generate_AllAggl";
+		}
+			
+		unit<uint32>  BestaandeBouwIn2012        := subset(IsDefined(Pand_2012/identificatie))
+		{
+			attribute<geometries/rdc>      geometry (poly)    := Pand_2012/geometry[nr_OrgEntity];
+			attribute<geometries/rdc_mm>   geometry_mm (poly) := Pand_2012/geometry_mm[nr_OrgEntity];
+		}
+		
+		unit<uint32> Sloop_Wonen_perceel := subset(IsDefined(invert(MakeRedevTypes/Sloop_Woon/Subtype/uq_pand/sub/perceel_rel))) 
+		{
+			attribute<geometries/rdc>      geometry (poly)                     := Perceel/geometry[nr_OrgEntity];
+			attribute<geometries/rdc_mm>   geometry_mm (poly)                  := geometry[geometries/rdc_mm];
+			attribute<RegioUnit_Aggl>      Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+		}
+		
+		unit<uint32> Nieuwbouw_Wonen_perceel := subset(IsDefined(invert(MakeRedevTypes/Nieuwbouw_Woon/Subtype/uq_pand/sub/perceel_rel))) 
+		{
+			attribute<geometries/rdc>      geometry (poly)                     := Perceel/geometry[nr_OrgEntity];
+			attribute<geometries/rdc_mm>   geometry_mm (poly)                  := geometry[geometries/rdc_mm];
+			attribute<bool>                IsNieuwbouw_OpBebouwd               := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel));
+			attribute<RegioUnit_Aggl>      Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+			unit<uint32>                   Nieuwbouw_OpBebouwd                 := overlay_polygon(BestaandeBouwIn2012/geometry_mm, ./geometry_mm), FreeData = "False";
+
+			unit<uint32>                   Nieuwbouw_src                       := MakeRedevTypes/Nieuwbouw_Woon/Subtype/uq_pand/sub
+			{
+				attribute<bool>            IsNieuwbouw_OpOnbebouwd             := IsDefined(point_in_polygon(centroid, Nieuwbouw_OpOnbebouwd_perceel/geometry));
+				attribute<bool>            IsNieuwbouw_OpBebouwd               := IsDefined(point_in_polygon(centroid, Nieuwbouw_OpBebouwd_perceel/geometry));
+			}
+			unit<uint32>                   Nieuwbouw_OpOnbebouwd_perceel       := subset(!./IsNieuwbouw_OpBebouwd)
+			{        
+				attribute<geometries/rdc>  geometry (poly)                     := ../geometry[nr_OrgEntity];
+			}
+			unit<uint32>                   Nieuwbouw_OpBebouwd_perceel         := subset(./IsNieuwbouw_OpBebouwd)
+			{        
+				attribute<geometries/rdc>  geometry (poly)                     := ../geometry[nr_OrgEntity];
+			}
+		}
+		
+		unit<uint32> Nieuwbouw_Mixed_perceel := subset(IsDefined(invert(MakeRedevTypes_Mixed/Nieuwbouw_Mixed/Subtype/uq_pand/sub/perceel_rel))) 
+		{
+			attribute<geometries/rdc>      geometry (poly)                     := Perceel/geometry[nr_OrgEntity];
+			attribute<geometries/rdc_mm>   geometry_mm (poly)                  := geometry[geometries/rdc_mm];
+			attribute<bool>                IsNieuwbouw_OpBebouwd               := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel));
+			attribute<RegioUnit_Aggl>      Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+			unit<uint32>                   Nieuwbouw_OpBebouwd                 := overlay_polygon(BestaandeBouwIn2012/geometry_mm, ./geometry_mm), FreeData = "False";
+
+			unit<uint32>                   Nieuwbouw_src                       := MakeRedevTypes_Mixed/Nieuwbouw_Mixed/Subtype/uq_pand/sub
+			{
+				attribute<bool>            IsNieuwbouw_OpOnbebouwd             := IsDefined(point_in_polygon(centroid, Nieuwbouw_OpOnbebouwd_perceel/geometry));
+				attribute<bool>            IsNieuwbouw_OpBebouwd               := IsDefined(point_in_polygon(centroid, Nieuwbouw_OpBebouwd_perceel/geometry));
+			}
+			unit<uint32>                   Nieuwbouw_OpOnbebouwd_perceel       := subset(!./IsNieuwbouw_OpBebouwd)
+			{        
+				attribute<geometries/rdc>  geometry (poly)                     := ../geometry[nr_OrgEntity];
+			}
+			unit<uint32>                   Nieuwbouw_OpBebouwd_perceel         := subset(./IsNieuwbouw_OpBebouwd)
+			{        
+				attribute<geometries/rdc>  geometry (poly)                     := ../geometry[nr_OrgEntity];
+			}
+		}
+		
+		unit<uint32>  Nieuwbouw_Wonen_OpOnbebouwd  := subset(Nieuwbouw_Wonen_perceel/Nieuwbouw_src/IsNieuwbouw_OpOnbebouwd)
+		{
+			attribute<geometries/rdc>      geometry_rd (poly)    := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/geometry_rd[nr_OrgEntity];
+			attribute<geometries/rdc_mm>   geometry_mm (poly)    := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>      centroid              := centroid_or_mid(geometry_rd);
+			attribute<m2>                  buildingfootprint     := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/buildingfootprint[nr_OrgEntity];
+			attribute<jaar>                bouwjaar              := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/bouwjaar[nr_OrgEntity];
+			attribute<m2>                  N_vbo_opp_woon        := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/N_vbo_opp_woon[nr_OrgEntity];
+			attribute<m2>                  N_vbo_opp_niet_woon   := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/N_vbo_opp_niet_woon[nr_OrgEntity];
+			
+			container N_Count_vbo_pand_perfunctie :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'Nieuwbouw_Wonen_perceel/Nieuwbouw_src/O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+'[nr_OrgEntity]'
+					, Nieuwbouw_Wonen_OpOnbebouwd
+					, uint32
+				)
+			{
+				attribute<uint32>               niet_woon (..)                  := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/O_Count_vbo_pand_perfunctie/niet_woon[nr_OrgEntity];
+			}
+			
+			parameter<geometries/rdc_mm>   union (poly)          := union_polygon(geometry_mm);
+			
+			unit<uint32> unioned_unit_1 : nrofrows = 1
+			{
+				attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., ../union);
+			}
+			
+			unit<uint32> single2multi_1 := split_polygon(unioned_unit_1/geometry_mm)
+			{
+				attribute<geometries/rdc_mm> inflate (poly) := polygon_i4D(geometry, 10000d);
+				parameter<geometries/rdc_mm> union   (poly) := union_polygon(inflate);
+			}
+			
+			unit<uint32> unioned_unit_2 : nrofrows = 1
+			{
+				attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., single2multi_1/union);
+			}
+			
+			unit<uint32> single2multi_2 := split_polygon(unioned_unit_2/geometry_mm)
+			, FreeData = "false"
+			{
+				attribute<geometries/rdc_mm>deflate (poly)                      := polygon_d4D(geometry, 10000d);
+				attribute<geometries/rdc>   geometry_rd (poly)                  := deflate[geometries/rdc];
+				attribute<geometries/rdc>   centroid                            := centroid_or_mid(geometry_rd);
+			
+				unit<uint32>                Nieuwbouw                           := Nieuwbouw_Wonen_OpOnbebouwd;
+				attribute<.>                Nieuwbouw_rel (Nieuwbouw)           := point_in_polygon(Nieuwbouw/centroid, geometry_rd);
+				attribute<bool>             IsBeschermdStadsgezicht             := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/Beschermd/geometry));
+				attribute<jaar>             O_mod_bouwjaar                      := const((0/0)[jaar], .);
+				attribute<jaar>             N_mod_bouwjaar                      := modus(Nieuwbouw/bouwjaar               , Nieuwbouw_rel);
+				attribute<m2>               O_sum_buildingfootprint             := const(0[m2],.);
+				attribute<m2>               N_sum_buildingfootprint             := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+				attribute<m2>               O_vbo_opp_woon                      := const(0[m2],.);
+				attribute<m2>               O_vbo_opp_niet_woon                 := const(0[m2],.);
+				attribute<m2>               N_vbo_opp_woon                      := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+				attribute<m2>               N_vbo_opp_niet_woon                 := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+				attribute<RegioUnit_wijk18> Wijk18_rel                            := point_in_polygon(centroid_or_mid(geometry_rd), RegioUnit_wijk18/Geometry);
+				attribute<int32>            Wijk_P_woningcorporatie               := RegioUnit_wijk18/p_wcorpw[Wijk18_rel];
+				
+				container O_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'const(0,single2multi_2)'
+						, single2multi_2
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := const(0,..);
+				}
+				container N_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', Nieuwbouw_rel)'
+						, single2multi_2
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/niet_woon, Nieuwbouw_rel);
+				}
+			}
+		}
+		
+		unit<uint32>  Nieuwbouw_Mixed_OpOnbebouwd  := subset(Nieuwbouw_Mixed_perceel/Nieuwbouw_src/IsNieuwbouw_OpOnbebouwd)
+		{
+			attribute<geometries/rdc>      geometry_rd (poly)    := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/geometry_rd[nr_OrgEntity];
+			attribute<geometries/rdc_mm>   geometry_mm (poly)    := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>      centroid              := centroid_or_mid(geometry_rd);
+			attribute<m2>                  buildingfootprint     := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/buildingfootprint[nr_OrgEntity];
+			attribute<m2>                  N_vbo_opp_woon        := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/N_vbo_opp_woon[nr_OrgEntity];
+			attribute<m2>                  N_vbo_opp_niet_woon   := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/N_vbo_opp_niet_woon[nr_OrgEntity];
+			
+			container N_Count_vbo_pand_perfunctie :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'Nieuwbouw_Mixed_perceel/Nieuwbouw_src/O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+'[nr_OrgEntity]'
+					, Nieuwbouw_Mixed_OpOnbebouwd
+					, uint32
+				)
+			{
+				attribute<uint32>               niet_woon (..)                  := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/O_Count_vbo_pand_perfunctie/niet_woon[nr_OrgEntity];
+			}
+			
+			attribute<jaar>                bouwjaar                      := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/bouwjaar[nr_OrgEntity];
+			
+			parameter<geometries/rdc_mm>   union (poly)          := union_polygon(geometry_mm);
+			
+			unit<uint32> unioned_unit_1 : nrofrows = 1
+			{
+				attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., ../union);
+			}
+			
+			unit<uint32> single2multi_1 := split_polygon(unioned_unit_1/geometry_mm)
+			{
+				attribute<geometries/rdc_mm> inflate (poly) := polygon_i4D(geometry, 10000d);
+				parameter<geometries/rdc_mm> union   (poly) := union_polygon(inflate);
+			}
+			
+			unit<uint32> unioned_unit_2 : nrofrows = 1
+			{
+				attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., single2multi_1/union);
+			}
+			
+			unit<uint32> single2multi_2 := split_polygon(unioned_unit_2/geometry_mm)
+			, FreeData = "false"
+			{
+				attribute<geometries/rdc_mm>deflate (poly)                      := polygon_d4D(geometry, 10000d);
+				attribute<geometries/rdc>   geometry_rd (poly)                  := deflate[geometries/rdc];
+				attribute<geometries/rdc>   centroid                            := centroid_or_mid(geometry_rd);
+			
+				unit<uint32>                Nieuwbouw                           := Nieuwbouw_Mixed_OpOnbebouwd;
+				attribute<.>                Nieuwbouw_rel (Nieuwbouw)           := point_in_polygon(Nieuwbouw/centroid, geometry_rd);
+				attribute<bool>             IsBeschermdStadsgezicht             := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/Beschermd/geometry));
+				attribute<jaar>             O_mod_bouwjaar                      := const((0/0)[jaar], .);
+				attribute<jaar>             N_mod_bouwjaar                      := modus(Nieuwbouw/bouwjaar               , Nieuwbouw_rel);
+				attribute<m2>               O_sum_buildingfootprint             := const(0[m2],.);
+				attribute<m2>               N_sum_buildingfootprint             := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+				attribute<m2>               O_vbo_opp_woon                      := const(0[m2],.);
+				attribute<m2>               O_vbo_opp_niet_woon                 := const(0[m2],.);
+				attribute<m2>               N_vbo_opp_woon                      := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+				attribute<m2>               N_vbo_opp_niet_woon                 := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+				attribute<RegioUnit_wijk18> Wijk18_rel                          := point_in_polygon(centroid_or_mid(geometry_rd), RegioUnit_wijk18/Geometry);
+				attribute<int32>            Wijk_P_woningcorporatie             := RegioUnit_wijk18/p_wcorpw[Wijk18_rel];
+
+				container O_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'const(0,single2multi_2)'
+						, single2multi_2
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := const(0,..);
+				}
+
+				container N_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', Nieuwbouw_rel)'
+						, single2multi_2
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/niet_woon, Nieuwbouw_rel);
+				}
+			}
+		}
+	
+		unit<uint32>  Nieuwbouw_Wonen_OpBebouwd   := subset(Nieuwbouw_Wonen_perceel/Nieuwbouw_src/IsNieuwbouw_OpBebouwd)
+		{
+			attribute<geometries/rdc_mm>   geometry_mm (poly)          := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>      geometry_rd (poly)          := geometry_mm[geometries/rdc];
+			attribute<bool>                GeenOverlapmet_SN           := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
+			unit<uint32>                   intersect_met_SN            := overlay_polygon(geometry_mm, SN/Woon/Analysis_tiled/Amersfoort/NB_metSloop_TouchSloopPerc/Read_single2multi_2/geometry_rd[geometries/rdc_mm]), FreeData = "False";
+		
+			attribute<geometries/rdc>      centroid                    := centroid_or_mid(geometry_rd);
+			attribute<m2>                  buildingfootprint           := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/buildingfootprint[nr_OrgEntity];
+			attribute<jaar>                bouwjaar                    := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/bouwjaar[nr_OrgEntity];
+			attribute<m2>                  N_vbo_opp_woon              := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/N_vbo_opp_woon[nr_OrgEntity];
+			attribute<m2>                  N_vbo_opp_niet_woon         := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/N_vbo_opp_niet_woon[nr_OrgEntity];
+			
+			container N_Count_vbo_pand_perfunctie :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'Nieuwbouw_Wonen_perceel/Nieuwbouw_src/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+'[nr_OrgEntity]'
+					, Nieuwbouw_Wonen_OpBebouwd
+					, uint32
+				)
+			{
+				attribute<uint32>               niet_woon (..)                  := Nieuwbouw_Wonen_perceel/Nieuwbouw_src/O_Count_vbo_pand_perfunctie/niet_woon[nr_OrgEntity];
+			}
+		
+			unit<uint32>  Netto   := subset(GeenOverlapmet_SN)
+			{
+				attribute<geometries/rdc_mm>   geometry_mm (poly)                  := ../geometry_mm[nr_OrgEntity];
+				attribute<geometries/rdc>      geometry_rd (poly)                  := geometry_mm[geometries/rdc];
+				attribute<geometries/rdc>      centroid                            := centroid_or_mid(geometry_rd);
+				
+				unit<uint32>                   Nieuwbouw                           := Nieuwbouw_Wonen_OpBebouwd;
+				attribute<.>                   Nieuwbouw_rel (Nieuwbouw)           := point_in_polygon(Nieuwbouw/centroid, geometry_rd);
+				
+				attribute<bool>                IsBeschermdStadsgezicht             := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/Beschermd/geometry));
+				attribute<jaar>                O_mod_bouwjaar                      := const((0/0)[jaar], .);
+				attribute<jaar>                N_mod_bouwjaar                      := modus(Nieuwbouw/bouwjaar               , Nieuwbouw_rel);
+				attribute<m2>                  O_sum_buildingfootprint             := const(0[m2],.);
+				attribute<m2>                  N_sum_buildingfootprint             := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+				attribute<m2>                  O_vbo_opp_woon                      := const(0[m2],.);
+				attribute<m2>                  O_vbo_opp_niet_woon                 := const(0[m2],.);
+				attribute<m2>                  N_vbo_opp_woon                      := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+				attribute<m2>                  N_vbo_opp_niet_woon                 := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+				attribute<RegioUnit_wijk18>    Wijk18_rel                          := point_in_polygon(centroid_or_mid(geometry_rd), RegioUnit_wijk18/Geometry);
+				attribute<int32>               Wijk_P_woningcorporatie             := RegioUnit_wijk18/p_wcorpw[Wijk18_rel];
+				
+				container O_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'const(0,Netto)'
+						, Netto
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := const(0,..);
+				}
+				container N_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', Nieuwbouw_rel)'
+						, Netto
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/niet_woon, Nieuwbouw_rel);
+				}
+			}
+		}
+		
+		unit<uint32>  Nieuwbouw_Mixed_OpBebouwd   := subset(Nieuwbouw_Mixed_perceel/Nieuwbouw_src/IsNieuwbouw_OpBebouwd)
+		{
+			attribute<geometries/rdc_mm>   geometry_mm (poly)          := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>      geometry_rd (poly)          := geometry_mm[geometries/rdc];
+			attribute<bool>                GeenOverlapmet_SN           := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
+			unit<uint32>                   intersect_met_SN            := overlay_polygon(geometry_mm, SN/Mixed/Analysis_tiled/Amersfoort/NB_metSloop_TouchSloopPerc/Read_single2multi_2/geometry_rd[geometries/rdc_mm]), FreeData = "False";
+		
+			attribute<geometries/rdc>      centroid                    := centroid_or_mid(geometry_rd);
+			attribute<m2>                  buildingfootprint           := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/buildingfootprint[nr_OrgEntity];
+			attribute<jaar>                bouwjaar                    := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/bouwjaar[nr_OrgEntity];
+			attribute<m2>                  N_vbo_opp_woon              := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/N_vbo_opp_woon[nr_OrgEntity];
+			attribute<m2>                  N_vbo_opp_niet_woon         := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/N_vbo_opp_niet_woon[nr_OrgEntity];
+			
+			container N_Count_vbo_pand_perfunctie :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'Nieuwbouw_Mixed_perceel/Nieuwbouw_src/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+'[nr_OrgEntity]'
+					, Nieuwbouw_Mixed_OpBebouwd
+					, uint32
+				)
+			{
+				attribute<uint32>               niet_woon (..)                  := Nieuwbouw_Mixed_perceel/Nieuwbouw_src/O_Count_vbo_pand_perfunctie/niet_woon[nr_OrgEntity];
+			}
+		
+			unit<uint32>  Netto   := subset(GeenOverlapmet_SN)
+			{
+				attribute<geometries/rdc_mm>   geometry_mm (poly)                  := ../geometry_mm[nr_OrgEntity];
+				attribute<geometries/rdc>      geometry_rd (poly)                  := geometry_mm[geometries/rdc];
+				attribute<geometries/rdc>      centroid                            := centroid_or_mid(geometry_rd);
+				
+				unit<uint32>                   Nieuwbouw                           := Nieuwbouw_Mixed_OpBebouwd;
+				attribute<.>                   Nieuwbouw_rel (Nieuwbouw)           := point_in_polygon(Nieuwbouw/centroid, geometry_rd);
+				
+				attribute<bool>                IsBeschermdStadsgezicht             := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/Beschermd/geometry));
+				attribute<jaar>                O_mod_bouwjaar                      := const((0/0)[jaar], .);
+				attribute<jaar>                N_mod_bouwjaar                      := modus(Nieuwbouw/bouwjaar               , Nieuwbouw_rel);
+				attribute<m2>                  O_sum_buildingfootprint             := const(0[m2],.);
+				attribute<m2>                  N_sum_buildingfootprint             := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+				attribute<m2>                  O_vbo_opp_woon                      := const(0[m2],.);
+				attribute<m2>                  O_vbo_opp_niet_woon                 := const(0[m2],.);
+				attribute<m2>                  N_vbo_opp_woon                      := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+				attribute<m2>                  N_vbo_opp_niet_woon                 := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+				attribute<RegioUnit_wijk18>    Wijk18_rel                          := point_in_polygon(centroid_or_mid(geometry_rd), RegioUnit_wijk18/Geometry);
+				attribute<int32>               Wijk_P_woningcorporatie             := RegioUnit_wijk18/p_wcorpw[Wijk18_rel];
+				
+				container O_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'const(0,Netto)'
+						, Netto
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := const(0,..);
+				}
+				container N_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', Nieuwbouw_rel)'
+						, Netto
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/niet_woon, Nieuwbouw_rel);
+				}
+			}
+		}
+	
+		Template AdditionalOperationsT_onveranderd
+		{
+			parameter<string> OnveranderdTypeName;
+			
+			unit<uint32> TilingDomain := RegioUnit_Aggl;
+			
+			parameter<String> Generate_AllAggl := 'Ready',
+				ExplicitSuppliers = "Analysis_tiled/Generate_AllAggl";
+			
+			container Analysis_tiled := 
+				for_each_ne(
+					TilingDomain/name
+					, 'Tiled_Analysis('+quote(OnveranderdTypeName)+', '+quote(TilingDomain/name)+ ',' +string(id(TilingDomain))+')'
+					)
+			{
+				parameter<String> Generate_AllAggl := 'Ready',
+					ExplicitSuppliers = "=AsList('Analysis_tiled/'+TilingDomain/name+'/single2multi_2/geometry_rd',';')";
+			}
+			
+			unit<uint32> Merge_Tiles := ='union_unit(' +AsItemList('Analysis_tiled/' +TilingDomain/name+ '/Read_single2multi_2')+')'
+			{
+				attribute<geometries/rdc>   geometry_rd (poly)                       := ='union_data(.,' +AsItemList('Analysis_tiled/' +TilingDomain/name+ '/Read_single2multi_2/geometry_rd')+')';
+				
+				unit<uint32> domain := = OnveranderdTypeName == 'Mixed' ? 'MakeRedevTypes_Mixed/Onveranderd_'+OnveranderdTypeName+'/Subtype/uq_pand/sub' : 'MakeRedevTypes/Onveranderd_'+OnveranderdTypeName+'/Subtype/uq_pand/sub';
+				
+				attribute<.>                 Onveranderd_group_rel (domain)        := point_in_polygon(domain/centroid, geometry_rd);
+				attribute<bool>              IsBeschermdStadsgezicht               := any(domain/IsBeschermdStadsgezicht           , Onveranderd_group_rel);
+				attribute<jaar>              O_mod_bouwjaar                        := modus(domain/bouwjaar                        , Onveranderd_group_rel);
+				attribute<m2>                O_sum_buildingfootprint               := sum(domain/buildingfootprint                 , Onveranderd_group_rel);
+				attribute<m2>                N_sum_buildingfootprint               := O_sum_buildingfootprint;
+				attribute<m2>                O_vbo_opp_woon                        := sum(domain/O_vbo_opp_woon                    , Onveranderd_group_rel);
+				attribute<m2>                N_vbo_opp_woon                        := O_vbo_opp_woon;
+				attribute<m2>                O_vbo_opp_niet_woon                   := sum(domain/O_vbo_opp_niet_woon               , Onveranderd_group_rel);
+				attribute<m2>                N_vbo_opp_niet_woon                   := O_vbo_opp_niet_woon;
+				attribute<RegioUnit_wijk18>  Wijk18_rel                            := point_in_polygon(centroid_or_mid(geometry_rd), RegioUnit_wijk18/Geometry);
+				attribute<int32>             Wijk_P_woningcorporatie               := RegioUnit_wijk18/p_wcorpw[Wijk18_rel];
+
+				container O_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(domain/O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', Onveranderd_group_rel)'
+						, Merge_Tiles
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := sum(domain/O_Count_vbo_pand_perfunctie/niet_woon, Onveranderd_group_rel);
+				}
+				container N_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name
+						, Merge_Tiles
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := O_Count_vbo_pand_perfunctie/niet_woon;
+				}
+
+			}
+			
+			Template Tiled_Analysis
+			{
+				////
+				parameter<string>  Onveranderd_domain_src;
+				parameter<string>  tile_name;
+				parameter<uint32>  tile_nr;
+				////
+				parameter<string> Generate := 'Ready', ExplicitSuppliers = "single2multi_2/geometry_rd";
+				
+				unit<uint32> Onveranderd_domain := = Onveranderd_domain_src == 'Mixed' ? 'MakeRedevTypes_Mixed/Onveranderd_'+Onveranderd_domain_src+'/Subtype/uq_pand/sub' : 'MakeRedevTypes/Onveranderd_'+Onveranderd_domain_src+'/Subtype/uq_pand/sub';
+				
+				unit<uint32> SubAggl := subset(Onveranderd_domain/aggl_rel == tile_nr)
+				, StoreData = "true"
+				{
+					attribute<geometries/rdc>       geometry (poly)          := Onveranderd_domain/geometry_rd[nr_OrgEntity];
+					attribute<geometries/rdc_mm>    geometry_mm (poly)       := geometry[geometries/rdc_mm];
+					
+					parameter<geometries/rdc_mm>    union (poly)             := union_polygon(geometry_mm);
+				}
+				
+				unit<uint32> unioned_unit_1 : nrofrows = 1
+				{
+					attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., SubAggl/union);
+				}
+				
+				unit<uint32> single2multi_1 := split_polygon(unioned_unit_1/geometry_mm)
+				, FreeData = "false"
+				{
+					attribute<geometries/rdc_mm> inflate (poly) := polygon_i4D(geometry, 5000d);
+					parameter<geometries/rdc_mm> union   (poly) := union_polygon(inflate);
+				}
+				
+				unit<uint32> unioned_unit_2 : nrofrows = 1
+				{
+					attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., single2multi_1/union);
+				}
+				
+				unit<uint32> single2multi_2 := split_polygon(unioned_unit_2/geometry_mm)
+				, StorageName = "='%LocalDataDir%/Verdichting/Onveranderd_'+Onveranderd_domain_src+'/'+tile_name+'.fss'"
+				{
+					attribute<geometries/rdc_mm> deflate (poly) := polygon_d4D(geometry, 5000d), DisableStorage = "true";
+					attribute<geometries/rdc>    geometry_rd (poly) := deflate[geometries/rdc];
+				}
+				
+				unit<uint32> Read_single2multi_2
+				: StorageName = "='%LocalDataDir%/Verdichting/Onveranderd_'+Onveranderd_domain_src+'/'+tile_name+'.fss'"
+				, StorageReadOnly = "true"
+				{
+					attribute<geometries/rdc>    geometry_rd (poly);
+				}
+			}
+		}
+		
+		Template AdditionalOperationsT_SN
+		{
+			parameter<string> Was;
+			
+			parameter<String> Generate_AllAggl := 'Ready',
+				ExplicitSuppliers = "Analysis_tiled/Generate_AllAggl";
+				
+			unit<uint32> TilingDomain := RegioUnit_Aggl;
+			
+			container Analysis_tiled := 
+				for_each_ne(
+					TilingDomain/name
+					, 'Tiled_Analysis('+quote(TilingDomain/name)+ ',' +string(id(TilingDomain))+','+quote(Was)+')'
+					)
+			{
+				parameter<String> Generate_AllAggl := 'Ready',
+					ExplicitSuppliers = "=AsList('Analysis_tiled/'+TilingDomain/name+'/Generate',';')";
+			}
+
+			unit<uint32> Merge_Tiles := ='union_unit(' +AsItemList('Analysis_tiled/' +TilingDomain/name+ '/NB_metSloop_TouchSloopPerc/Read_single2multi_2')+')'
+			{
+				attribute<geometries/rdc>   geometry_rd (poly)                       := ='union_data(.,' +AsItemList('Analysis_tiled/' +TilingDomain/name+ '/NB_metSloop_TouchSloopPerc/Read_single2multi_2/geometry_rd')+')';
+				
+				unit<uint32> Sloop := = Was == 'Mixed' ? 'MakeRedevTypes_Mixed/Sloop_'+Was+'/Subtype/uq_pand/sub' : 'MakeRedevTypes/Sloop_'+Was+'/Subtype/uq_pand/sub';
+
+				unit<uint32> Nieuwbouw  := ='MakeRedevTypes/Nieuwbouw_Woon/Subtype/uq_pand/sub';
+				
+				attribute<.> Sloop_rel     (Sloop)     := point_in_polygon(Sloop/centroid, Geometry_rd);
+				attribute<.> Nieuwbouw_rel (Nieuwbouw) := point_in_polygon(Nieuwbouw/centroid, Geometry_rd);
+				
+				attribute<bool>             IsBeschermdStadsgezicht             := any(Sloop/IsBeschermdStadsgezicht             , Sloop_rel);
+				attribute<jaar>             O_mod_bouwjaar                      := modus(Sloop/bouwjaar                          , Sloop_rel);
+				attribute<jaar>             N_mod_bouwjaar                      := modus(Nieuwbouw/bouwjaar                      , Nieuwbouw_rel);
+				attribute<m2>               O_sum_buildingfootprint             := sum(Sloop/buildingfootprint                   , Sloop_rel);
+				attribute<m2>               N_sum_buildingfootprint             := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+				attribute<m2>               O_vbo_opp_woon                      := sum(Sloop/O_vbo_opp_woon                      , Sloop_rel);
+				attribute<m2>               N_vbo_opp_woon                      := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+				attribute<m2>               O_vbo_opp_niet_woon                 := sum(Sloop/O_vbo_opp_niet_woon                 , Sloop_rel);
+				attribute<m2>               N_vbo_opp_niet_woon                 := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+				attribute<RegioUnit_wijk18> Wijk18_rel                          := point_in_polygon(centroid_or_mid(geometry_rd), RegioUnit_wijk18/Geometry);
+				attribute<int32>            Wijk_P_woningcorporatie             := RegioUnit_wijk18/p_wcorpw[Wijk18_rel];
+
+				container O_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(Sloop/O_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', Sloop_rel)'
+						, Merge_Tiles
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := sum(Sloop/O_Count_vbo_pand_perfunctie/niet_woon, Sloop_rel);
+				}
+				container N_Count_vbo_pand_perfunctie :=
+					for_each_nedv(
+						vbo_gebruiksdoel/name
+						, 'sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/'+vbo_gebruiksdoel/name+', Nieuwbouw_rel)'
+						, Merge_Tiles
+						, uint32
+					)
+				{
+					attribute<uint32>               niet_woon (..)                  := sum(Nieuwbouw/N_Count_vbo_pand_perfunctie/niet_woon, Nieuwbouw_rel);
+				}
+
+			}
+			
+			Template Tiled_Analysis
+			{
+				////
+				parameter<string>  tile_name;
+				parameter<uint32>  tile_nr;
+				parameter<string>  Was;
+				////////////
+				parameter<string> Generate := 'Ready', ExplicitSuppliers = "NB_metSloop_TouchSloopPerc/single2multi_1/geometry_rd";
+				
+				unit<uint32> Sloop_domain     := = Was == 'Mixed' ? 'MakeRedevTypes_Mixed/Sloop_'+Was+'/Subtype/uq_pand/sub' : 'MakeRedevTypes/Sloop_'+Was+'/Subtype/uq_pand/sub';
+				unit<uint32> Nieuwbouw_domain := = Was == 'Mixed' ? 'MakeRedevTypes_Mixed/Nieuwbouw_'+Was+'/Subtype/uq_pand/sub' : 'MakeRedevTypes/Nieuwbouw_'+Was+'/Subtype/uq_pand/sub';
+				
+				unit<uint32> Sloop_Tile := ='subset(Sloop_domain/aggl_rel == '+string(tile_nr)+')', FreeData = "false"
+				{ 
+					attribute<geometries/rdc_mm>    geometry_mm (poly)  := ='Sloop_domain/geometry_mm[nr_OrgEntity]';
+					parameter<geometries/rdc_mm> union (poly) := union_polygon(geometry_mm);
+					
+					unit<uint32> unioned_unit_1 : nrofrows = 1
+					{
+						attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., ../union);
+					}
+					
+					unit<uint32> single2multi_1 := split_polygon(unioned_unit_1/geometry_mm)
+					{
+						attribute<geometries/rdc_mm> inflate (poly) := polygon_i4D(geometry, 10000d); //vind aangrenzende percelen en voeg die samen, inflate 10m
+						parameter<geometries/rdc_mm> union   (poly) := union_polygon(inflate);
+					}
+					
+					unit<uint32> unioned_unit_2 : nrofrows = 1
+					{
+						attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., single2multi_1/union);
+					}
+					
+					unit<uint32> single2multi_2 := split_polygon(unioned_unit_2/geometry_mm)
+					{
+						attribute<geometries/rdc_mm> deflate (poly) := polygon_d4D(geometry, 10000d); //deflate 10m 
+					}
+				}
+				
+				unit<uint32> Nieuwbouw_Tile := ='subset(Nieuwbouw_domain/aggl_rel == '+string(tile_nr)+')' , FreeData = "false"
+				{ 
+					attribute<geometries/rdc_mm>    geometry_mm (poly)  := ='Nieuwbouw_domain/geometry_mm[nr_OrgEntity]';
+					parameter<geometries/rdc_mm> union (poly) := union_polygon(geometry_mm);
+					
+					unit<uint32> unioned_unit_1 : nrofrows = 1
+					{
+						attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., ../union);
+					}
+					
+					unit<uint32> single2multi_1 := split_polygon(unioned_unit_1/geometry_mm)
+					{
+						attribute<geometries/rdc_mm> inflate (poly) := polygon_i4D(geometry, 5000d); //vind aangrenzende percelen en voeg die samen, inflate 10m
+						parameter<geometries/rdc_mm> union   (poly) := union_polygon(inflate);
+					}
+					
+					unit<uint32> unioned_unit_2 : nrofrows = 1
+					{
+						attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., single2multi_1/union);
+					}
+					
+					unit<uint32> single2multi_2 := split_polygon(unioned_unit_2/geometry_mm)
+					{
+						attribute<geometries/rdc_mm> deflate (poly) := polygon_d4D(geometry, 5000d); //deflate 10m 
+					}
+				}
+				
+				unit<uint32> NieuwbouwPerceel_Tile := ='subset(Nieuwbouw_Wonen_perceel/aggl_rel == '+string(tile_nr)+')', FreeData = "false"
+				{
+					attribute<geometries/rdc_mm>    geometry_mm (poly)  := ='Nieuwbouw_Wonen_perceel/geometry_mm[nr_OrgEntity]';
+					parameter<geometries/rdc_mm> union (poly) := union_polygon(geometry_mm);
+					
+					unit<uint32> unioned_unit_1 : nrofrows = 1
+					{
+						attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., ../union);
+					}
+					
+					unit<uint32> single2multi_1 := split_polygon(unioned_unit_1/geometry_mm)
+					{
+						attribute<geometries/rdc_mm> inflate (poly) := polygon_i4D(geometry, 5000d); //vind aangrenzende percelen en voeg die samen, inflate 10m
+						parameter<geometries/rdc_mm> union   (poly) := union_polygon(inflate);
+					}
+					
+					unit<uint32> unioned_unit_2 : nrofrows = 1
+					{
+						attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., single2multi_1/union);
+					}
+					
+					unit<uint32> single2multi_2 := split_polygon(unioned_unit_2/geometry_mm)
+					{
+						attribute<geometries/rdc_mm> deflate (poly) := polygon_d4D(geometry, 5000d); //deflate 10m 
+					}
+					
+				}
+				
+				unit<uint32> SloopPerceel_Tile := ='subset(Sloop_Wonen_perceel/aggl_rel == '+string(tile_nr)+')', FreeData = "false"
+				{
+					attribute<geometries/rdc_mm>    geometry_mm (poly)  := ='Sloop_Wonen_perceel/geometry_mm[nr_OrgEntity]';
+				}
+				
+				unit<uint32>  intersect  := ='overlay_polygon(Sloop_Tile/single2multi_2/deflate, NieuwbouwPerceel_Tile/single2multi_2/deflate)' //intersect perceel met nieuwbouw met gesloopte panden
+				{
+					unit<uint32> nieuwbouw_perceel_metSloop := subset(IsDefined(second_rel)) //nieuwbouw perceel dat een gesloopt pand bevat
+					, DialogType = "map"
+					, DialogData = "geometry_mm"
+					, FreeData = "false"
+					{
+						attribute<uint32>            second_rel         := ../second_rel[nr_OrgEntity];
+						attribute<geometries/rdc_mm> geometry_mm (poly) := NieuwbouwPerceel_Tile/single2multi_2/deflate[second_rel];
+						attribute<geometries/rdc_mm> inflate (poly)     := polygon_i4D(geometry_mm, 5000d); //inflate perceel om te overlayen met slooppanden
+						
+						unit<uint32> overlay_metSloopPercelen  := ='overlay_polygon(SloopPerceel_Tile/geometry_mm, inflate)'; //intersect nieuwbouw_perceel_metSloop met gesloopte panden
+					}
+					
+					unit<uint32> TouchingSloopPercelen := subset(IsDefined(nieuwbouw_perceel_metSloop/overlay_metSloopPercelen/first_rel))
+					{
+						attribute<uint32>            first_rel          := nieuwbouw_perceel_metSloop/overlay_metSloopPercelen/first_rel[nr_OrgEntity];
+						attribute<geometries/rdc_mm> geometry_mm (poly) := SloopPerceel_Tile/geometry_mm[first_rel];
+					}
+				}
+				
+				unit<uint32> NB_metSloop_TouchSloopPerc := union_unit(intersect/nieuwbouw_perceel_metSloop, intersect/TouchingSloopPercelen)
+				{
+					attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., intersect/nieuwbouw_perceel_metSloop/inflate, intersect/TouchingSloopPercelen/geometry_mm);
+					parameter<geometries/rdc_mm> union (poly)       := union_polygon(geometry_mm);
+					
+					unit<uint32> unioned_unit_1 : nrofrows = 1
+					{
+						attribute<geometries/rdc_mm> geometry_mm (poly) := union_data(., ../union);
+					}
+					
+					unit<uint32> single2multi_1 := split_polygon(unioned_unit_1/geometry_mm)
+					, StorageName = "='%LocalDataDir%/Verdichting/SN_'+Was+'_Woon_intersect/'+tile_name+'.fss'"
+					{
+						attribute<geometries/rdc_mm> deflate (poly)     := polygon_d4D(geometry, 5000d); 
+						attribute<geometries/rdc>    geometry_rd (poly) := deflate[geometries/rdc];
+					}
+					
+					unit<uint32> Read_single2multi_2
+					: StorageName = "='%LocalDataDir%/Verdichting/SN_'+Was+'_Woon_intersect/'+tile_name+'.fss'"
+					, StorageReadOnly = "true"
+					{
+						attribute<geometries/rdc>    geometry_rd (poly);
+						attribute<geometries/rdc>    deflate (poly);
+						attribute<geometries/rdc>    geometry_mm (poly) := deflate;
+					}
+				}
+			}
+		}
+	}
+	container FinalDomains
+	{
+		unit<uint32> SN_Woon_Woon                 := AdditionalOperations/SN/Woon/Merge_Tiles;
+		unit<uint32> SN_NietWoon_Woon             := AdditionalOperations/SN/NietWoon/Merge_Tiles;
+		unit<uint32> SN_Mixed_Woon                := AdditionalOperations/SN/Mixed/Merge_Tiles;
+		unit<uint32> Toevoeging_Woon              := MakeRedevTypes/Toevoeging_Woon/Subtype/uq_pand/sub; 
+		unit<uint32> Transformatie_Woon           := MakeRedevTypes/Transformatie_Woon/Subtype/uq_pand/sub; 
+		unit<uint32> Onttrekking_Woon             := MakeRedevTypes/Onttrekking_Woon/Subtype/uq_pand/sub;
+		unit<uint32> Onveranderd_Woon             := AdditionalOperations/Onveranderd/Woon/Merge_Tiles;
+		unit<uint32> Onveranderd_NietWoon         := AdditionalOperations/Onveranderd/NietWoon/Merge_Tiles;
+		unit<uint32> Onveranderd_Mixed            := AdditionalOperations/Onveranderd/Mixed/Merge_Tiles;
+		unit<uint32> Nieuwbouw_Wonen_OpOnbebouwd  := AdditionalOperations/Nieuwbouw_Wonen_OpOnbebouwd/single2multi_2;
+		unit<uint32> Nieuwbouw_Mixed_OpOnbebouwd  := AdditionalOperations/Nieuwbouw_Mixed_OpOnbebouwd/single2multi_2;
+		unit<uint32> Nieuwbouw_Wonen_OpBebouwd    := AdditionalOperations/Nieuwbouw_Wonen_OpBebouwd/Netto;
+		unit<uint32> Nieuwbouw_Mixed_OpBebouwd    := AdditionalOperations/Nieuwbouw_Mixed_OpBebouwd/Netto;
+	}
+
+	unit<uint32> Export := ='union_unit('+AsList('FinalDomains/'+Redev_Types/name,',')+')'
+	, FreeData = "false"
+	{
+
+		attribute<string>           type                                  := ='union_data(., '+AsList('const('+quote(Redev_Types/name)+',FinalDomains/'+Redev_Types/name+')',',')+')';
+		attribute<Redev_Types>      type_class                            := rlookup(type, Redev_Types/name);
+		attribute<geometries/rdc>   geometry (poly)                       := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/geometry_rd',',')+')';
+		attribute<m2>               site_size                             := area(geometry, m2);
+		///////
+		attribute<bool>             O_IsBeschermdStadsgezicht             := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/IsBeschermdStadsgezicht',',')+')';
+		attribute<jaar>             O_mod_bouwjaar                        := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_mod_bouwjaar',',')+')';
+		attribute<m2>               O_sum_buildingfootprint               := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_sum_buildingfootprint',',')+')';
+		attribute<m2>               O_vbo_opp_woon                        := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_vbo_opp_woon',',')+')';
+		attribute<m2>               O_vbo_opp_niet_woon                   := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_vbo_opp_niet_woon',',')+')';
+		
+		attribute<uint32>           O_count_vbo_pand_niet_woon            := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/niet_woon',',')+')';
+		attribute<uint32>           O_count_vbo_pand_bijeenkomst          := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/bijeenkomst',',')+')';
+		attribute<uint32>           O_count_vbo_pand_cel                  := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/cel',',')+')';
+		attribute<uint32>           O_count_vbo_pand_gezondheidszorg      := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/gezondheidszorg',',')+')';
+		attribute<uint32>           O_count_vbo_pand_industrie            := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/industrie',',')+')';
+		attribute<uint32>           O_count_vbo_pand_kantoor              := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/kantoor',',')+')';
+		attribute<uint32>           O_count_vbo_pand_logies               := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/logies',',')+')';
+		attribute<uint32>           O_count_vbo_pand_onderwijs            := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/onderwijs',',')+')';
+		attribute<uint32>           O_count_vbo_pand_overige_gebruiks     := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/overige_gebruiks',',')+')';
+		attribute<uint32>           O_count_vbo_pand_sport                := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/sport',',')+')';
+		attribute<uint32>           O_count_vbo_pand_winkel               := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/winkel',',')+')';
+		attribute<uint32>           O_count_vbo_pand_woon                 := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/O_Count_vbo_pand_perfunctie/woon',',')+')';
+		
+		attribute<uint32>           N_count_vbo_pand_woon                 := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/N_Count_vbo_pand_perfunctie/woon',',')+')';
+		attribute<uint32>           N_count_vbo_pand_niet_woon            := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/N_Count_vbo_pand_perfunctie/niet_woon',',')+')';
+		attribute<m2>               N_sum_buildingfootprint               := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/N_sum_buildingfootprint',',')+')';
+		attribute<m2>               N_vbo_opp_woon                        := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/N_vbo_opp_woon',',')+')';
+		attribute<m2>               N_vbo_opp_niet_woon                   := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/N_vbo_opp_niet_woon',',')+')';
+		
+		attribute<int32>            Wijk_P_woningcorporatie               := ='union_data(., '+AsList('FinalDomains/'+Redev_Types/name+'/Wijk_P_woningcorporatie',',')+')';
+		attribute<bool>             Vogelaar_wijken                       := (Brondata/Spatial_data/Dani/Vogelaar_wijken == 40 ? TRUE : FALSE)[NL_grid_domain_rel];
+		
+		attribute<int32>            ExploitatieSaldo_BuurtOP                := Brondata/Spatial_data/Jip/ExploitatieSaldo_BuurtOP[NL_grid_domain_rel][int32];
+		attribute<int32>            ExploitatieSaldo_BuurtOP_plus1          := Brondata/Spatial_data/Jip/ExploitatieSaldo_BuurtOP_plus1[NL_grid_domain_rel][int32];
+		attribute<int32>            ExploitatieSaldo_BuurtOP_plus2          := Brondata/Spatial_data/Jip/ExploitatieSaldo_BuurtOP_plus2[NL_grid_domain_rel][int32];
+
+		attribute<RegioUnit_Aggl>   Aggl_rel                              := point_in_polygon(centroid_or_mid(geometry),RegioUnit_Aggl/geometry);
+		attribute<NL_grid/domain>   NL_grid_domain_rel                    := centroid_or_mid(geometry)[NL_grid/domain];
+	}
+}

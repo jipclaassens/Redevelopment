@@ -1,0 +1,233 @@
+container CBS_vierkanten
+{
+	unit<uint32> V2014 
+	:	StorageName     = "%SourceDataDir%/CBS/CBSVierkanten/CBSvierkant100m201410.shp"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc>   geometry (polygon);
+		attribute<geometries/rdc>   centroid                := centroid_or_mid(geometry);
+		attribute<nrwonha>          woningen2000            := WON2000[nrwonha];
+		attribute<nrwonha>          woningen2000_clean      := woningen2000 != float32(-99998) ? woningen2000 : float32(0), FreeData = "False";
+		attribute<nrwonha>          woningen2001            := WON2001[nrwonha];
+		attribute<nrwonha>          woningen2002            := WON2002[nrwonha];
+		attribute<nrwonha>          woningen2003            := WON2003[nrwonha];
+		attribute<nrwonha>          woningen2004            := WON2004[nrwonha];
+		attribute<nrwonha>          woningen2005            := WON2005[nrwonha];
+		attribute<nrwonha>          woningen2006            := WON2006[nrwonha];
+		attribute<nrwonha>          woningen2007            := WON2007[nrwonha];
+		attribute<nrwonha>          woningen2008            := WON2008[nrwonha];
+		attribute<nrwonha>          woningen2009            := WON2009[nrwonha];
+		attribute<nrwonha>          woningen2010            := WON2010[nrwonha];
+		attribute<nrwonha>          woningen2011            := WON2011[nrwonha];
+		attribute<nrwonha>          woningen2012            := WON2012[nrwonha];
+		attribute<.>                grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+	}
+	
+	unit<uint32> V2015 
+	:	StorageName     = "%SourceDataDir%/CBS/CBSVierkanten/CBSvierkant100m_2015_v1.shp"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc> geometry (polygon);
+		attribute<nrwonha>          woningen2015            := WONING[nrwonha];
+		attribute<.>                grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+	}
+	
+	unit<uint32> V2016 
+	:	StorageName     = "%SourceDataDir%/CBS/CBSVierkanten/CBSvierkant100m_2016_v1.shp"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc> geometry (polygon);
+		attribute<nrwonha>          woningen2016            := WONING[nrwonha];
+		attribute<.>                grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+		
+		attribute<int32>        WON_LEEGST;
+		attribute<int32>        P_HUURWON;
+		attribute<int32>        P_KOOPWON;
+		attribute<int32>        WON_HCORP;
+		attribute<int32>        WOZWONING;
+		attribute<int32>        INWONER;
+		attribute<int32>        INW_014;
+		attribute<int32>        INW_1524;
+		attribute<int32>        INW_2544;
+		attribute<int32>        INW_4564;
+		attribute<int32>        INW_65PL;
+	}
+	
+	unit<uint32> V2017 
+	:	StorageName     = "%SourceDataDir%/CBS/CBSVierkanten/CBSvierkant100m_2017_v1.shp"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc> geometry (polygon);
+		attribute<nrwonha>          woningen2017            := WONING[nrwonha];
+		attribute<.>                grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+	}
+	
+	unit<uint32> V2018
+	:	StorageName     = "%SourceDataDir%/CBS/CBSVierkanten/CBS_VK100_2018_v3.shp"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	{
+		attribute<geometries/rdc>   geometry (polygon);
+		attribute<nrwonha>          woningen2018            := WONING[nrwonha];
+		attribute<.>                grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+	}
+	
+	unit<uint32> V2019
+	:	StorageName     = "%SourceDataDir%/CBS/CBSVierkanten/CBS_vk100_2019_v2.shp"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc> geometry (polygon);
+		attribute<nrwonha>        woningen2019            := WONING[nrwonha];
+		attribute<.>                grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+	}
+	
+	unit<uint32> V2020
+	:	StorageName     = "%SourceDataDir%/CBS/CBSVierkanten/CBS_vk100_2020_v1.shp"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc> geometry (polygon);
+		attribute<nrwonha>        woningen2020            := WONING[nrwonha];
+		attribute<.>                grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+		
+		attribute<uint32>         inwoner_grid (NL_grid/domain) := inwoner[uint32][grid];
+	}
+	
+	unit<uint32> V2021
+	:	StorageName     = "%SourceDataDir%/CBS/CBSVierkanten/CBS_vk100_2021_v1.gpkg"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	// ,	SyncMode = "None"
+	{
+		attribute<geometries/rdc>   geometry (polygon);
+		attribute<int32>            aantal_woningen;
+		
+		attribute<nrwonha>          woningen2021_src        := aantal_woningen[nrwonha];
+		attribute<nrwonha>          woningen2021            := woningen2021_src != float32(-99998) && woningen2021_src != float32(-99997) ? woningen2021_src : float32(0), FreeData = "False";
+		attribute<.>                grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+		
+		// attribute<uint32>         inwoner_grid (NL_grid/domain) := inwoner[uint32][grid];
+		attribute<.>                 V2021_rel (NL_grid/perGridsize/size_100m/points) := point_in_polygon(/NL_grid/perGridsize/size_100m/points/geometry, geometry);
+		
+	}
+
+	unit<uint32> V2021_points := subset(IsDefined(V2021/V2021_rel))
+	{
+		attribute<geometries/rdc>   geometry       := NL_grid/perGridsize/size_100m/points/geometry[nr_OrgEntity];
+		attribute<nrwonha>          woningen2021   := V2021/woningen2021[V2021/V2021_rel][nr_OrgEntity];
+	}
+
+	
+	attribute<eenheden/nrwonha>              woningen2000_src (NL_grid/domain) := V2014/woningen2000[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2001_src (NL_grid/domain) := V2014/woningen2001[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2002_src (NL_grid/domain) := V2014/woningen2002[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2003_src (NL_grid/domain) := V2014/woningen2003[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2004_src (NL_grid/domain) := V2014/woningen2004[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2005_src (NL_grid/domain) := V2014/woningen2005[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2006_src (NL_grid/domain) := V2014/woningen2006[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2007_src (NL_grid/domain) := V2014/woningen2007[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2008_src (NL_grid/domain) := V2014/woningen2008[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2009_src (NL_grid/domain) := V2014/woningen2009[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2010_src (NL_grid/domain) := V2014/woningen2010[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2011_src (NL_grid/domain) := V2014/woningen2011[V2014/grid];
+	attribute<eenheden/nrwonha>              woningen2012_src (NL_grid/domain) := V2014/woningen2012[V2014/grid];
+	
+	attribute<eenheden/nrwonha>              woningen2015_src (NL_grid/domain) := V2015/woningen2015[V2015/grid];
+	attribute<eenheden/nrwonha>              woningen2016_src (NL_grid/domain) := V2016/woningen2016[V2016/grid];
+	attribute<eenheden/nrwonha>              woningen2017_src (NL_grid/domain) := V2017/woningen2017[V2017/grid];
+	attribute<eenheden/nrwonha>              woningen2018_src (NL_grid/domain) := V2018/woningen2018[V2018/grid];
+	attribute<eenheden/nrwonha>              woningen2019_src (NL_grid/domain) := V2019/woningen2019[V2019/grid];
+	attribute<eenheden/nrwonha>              woningen2020_src (NL_grid/domain) := V2020/woningen2020[V2020/grid];
+	attribute<eenheden/nrwonha>              woningen2021_src (NL_grid/domain) := V2021/woningen2021[V2021/grid];
+	
+	attribute<eenheden/nrwonha>              woningen2000 (NL_grid/domain)     := woningen2000_src != float32(-99998) ? woningen2000_src : float32(0), FreeData = "False";
+	// attribute<nrwonha>                       count_withhouses_2000   (Brondata/regios/nederland/src)   := sum(woningen2000 != 0[nrwonha] ? 1[nrwonha] : 0[nrwonha], Brondata/regios/nederland/src/grid);
+	// attribute<eenheden/nrwonha>              woningen2000_omit (NL_grid/domain):= woningen2000_src == -99998[nrwonha] ? 1[nrwonha] : 0[nrwonha], FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2001 (NL_grid/domain)     := woningen2001_src != float32(-99998) ? woningen2001_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2002 (NL_grid/domain)     := woningen2002_src != float32(-99998) ? woningen2002_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2003 (NL_grid/domain)     := woningen2003_src != float32(-99998) ? woningen2003_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2004 (NL_grid/domain)     := woningen2004_src != float32(-99998) ? woningen2004_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2005 (NL_grid/domain)     := woningen2005_src != float32(-99998) ? woningen2005_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2006 (NL_grid/domain)     := woningen2006_src != float32(-99998) ? woningen2006_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2007 (NL_grid/domain)     := woningen2007_src != float32(-99998) ? woningen2007_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2008 (NL_grid/domain)     := woningen2008_src != float32(-99998) ? woningen2008_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2009 (NL_grid/domain)     := woningen2009_src != float32(-99998) ? woningen2009_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2010 (NL_grid/domain)     := woningen2010_src != float32(-99998) ? woningen2010_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2011 (NL_grid/domain)     := woningen2011_src != float32(-99998) ? woningen2011_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2012 (NL_grid/domain)     := woningen2012_src != float32(-99998) ? woningen2012_src : float32(0), FreeData = "False";
+	// attribute<eenheden/nrwonha>              woningen2012_omit (NL_grid/domain)     := woningen2012_src != float32(-99998) ? 1[float32] : float32(0), FreeData = "False";
+	
+	attribute<eenheden/nrwonha>              woningen2015 (NL_grid/domain)     := woningen2015_src != float32(-99998) && woningen2015_src != float32(-99997) ? woningen2015_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2016 (NL_grid/domain)     := woningen2016_src != float32(-99998) && woningen2016_src != float32(-99997) ? woningen2016_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2017 (NL_grid/domain)     := woningen2017_src != float32(-99998) && woningen2017_src != float32(-99997) ? woningen2017_src : float32(0), FreeData = "False";
+	// attribute<eenheden/nrwonha>              woningen2017_omit (NL_grid/domain)     := woningen2017_src != float32(-99998) && woningen2017_src != float32(-99997) ? 1[float32] : float32(0), FreeData = "False";
+	
+	attribute<eenheden/nrwonha>              woningen2018 (NL_grid/domain)     := woningen2018_src != float32(-99998) && woningen2018_src != float32(-99997) ? woningen2018_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2019 (NL_grid/domain)     := woningen2019_src != float32(-99998) && woningen2019_src != float32(-99997) ? woningen2019_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2020 (NL_grid/domain)     := woningen2020_src != float32(-99998) && woningen2020_src != float32(-99997) ? woningen2020_src : float32(0), FreeData = "False";
+	attribute<eenheden/nrwonha>              woningen2021 (NL_grid/domain)     := woningen2021_src != float32(-99998) && woningen2021_src != float32(-99997) ? woningen2021_src : float32(0), FreeData = "False";
+	
+	attribute<int32>                        Leegstand_2016  (NL_grid/domain)   := V2016/WON_LEEGST[V2016/grid];
+	attribute<int32>                        P_huur_2016     (NL_grid/domain)   := V2016/P_HUURWON[V2016/grid];
+	attribute<int32>                        P_huur_2016_corr    (NL_grid/domain)   := V2016/P_HUURWON[V2016/grid] != -99997 ? V2016/P_HUURWON[V2016/grid] : (0/0)[int32];
+
+	attribute<int32>                        P_koop_2016     (NL_grid/domain)   := V2016/P_KOOPWON[V2016/grid];
+	attribute<int32>                        Corporatie_2016 (NL_grid/domain)   := V2016/WON_HCORP[V2016/grid];
+	
+	attribute<int32>                        WOZwaarde_2016       (NL_grid/domain)   := V2016/WOZWONING[V2016/grid];
+	
+	
+	attribute<int32>                        Inwoners_2016        (NL_grid/domain)   := V2016/INWONER[V2016/grid];
+	attribute<int32>                        Inwoners_0_14_2016   (NL_grid/domain)   := V2016/INW_014[V2016/grid];
+	attribute<int32>                        Inwoners_15_24_2016  (NL_grid/domain)   := V2016/INW_1524[V2016/grid];
+	attribute<int32>                        Inwoners_25_44_2016  (NL_grid/domain)   := V2016/INW_2544[V2016/grid];
+	attribute<int32>                        Inwoners_45_64_2016  (NL_grid/domain)   := V2016/INW_4564[V2016/grid];
+	attribute<int32>                        Inwoners_65plus_2016 (NL_grid/domain)   := V2016/INW_65PL[V2016/grid];
+	
+	// attribute<int32>                        Leegstand_2016_ZL (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? Leegstand_2016 != -99997 ? Leegstand_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                        Leegstand_2016_ZL_wijk (Brondata/Regios/wijken/src_2016)   := sum(Leegstand_2016_ZL, Brondata/Regios/wijken/src_2016/grid);
+	
+	// attribute<float32>                      Procent_Leegstand_2016_ZL_wijk (Brondata/Regios/wijken/src_2016)   := Leegstand_2016_ZL_wijk[float32] / Woningen_2016_ZL_wijk [float32];
+	
+	// attribute<int32>                        P_huur_2016_ZL    (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? P_huur_2016 != -99997 ? P_huur_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                        P_koop_2016_ZL    (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? P_koop_2016 != -99997 ? P_koop_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                        Corporatie_2016_ZL(NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? Corporatie_2016  != -99997 ? Corporatie_2016 : (0/0)[int32]: (0/0)[int32];
+	
+	// attribute<int32>                        Woningen_2016_ZL   (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? woningen2016[int32] : (0/0)[int32];
+	// attribute<int32>                        Woningen_2016_ZL_wijk (Brondata/Regios/wijken/src_2016)   := sum(Woningen_2016_ZL, Brondata/Regios/wijken/src_2016/grid);
+
+	// attribute<int32>                        WOZwaarde_2016_ZL       (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? WOZwaarde_2016 != -99997 ? WOZwaarde_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                      WOZ_2016_ZL_wijk (Brondata/Regios/wijken/src_2016)   := sum(WOZwaarde_2016_ZL, Brondata/Regios/wijken/src_2016/grid);
+	
+	// attribute<int32>                        Inwoners_2016_ZL        (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? Inwoners_2016 != -99997 ? Inwoners_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                        Inwoners_0_14_2016_ZL   (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? Inwoners_0_14_2016 != -99997 ? Inwoners_0_14_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                        Inwoners_15_24_2016_ZL  (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? Inwoners_15_24_2016 != -99997 ? Inwoners_15_24_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                        Inwoners_25_44_2016_ZL  (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? Inwoners_25_44_2016 != -99997 ? Inwoners_25_44_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                        Inwoners_45_64_2016_ZL  (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? Inwoners_45_64_2016 != -99997 ? Inwoners_45_64_2016 : (0/0)[int32]: (0/0)[int32];
+	// attribute<int32>                        Inwoners_65plus_2016_ZL (NL_grid/domain)   := Brondata/regios/corop/src_2012/grid == 38 ? Inwoners_65plus_2016 != -99997 ? Inwoners_65plus_2016 : (0/0)[int32]: (0/0)[int32];
+	
+	container BBG_2012_2000
+	{
+		attribute<uint32> uitleg (NL_grid/domain)
+		:	StorageName     = "%SourceDataDir%/CBS/Uitleg_2000_2012.tif"
+		, 	Descr			= "CBS Vierkanten 2012 - 2000 en verder in ArcGIS aangepast: waarden >= 10, group >= 5"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		attribute<bool> uitleg_bool (NL_grid/domain) := uitleg > 0;
+		attribute<float32> uitleg_float (NL_grid/domain) := uitleg[float32] > 0[float32] ? 1[float32] : 0[float32];
+		attribute<NL_grid/domain> ID (NL_grid/domain):= NL_grid/domain/id;
+	}
+	
+	
+}

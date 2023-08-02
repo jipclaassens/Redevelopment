@@ -1,0 +1,108 @@
+container Grondproductiekosten 
+{
+	parameter<float32> Significatie_threshold := 0.11f;
+	
+	#include<C.dms>
+	
+	container ReadData := 
+		for_each_ne(
+			C/GrondproductieModelVarianten/name
+			, 'T/ReadData('+string(id(C/GrondproductieModelVarianten))+'[C/GrondproductieModelVarianten])'
+		)
+	{
+		container LocatieVariabelen
+		{
+			attribute<float32> AndersBouwen         (NL_grid/domain) := Brondata/Overig/Bodem/DraagkrachtKwel/AndersBouwen[float32];
+			attribute<float32> BouwenMetMaatregelen (NL_grid/domain) := Brondata/Overig/Bodem/DraagkrachtKwel/BouwenMetMaatregelen[float32];
+			attribute<float32> AfstandLocatus       (NL_grid/domain) := Brondata/Overig/Omgeving/AfstandLocatus_src = 0f ? 1f : /Brondata/Overig/Omgeving/AfstandLocatus_src < 0f ? 50000f : /Brondata/Overig/Omgeving/AfstandLocatus_src;
+			attribute<float32> Kaveldichtheid       (NL_grid/domain) := Brondata/Overig/Omgeving/Kaveldichtheid_src[float32];
+			attribute<float32> Reistijd5kInw        (NL_grid/domain) := Brondata/Overig/Omgeving/Reistijd5kInw;
+		}
+	}
+	
+	container Calculations := 
+		for_each_ne(
+			C/Combi/name,
+			'T/CalculateCosts('+
+				string(id(C/Combi))+'[C/Combi],
+				ReadData/'+C/Combi/GrondproductieModelVarianten_name+'/Modelvariant,
+				ReadData/'+C/Combi/GrondproductieModelVarianten_name+'/Modelvariant/estimate,
+				ReadData/'+C/Combi/GrondproductieModelVarianten_name+'/Modelvariant/stderror,
+				ReadData/'+C/Combi/GrondproductieModelVarianten_name+'/Modelvariant/pvalue,'+
+				quote(C/Onzekerheid1/CalcStr[C/Onzekerheid/Nr_1[C/Combi/Nr_2]])+','+
+				quote(C/Onzekerheid2/name[C/Onzekerheid/Nr_2[C/Combi/Nr_2]])+
+			')'
+		)
+	{
+		container Totaal :=
+			for_each_ind(
+				'nedv',
+				C/Onzekerheid/name,
+				replace(
+					'add('+AsItemList(C/GrondproductieModelVarianten/name+'/@V@/Kosten')+')',
+					'@V@', C/Onzekerheid/name
+				),
+				NL_grid/domain, Eur_Ha
+			);
+	}
+	
+	container Results :=
+		for_each_ind(
+			'nedv'
+			,C/Combi/name
+			,'Calculations/'+C/Combi/name+'/Kosten'
+			,NL_grid/domain
+			, Eur_Ha
+			// ,'Classified/'+C/Combi/name+'/Target_9K/ClassBreaks'
+		)
+	{
+		// container Classified := for_each_ne(C/Combi/name, '/Templates/Classify_9K_EurHa(Calculations/'+C/Combi/name+'/Kosten, NL_grid/domain)');
+		// container Statistics := for_each_ne(C/Combi/name, 'T/Statistics('+quote(C/Combi/GrondproductieModelVarianten_name)+','+string(C/Combi/Nr_2)+'[C/Onzekerheid])');
+		
+		
+		container MakeTotaal_FSS :=
+			for_each_ind(
+				'nedva'
+				, C/Onzekerheid/name
+				,replace(
+					'add('+AsItemList(C/GrondproductieModelVarianten/name+'/@V@')+')',
+					'@V@', C/Onzekerheid/name
+				)
+				, NL_grid/domain
+				, Eur_Ha
+				, '%LocalDataProjDir%/UnlinkedData/Vastgoed/GrondproductieKosten/'+C/Onzekerheid/name+'.fss'
+			);
+		
+		container Totaal_src :=
+			for_each_ind(
+				'ndva'
+				, C/Onzekerheid/name
+				, NL_grid/domain
+				, Eur_Ha
+				, '%LocalDataProjDir%/UnlinkedData/Vastgoed/GrondproductieKosten/'+C/Onzekerheid/name+'.fss'
+				// , 'Classified/'+C/Onzekerheid/name+'/Target_9K/ClassBreaks'
+			)
+		{
+			// container Classified := for_each_ne(C/Onzekerheid/name, '/Templates/Classify_9K_EurHa(Calculations/Totaal/'+C/Onzekerheid/name+', NL_grid/domain)');
+		}
+		container Totaal :=
+			for_each_nedv(
+				 C/Onzekerheid/name
+				, 'MakeDefined(Totaal_src/'+C/Onzekerheid/name+', 0[eur_ha])'
+				, NL_grid/domain
+				, Eur_Ha
+			);
+		
+	}
+	
+	// container Grondproductiekosten_perWoonmilieu :=
+		// for_each_nedv(
+			// Woonmilieus/name
+			// ,'Analysis/BaseData/Grondproductiekosten/Results/Totaal/'+/ModelParameters/grondproductie_kosten_variant
+			// , NL_grid/domain
+			// , Eur_ha
+		// );
+
+
+	#include<T.dms>
+}

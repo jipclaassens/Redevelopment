@@ -1,0 +1,579 @@
+container sloop_nieuwbouw_brink
+{
+	unit<uint32> pand12 := Brondata/BAG/Snapshots/Panden/Y201201/pand/pand_met_vbo
+	{
+		attribute<geometries/rdc_mm>          	geom_mm (polygon)   		:= geometry_mm;
+		attribute<geometries/rdc>             	geom (polygon)      		:= geometry_mm[geometries/rdc];
+		attribute<eenheden/jaar>              	bouwjaar12                	:= bouwjaar;
+		attribute<typeringen/type_woonpand>   	woonpand_rel12            	:= woonpand_rel;
+		attribute<eenheden/m2>                	opp12                     	:= opp;
+		attribute<uint32>                     	count_vbo_pand12         	:= count_vbo_pand;
+		attribute<uint32>                     	count_vbo_pand12_niet_woon	:= count_vbo_pand_niet_woon;
+
+		attribute<bool>                     	woon      					:= count_vbo_pand12 > 0[uint32];
+		attribute<uint32>						pand_functie_woon			:= woon ? 1[uint32] : 0[uint32];
+		attribute<bool>                     	niet_woon      				:= count_vbo_pand12 == 0[uint32];
+		attribute<uint32>						pand_functie_anders			:= niet_woon ? 1[uint32] : 0[uint32];
+		
+		attribute<string> 			id12 				:= identificatie;				
+		attribute<pand17> 			sloop_id 			:= rlookup(id12, pand17/id17);
+		attribute<bool> 				gesloopt 			:= !IsDefined(sloop_id);
+		
+	}	
+	
+	unit<uint32> pand12_alle_functies := Brondata/BAG/Snapshots/Panden/Y201201/pand/pand_met_vbo_alle_functies 
+	{
+		attribute<geometries/rdc_mm>          	geom_mm (polygon)   		:= geometry_mm;
+		attribute<geometries/rdc>             	geom (polygon)      		:= geometry_mm[geometries/rdc];
+		attribute<eenheden/jaar>              	bouwjaar                	:= bouwjaar;
+		attribute<typeringen/type_woonpand>   	woonpand_rel            	:= woonpand_rel;
+		attribute<eenheden/m2>                	opp                     	:= opp;
+		attribute<uint32>                     	count_vbo_pand12_woon     	:= count_vbo_pand_woon;
+		attribute<uint32>                     	count_vbo_pand12_niet_woon	:= count_vbo_pand_niet_woon;
+		attribute<uint32>                     	count_vbo_pand12_allefunc	:= count_vbo_pand_alle_functies;
+
+		attribute<bool>                     	woon      					:= count_vbo_pand12 > 0[uint32];
+		attribute<uint32>						pand_functie_woon			:= woon ? 1[uint32] : 0[uint32];
+		attribute<bool>                     	niet_woon      				:= count_vbo_pand12 == 0[uint32];
+		attribute<uint32>						pand_functie_anders			:= niet_woon ? 1[uint32] : 0[uint32];
+		
+
+		attribute<string> 			id 				:= identificatie;				
+		attribute<pand17> 			sloop_id 			:= rlookup(id, pand17_alle_functies/id);
+		attribute<bool> 				gesloopt 			:= !IsDefined(sloop_id);
+		
+		
+		attribute<int32>						pand_vbo_opp12				:= pand_vbo_opp;
+		attribute<int32>						pand_vbo_opp12_woon				:= pand_vbo_opp_woon;
+
+	}
+	
+	unit<uint32> pand20 := Brondata/BAG/Snapshots/Panden/Y202001/pand/pand_met_vbo
+	{
+		attribute<geometries/rdc_mm>          	geom_mm (polygon)   		:= geometry_mm;
+		attribute<geometries/rdc>             	geom (polygon)      		:= geometry_mm[geometries/rdc];
+		attribute<eenheden/jaar>              	bouwjaar                	:= bouwjaar;
+		attribute<typeringen/type_woonpand>   	woonpand_rel            	:= woonpand_rel;
+		attribute<eenheden/m2>                	opp17                     	:= opp;
+		attribute<uint32>                    	count_vbo_pand         	:= count_vbo_pand;
+		attribute<uint32>                    	count_vbo_pand_niet_woon 	:= count_vbo_pand_niet_woon;
+		attribute<uint32>                    	count_vbo_pand_allefunc  	:= count_vbo_pand_alle_functies;
+
+		attribute<string>                       id                          := identificatie;
+		attribute<pand12>                       nieuwbouw_id		:= rlookup(id, pand12/id);
+		attribute<bool>                         nieuwbouw 			:= !IsDefined(nieuwbouw_id);
+		attribute<bool>                         bestaand			:= IsDefined(nieuwbouw_id);
+			
+		attribute<bool>                     	woon      					:= count_vbo_pand > 0[uint32];
+		attribute<uint32>						pand_functie_woon			:= woon ? 1[uint32] : 0[uint32];
+		attribute<bool>                     	niet_woon      				:= count_vbo_pand == 0[uint32];
+		attribute<uint32>						pand_functie_anders			:= niet_woon ? 1[uint32] : 0[uint32];
+		
+		unit<uint32> bouwjaar_uq := unique(bouwjaar17);
+	}
+	
+	unit<uint32> pand20_alle_functies := Brondata/BAG/Snapshots/Panden/Y202001/pand/pand_met_vbo_alle_functies 
+	{
+		attribute<geometries/rdc_mm>          	geom_mm (polygon)   		:= geometry_mm;
+		attribute<geometries/rdc>             	geom (polygon)      		:= geometry_mm[geometries/rdc];
+		attribute<eenheden/jaar>              	bouwjaar                	:= bouwjaar;
+		attribute<typeringen/type_woonpand>   	woonpand_rel            	:= woonpand_rel;
+		attribute<eenheden/m2>                	opp                     	:= opp;
+		attribute<uint32>                    	count_vbo_pand17_woon     	:= count_vbo_pand;
+		attribute<uint32>                    	count_vbo_pand17_niet_woon 	:= count_vbo_pand_niet_woon;
+		attribute<uint32>                    	count_vbo_pand17_allefunc  	:= count_vbo_pand_alle_functies;
+		attribute<uint32>						count_vbo_pand12_woon		:= rjoin(id, pand12_alle_functies/id, pand12_alle_functies/count_vbo_pand12);
+		attribute<uint32>						count_vbo_pand12_niet_woon	:= rjoin(id, pand12_alle_functies/id, pand12_alle_functies/count_vbo_pand12_niet_woon);
+		attribute<uint32>						count_vbo_pand12_allefunc	:= rjoin(id, pand12_alle_functies/id, pand12_alle_functies/count_vbo_pand12_allefunc);
+		
+		attribute<int32>						delta_pand12_17_woon		:= count_vbo_pand12_woon[int32] - count_vbo_pand17_woon[int32];
+		attribute<int32>						delta_pand12_17_niet_woon	:= count_vbo_pand12_niet_woon[int32] - count_vbo_pand17_niet_woon[int32];
+		attribute<int32>						delta_pand12_17_allefunc	:= count_vbo_pand12_allefunc[int32] - count_vbo_pand17_allefunc[int32];
+		
+		attribute<int32>						delta_pand12_17_opp			:= pand_vbo_opp12 - pand_vbo_opp17;
+		attribute<int32>						delta_pand12_17_opp_woon	:= pand_vbo_opp12_woon - pand_vbo_opp17_woon;
+		attribute<int32>						delta_pand12_17_opp_nietwoon	:= pand_vbo_opp12_nietwoon - pand_vbo_opp17_nietwoon;
+		
+		
+		attribute<uint32>						nieuwbouw_juistBJ			:= rlookup(id17, pand_nieuwbouw_juistBJ/identificatie);
+		
+		attribute<int32>						pand_vbo_opp12				:= rjoin(id17, pand12_alle_functies/id12, pand12_alle_functies/pand_vbo_opp12);
+		attribute<int32>						pand_vbo_opp12_woon			:= rjoin(id17, pand12_alle_functies/id12, pand12_alle_functies/pand_vbo_opp12_woon);
+		attribute<int32>						pand_vbo_opp12_nietwoon		:= pand_vbo_opp12 - pand_vbo_opp12_woon;
+		attribute<int32>						pand_vbo_opp17				:= pand_vbo_opp;
+		attribute<int32>						pand_vbo_opp17_woon			:= pand_vbo_opp_woon;
+		attribute<int32>						pand_vbo_opp17_nietwoon		:= pand_vbo_opp17 - pand_vbo_opp17_woon;
+		
+		attribute<uint32>						ID							:= id(.);
+		
+		attribute<string> 						id12 						:= rjoin(bestaandebouw, pand12_alle_functies/id12, pand12_alle_functies/id12);
+		attribute<string> 						id17 						:= identificatie;
+		attribute<pand12> 						bestaandebouw				:= rlookup(id17, pand12_alle_functies/id12);
+		attribute<bool> 						nieuwbouw 					:= !IsDefined(bestaandebouw);
+		attribute<bool>							bestaand					:= IsDefined(bestaandebouw);
+			
+		attribute<bool>                     	woon      					:= count_vbo_pand17_woon > 0[uint32];
+		attribute<uint32>						pand_functie_woon			:= woon ? 1[uint32] : 0[uint32];
+		attribute<bool>                     	niet_woon      				:= count_vbo_pand17_woon == 0[uint32];
+		attribute<uint32>						pand_functie_anders			:= niet_woon ? 1[uint32] : 0[uint32];
+		
+		unit<uint32> 							bouwjaar_uq 				:= unique(bouwjaar17);
+		
+	}
+	
+	unit<uint32> transformatie_panden := subset(
+		IsDefined(pand17_alle_functies/count_vbo_pand12_woon)										//1a, 1b, panden actueel in 2012 en 2017
+		&& pand17_alle_functies/count_vbo_pand12_niet_woon[int32] >= 1[int32]						//2a, 5, aantal niet-woon-vbos minimaal 1 in 2012
+		&& pand17_alle_functies/delta_pand12_17_woon < 0[int32]										//2b, aantal woon-vbo's toegenomen
+		&& !IsDefined(pand17_alle_functies/nieuwbouw_juistBJ)										//4, geen nieuwbouw
+		&& (pand17_alle_functies/delta_pand12_17_opp_nietwoon != 0[int32] || pand17_alle_functies/delta_pand12_17_niet_woon > 0[int32])		//2c, nietwoon opp ongelijk of niet-woon-vbo neemt af						
+		)
+	{
+		attribute<geometries/rdc_mm>          	geometry_mm (polygon)   	:= pand17_alle_functies/geom_mm[nr_OrgEntity];
+		attribute<geometries/rdc>             	geometry (polygon)      	:= pand17_alle_functies/geom[nr_OrgEntity];
+		attribute<eenheden/jaar>              	bouwjaar17                	:= pand17_alle_functies/bouwjaar17[nr_OrgEntity];
+		attribute<typeringen/type_woonpand>   	woonpand_rel17            	:= pand17_alle_functies/woonpand_rel17[nr_OrgEntity];
+		attribute<eenheden/m2>                	opp17                     	:= pand17_alle_functies/opp17[nr_OrgEntity];
+		attribute<uint32>						ID							:= pand17_alle_functies/id[nr_OrgEntity];
+		attribute<string> 						identificatie 				:= pand17_alle_functies/id17[nr_OrgEntity];
+		
+
+	}
+	
+	unit<uint32> vbo12 := BronData/BAG/snapshots/vbos/vbo2012/metwoonfunctie_enCBSStatus
+	{
+		attribute<geometries/rdc_mm>          	geom_mm    			:= geometry_mm;
+		attribute<geometries/rdc>             	geom 	    		:= geometry_mm[geometries/rdc];
+		attribute<string>						id					:= identificatie;
+		attribute<eenheden/jaar>              	bouwjaar12          := bouwjaar;
+		attribute<typeringen/type_woonpand>   	woonpand_rel12      := woonpand_rel;
+		attribute<eenheden/m2>                	opp12               := oppervlakte[eenheden/m2];
+		attribute<uint32>                     	count_vbo_pand12  	:= count_vbo_pand;
+		attribute<string>                   	pand_id_geom12     	:= pand_id_geom;
+		attribute<pand_sloop> 					vbo_sloop_id 		:= rlookup(pand_id_geom12, pand_sloop/identificatie);
+		attribute<bool> 						vbo_sloop 			:= IsDefined(vbo_sloop_id);
+		
+		attribute<bool> 						wonen 				:= gebruiksdoelen/woon[bool];
+
+	}	
+	
+	unit<uint32> vbo12_tot := BronData/BAG/snapshots/vbos/vbo2012
+	{
+		attribute<geometries/rdc_mm>          	geom_mm    			:= geometry_mm;
+		attribute<geometries/rdc>             	geom 	    		:= geometry_mm[geometries/rdc];
+		attribute<string>						id					:= identificatie;
+		attribute<eenheden/jaar>              	bouwjaar12          := bouwjaar;
+		attribute<typeringen/type_woonpand>   	woonpand_rel12      := woonpand_rel;
+		attribute<eenheden/m2>                	opp12               := oppervlakte[eenheden/m2];
+		unit<uint32>							opp_uq				:= unique(opp12);
+		attribute<uint32>                     	count_vbo_pand12  	:= count_vbo_pand;
+		attribute<string>                   	pand_id_geom12     	:= pand_id_geom;
+		attribute<uint32>                   	pand_id_geom12_value:= pand_id_geom12[uint32];
+		attribute<pand_sloop> 					vbo_sloop_id 		:= rlookup(pand_id_geom12, pand_sloop/identificatie);
+		attribute<bool> 						vbo_sloop 			:= IsDefined(vbo_sloop_id);
+		
+		attribute<bool> 						wonen 				:= gebruiksdoelen/woon[bool];
+		attribute<bool> 						niet_wonen			:= !gebruiksdoelen/woon[bool];
+		
+		attribute<uint32>        				transf_pand_rel 	:= point_in_polygon(geometry, transformatie_panden/geometry);
+	}	
+	
+
+	unit<uint32> vbo17 := BronData/BAG/snapshots/vbos/vbo2017/metwoonfunctie_enCBSStatus
+	{
+		attribute<geometries/rdc_mm>          	geom_mm    			:= geometry_mm;
+		attribute<geometries/rdc>             	geom       			:= geometry_mm[geometries/rdc];
+		attribute<string>						id					:= identificatie;
+		attribute<eenheden/jaar>              	bouwjaar17          := bouwjaar;
+		attribute<typeringen/type_woonpand>   	woonpand_rel17      := woonpand_rel;
+		attribute<eenheden/m2>                	opp17               := oppervlakte;
+		attribute<uint32>                     	count_vbo_pand17    := count_vbo_pand;
+		attribute<string>                   	pand_id_geom17      := pand_id_geom;
+		attribute<pand_sloop> 					vbo_nieuwbouw_id 	:= rlookup(pand_id_geom17, pand_nieuwbouw/identificatie);
+		attribute<bool> 						vbo_nieuwbouw 		:= IsDefined(vbo_nieuwbouw_id);
+		attribute<uint32>						vbo_nieuwbouw_juistBJ_rel	:= rlookup(id, sloop_nieuwbouw_brink/vbo_nieuwbouw/identificatie);
+		attribute<bool>							vbo_nieuwbouw_juistBJ	:= IsDefined(vbo_nieuwbouw_juistBJ_rel);
+	}
+	
+	unit<uint32> vbo17_tot := BronData/BAG/snapshots/vbos/vbo2017
+	{
+		attribute<geometries/rdc_mm>          	geom_mm    			:= geometry_mm;
+		attribute<geometries/rdc>             	geom 	    		:= geometry_mm[geometries/rdc];
+		attribute<string>						id					:= identificatie;
+		attribute<string>						id12				:= rjoin(id, vbo12_tot/id, vbo12_tot/id);
+		
+		attribute<eenheden/jaar>              	bouwjaar17          := bouwjaar;
+		attribute<typeringen/type_woonpand>   	woonpand_rel17      := woonpand_rel;
+		attribute<eenheden/m2>                	opp17               := oppervlakte[eenheden/m2];
+		attribute<uint32>                     	count_vbo_pand17  	:= count_vbo_pand;
+		attribute<string>                   	pand_id_geom17     	:= pand_id_geom;
+		attribute<pand_sloop> 					vbo_sloop_id 		:= rlookup(pand_id_geom17, pand_sloop/identificatie);
+		attribute<bool> 						vbo_sloop 			:= IsDefined(vbo_sloop_id);
+		
+		attribute<bool> 						wonen 				:= gebruiksdoelen/woon[bool];
+		attribute<bool> 						niet_wonen 			:= !gebruiksdoelen/woon[bool];
+		
+		attribute<bool> 						wonen_12 			:= rjoin(id, vbo12_tot/id, vbo12_tot/wonen);
+		attribute<bool> 						niet_wonen_12 		:= rjoin(id, vbo12_tot/id, vbo12_tot/niet_wonen);
+		
+		
+		attribute<uint32>        				transf_pand_rel 	:= point_in_polygon(geometry, transformatie_panden/geometry);
+		attribute<uint32>						begindatum		:= meta/begindatum;			
+
+		attribute<bool>							functieverandering_naar_wonen		:= (id12 == id && wonen_12 == FALSE && wonen == TRUE);
+		attribute<bool>							functieverandering_naar_nietwonen	:= (id12 == id && wonen_12 == TRUE && wonen == FALSE);
+		
+	}	
+	
+	unit<uint32> transformatie_vbo12 := subset(IsDefined(vbo12_tot/transf_pand_rel))
+	,	FreeData   = "False"
+	,	DialogType = "Map"
+	,	DialogData = "geometry_mm"
+	{
+		attribute<geometries/rdc_mm>          	geometry_mm    			:= vbo12_tot/geom_mm[nr_OrgEntity];
+		attribute<geometries/rdc>             	geometry 	    		:= vbo12_tot/geom[nr_OrgEntity];
+		attribute<string>						id12					:= vbo12_tot/id[nr_OrgEntity];
+		attribute<eenheden/jaar>              	bouwjaar12          := vbo12_tot/bouwjaar12[nr_OrgEntity];
+		attribute<eenheden/m2>                	opp12               := vbo12_tot/opp12[nr_OrgEntity];
+		
+		attribute<bool> 						wonen 				:= vbo12_tot/wonen[nr_OrgEntity];
+		attribute<bool> 						niet_wonen			:= vbo12_tot/niet_wonen[nr_OrgEntity];
+		
+		attribute<uint32>        				transf_pand_rel 	:= vbo12_tot/transf_pand_rel[nr_OrgEntity];
+	}
+	
+	unit<uint32> transformatie_vbo17 := subset(IsDefined(vbo17_tot/transf_pand_rel))
+	, 	FreeData   = "False"
+	,	DialogType = "Map"
+	,	DialogData = "geometry_mm"
+	{
+		attribute<geometries/rdc_mm>          	geometry_mm    			:= vbo17_tot/geom_mm[nr_OrgEntity];
+		attribute<geometries/rdc>             	geometry 	    		:= vbo17_tot/geom[nr_OrgEntity];
+		attribute<string>						id17					:= vbo17_tot/id[nr_OrgEntity];
+		attribute<eenheden/jaar>              	bouwjaar17          := vbo17_tot/bouwjaar17[nr_OrgEntity];
+		unit<uint32>							bouwjaar_uq			:= unique(bouwjaar17);
+		attribute<eenheden/m2>                	opp17               := vbo17_tot/opp17[nr_OrgEntity];
+		
+		attribute<uint32>						begindatum			:= vbo17_tot/begindatum[nr_OrgEntity];
+		attribute<bool> 						wonen 				:= vbo17_tot/wonen[nr_OrgEntity];
+		attribute<bool> 						niet_wonen			:= vbo17_tot/niet_wonen[nr_OrgEntity];
+		
+		attribute<uint32>        				transf_pand_rel 	:= vbo17_tot/transf_pand_rel[nr_OrgEntity];
+		
+		attribute<uint32>						id12				:= rlookup(id17, transformatie_vbo12/id12);
+		attribute<bool>							nieuwe_vbo			:= !IsDefined(id12);
+		
+		attribute<bool>							functieverandering_naar_wonen		:= vbo17_tot/functieverandering_naar_wonen[nr_OrgEntity];
+		attribute<bool>							functieverandering_naar_nietwonen	:= vbo17_tot/functieverandering_naar_nietwonen[nr_OrgEntity];
+	}
+	
+	unit<uint32> transformatie := subset(
+	transformatie_vbo17/nieuwe_vbo																																					//6. alleen nieuw gevormde vbos
+	&& transformatie_vbo17/opp17 >= 15[eenheden/m2]																																	//7. minimaal vloeroppervlak
+	&& !(transformatie_vbo17/bouwjaar17 >= 2010 [eenheden/jaar] && transformatie_vbo17/begindatum >= 20120101 [uint32] && transformatie_vbo17/begindatum <= 20121231[uint32] )		//8. bouwjaar te nieuw
+	&& !(transformatie_vbo17/bouwjaar17 >= 2011 [eenheden/jaar] && transformatie_vbo17/begindatum >= 20130101 [uint32] && transformatie_vbo17/begindatum <= 20131231[uint32] )		//8. bouwjaar te nieuw
+	&& !(transformatie_vbo17/bouwjaar17 >= 2012 [eenheden/jaar] && transformatie_vbo17/begindatum >= 20140101 [uint32] && transformatie_vbo17/begindatum <= 20141231[uint32] )		//8. bouwjaar te nieuw
+	&& !(transformatie_vbo17/bouwjaar17 >= 2013 [eenheden/jaar] && transformatie_vbo17/begindatum >= 20150101 [uint32] && transformatie_vbo17/begindatum <= 20151231[uint32] )		//8. bouwjaar te nieuw
+	&& !(transformatie_vbo17/bouwjaar17 >= 2014 [eenheden/jaar] && transformatie_vbo17/begindatum >= 20160101 [uint32] && transformatie_vbo17/begindatum <= 20161231[uint32] )		//8. bouwjaar te nieuw
+	&& transformatie_vbo17/wonen
+	&& !transformatie_vbo17/functieverandering_naar_nietwonen
+	)
+	, 	FreeData   = "False"
+	,	DialogType = "Map"
+	,	DialogData = "geometry_mm"
+	{
+		attribute<geometries/rdc_mm>          	geometry_mm    		:= transformatie_vbo17/geometry_mm[nr_OrgEntity];
+		attribute<geometries/rdc>             	geometry 	    	:= transformatie_vbo17/geometry[nr_OrgEntity];
+		attribute<string>						id17				:= transformatie_vbo17/id17[nr_OrgEntity];
+		attribute<eenheden/jaar>              	bouwjaar17          := transformatie_vbo17/bouwjaar17[nr_OrgEntity];
+		unit<uint32>							bouwjaar_uq			:= unique(bouwjaar17);
+		attribute<eenheden/m2>                	opp17               := transformatie_vbo17/opp17[nr_OrgEntity];
+		attribute<uint32>						begindatum			:= transformatie_vbo17/begindatum[nr_OrgEntity];
+		attribute<bool> 						wonen 				:= transformatie_vbo17/wonen[nr_OrgEntity];
+		attribute<bool> 						niet_wonen			:= transformatie_vbo17/niet_wonen[nr_OrgEntity];
+		
+		attribute<uint32>        				transf_pand_rel 	:= transformatie_vbo17/transf_pand_rel[nr_OrgEntity];
+		attribute<bool>							functieverandering_naar_wonen		:= transformatie_vbo17/functieverandering_naar_wonen[nr_OrgEntity];
+		attribute<bool>							functieverandering_naar_nietwonen	:= transformatie_vbo17/functieverandering_naar_nietwonen[nr_OrgEntity];
+		
+		attribute<uint32>						id12				:= rlookup(id17, transformatie_vbo12/id12);
+		attribute<bool>							nieuwe_vbo			:= !IsDefined(id12);
+		attribute<bool>							trans2012			:= begindatum >= 20120101[uint32] && begindatum <= 20121231[uint32];
+		attribute<bool>							trans2013			:= begindatum >= 20130101[uint32] && begindatum <= 20131231[uint32];
+		attribute<bool>							trans2014			:= begindatum >= 20140101[uint32] && begindatum <= 20141231[uint32];
+		attribute<bool>							trans2015			:= begindatum >= 20150101[uint32] && begindatum <= 20151231[uint32];
+		attribute<bool>							trans2016			:= begindatum >= 20160101[uint32] && begindatum <= 20161231[uint32];
+		
+		unit<uint32>							functieverandering 	:= subset(transformatie/functieverandering_naar_wonen)
+		, 	FreeData   = "False"
+		,	DialogType = "Map"
+		,	DialogData = "geometry_mm"
+		{
+			attribute<geometries/rdc_mm>          	geometry_mm    		:= transformatie/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>             	geometry 	    	:= transformatie/geometry[nr_OrgEntity];
+			attribute<string>						id17				:= transformatie/id17[nr_OrgEntity];
+			attribute<eenheden/jaar>              	bouwjaar17          := transformatie/bouwjaar17[nr_OrgEntity];
+			attribute<eenheden/m2>                	opp17               := transformatie/opp17[nr_OrgEntity];
+			attribute<uint32>						begindatum			:= transformatie/begindatum[nr_OrgEntity];
+			attribute<bool> 						wonen 				:= transformatie/wonen[nr_OrgEntity];
+			attribute<bool> 						niet_wonen			:= transformatie/niet_wonen[nr_OrgEntity];
+			attribute<uint32>        				transf_pand_rel 	:= transformatie/transf_pand_rel[nr_OrgEntity];
+			
+			attribute<bool>							functieverandering_naar_wonen		:= transformatie/functieverandering_naar_wonen[nr_OrgEntity];
+			attribute<bool>							functieverandering_naar_nietwonen	:= transformatie/functieverandering_naar_nietwonen[nr_OrgEntity];
+			
+			attribute<uint32>						id12				:= transformatie/id12[nr_OrgEntity];
+			attribute<bool>							nieuwe_vbo			:= transformatie/nieuwe_vbo[nr_OrgEntity];
+			attribute<bool>							trans2012			:= transformatie/trans2012[nr_OrgEntity];
+			attribute<bool>							trans2013			:= transformatie/trans2013[nr_OrgEntity];
+			attribute<bool>							trans2014			:= transformatie/trans2014[nr_OrgEntity];
+			attribute<bool>							trans2015			:= transformatie/trans2015[nr_OrgEntity];
+			attribute<bool>							trans2016			:= transformatie/trans2016[nr_OrgEntity];
+		}
+		unit<uint32>							vbo_toevoeging 	:= subset(!transformatie/functieverandering_naar_wonen)
+		, 	FreeData   = "False"
+		,	DialogType = "Map"
+		,	DialogData = "geometry_mm"
+		{
+			attribute<geometries/rdc_mm>          	geometry_mm    		:= transformatie/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>             	geometry 	    	:= transformatie/geometry[nr_OrgEntity];
+			attribute<string>						id17				:= transformatie/id17[nr_OrgEntity];
+			attribute<eenheden/jaar>              	bouwjaar17          := transformatie/bouwjaar17[nr_OrgEntity];
+			attribute<eenheden/m2>                	opp17               := transformatie/opp17[nr_OrgEntity];
+			attribute<uint32>						begindatum			:= transformatie/begindatum[nr_OrgEntity];
+			attribute<bool> 						wonen 				:= transformatie/wonen[nr_OrgEntity];
+			attribute<bool> 						niet_wonen			:= transformatie/niet_wonen[nr_OrgEntity];
+			attribute<uint32>        				transf_pand_rel 	:= transformatie/transf_pand_rel[nr_OrgEntity];
+			
+			attribute<bool>							functieverandering_naar_wonen		:= transformatie/functieverandering_naar_wonen[nr_OrgEntity];
+			attribute<bool>							functieverandering_naar_nietwonen	:= transformatie/functieverandering_naar_nietwonen[nr_OrgEntity];
+			
+			attribute<uint32>						id12				:= transformatie/id12[nr_OrgEntity];
+			attribute<bool>							nieuwe_vbo			:= transformatie/nieuwe_vbo[nr_OrgEntity];
+			attribute<bool>							trans2012			:= transformatie/trans2012[nr_OrgEntity];
+			attribute<bool>							trans2013			:= transformatie/trans2013[nr_OrgEntity];
+			attribute<bool>							trans2014			:= transformatie/trans2014[nr_OrgEntity];
+			attribute<bool>							trans2015			:= transformatie/trans2015[nr_OrgEntity];
+			attribute<bool>							trans2016			:= transformatie/trans2016[nr_OrgEntity];
+		}
+	}
+	
+
+	unit<uint32> pand_bestaand_verandering := subset(pand17/bestaand)				
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm (polygon)		:= pand17/geom_mm[nr_OrgEntity];
+		attribute<string> 					id17 					:= pand17/id17[nr_OrgEntity];
+		attribute<eenheden/jaar> 			bouwjaar				:= pand17/bouwjaar17[nr_OrgEntity];
+		attribute<uint32>                 	count_vbo_pand17        := pand17/count_vbo_pand[nr_OrgEntity];
+		attribute<uint32>                 	count_vbo_pand12        := rjoin(id17, pand12/id12, pand12/count_vbo_pand12);
+		attribute<int32>					verschil_count			:= count_vbo_pand17[int32] - count_vbo_pand12[int32];
+		
+		attribute<uint32>						pand_functie_woon			:= pand17/pand_functie_woon[nr_OrgEntity];
+		attribute<uint32>						pand_functie_anders			:= pand17/pand_functie_anders[nr_OrgEntity];
+		
+		attribute<uint32>                    	count_vbo_wonen         	:= pand17/count_vbo_pand17[nr_OrgEntity];
+		attribute<uint32>                    	count_vbo_niet_wonen 		:= pand17/count_vbo_pand17_niet_woon[nr_OrgEntity];
+		
+		unit<uint32> Overige_toevoeging := subset(pand_bestaand_verandering/verschil_count[int32] > 0[int32])				
+		,	DialogType = "Map"
+		,	DialogData = "geom_mm"
+		, 	FreeData = "False"
+		{
+			attribute<geometries/rdc_mm>		geom_mm (polygon)		:= pand_bestaand_verandering/geom_mm[nr_OrgEntity];
+			attribute<string> 					id17 					:= pand_bestaand_verandering/id17[nr_OrgEntity];
+			attribute<eenheden/jaar> 			bouwjaar				:= pand_bestaand_verandering/bouwjaar[nr_OrgEntity];
+			attribute<uint32>                 	count_vbo_pand17        := pand_bestaand_verandering/count_vbo_pand17[nr_OrgEntity];
+			attribute<uint32>                 	count_vbo_pand12        := pand_bestaand_verandering/count_vbo_pand12[nr_OrgEntity];
+			attribute<int32>					verschil_count			:= pand_bestaand_verandering/verschil_count[nr_OrgEntity];
+			
+			attribute<uint32>						pand_functie_woon			:= pand_bestaand_verandering/pand_functie_woon[nr_OrgEntity];
+			attribute<uint32>						pand_functie_anders			:= pand_bestaand_verandering/pand_functie_anders[nr_OrgEntity];
+			
+			attribute<uint32>                    	count_vbo_wonen         	:= pand_bestaand_verandering/count_vbo_wonen[nr_OrgEntity];
+			attribute<uint32>                    	count_vbo_niet_wonen 		:= pand_bestaand_verandering/count_vbo_niet_wonen[nr_OrgEntity];
+		}
+		unit<uint32> Overige_onttrekking := subset(pand_bestaand_verandering/verschil_count[int32] < 0[int32])				
+		,	DialogType = "Map"
+		,	DialogData = "geom_mm"
+		, 	FreeData = "False"
+		{
+			attribute<geometries/rdc_mm>		geom_mm (polygon)		:= pand_bestaand_verandering/geom_mm[nr_OrgEntity];
+			attribute<string> 					id17 					:= pand_bestaand_verandering/id17[nr_OrgEntity];
+			attribute<eenheden/jaar> 			bouwjaar				:= pand_bestaand_verandering/bouwjaar[nr_OrgEntity];
+			attribute<uint32>                 	count_vbo_pand17        := pand_bestaand_verandering/count_vbo_pand17[nr_OrgEntity];
+			attribute<uint32>                 	count_vbo_pand12        := pand_bestaand_verandering/count_vbo_pand12[nr_OrgEntity];
+			attribute<int32>					verschil_count			:= pand_bestaand_verandering/verschil_count[nr_OrgEntity];
+			
+			attribute<uint32>						pand_functie_woon			:= pand_bestaand_verandering/pand_functie_woon[nr_OrgEntity];
+			attribute<uint32>						pand_functie_anders			:= pand_bestaand_verandering/pand_functie_anders[nr_OrgEntity];
+			
+			attribute<uint32>                    	count_vbo_wonen         	:= pand_bestaand_verandering/count_vbo_wonen[nr_OrgEntity];
+			attribute<uint32>                    	count_vbo_niet_wonen 		:= pand_bestaand_verandering/count_vbo_niet_wonen[nr_OrgEntity];
+		}
+	}			
+	
+	unit<uint32> pand_sloop := subset(pand12/gesloopt)				
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm (polygon)		:= pand12/geom_mm[nr_OrgEntity];
+		attribute<string> 			identificatie 			:= pand12/id12[nr_OrgEntity];
+		attribute<eenheden/jaar> 		bouwjaar			:= pand12/bouwjaar12[nr_OrgEntity];
+		attribute<uint32>		ID			:= id(.);
+		
+		attribute<uint32>						pand_functie_woon			:= pand12/pand_functie_woon[nr_OrgEntity];
+		attribute<uint32>						pand_functie_anders			:= pand12/pand_functie_anders[nr_OrgEntity];
+		
+		attribute<uint32>                    	count_vbo_wonen         	:= pand12/count_vbo_pand12[nr_OrgEntity];
+		attribute<uint32>                    	count_vbo_niet_wonen 		:= pand12/count_vbo_pand12_niet_woon[nr_OrgEntity];
+	}		
+	
+	unit<uint32> pand_sloop_alle_functies := subset(pand12_alle_functies/gesloopt)				
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm (polygon)		:= pand12_alle_functies/geom_mm[nr_OrgEntity];
+		attribute<string> 			identificatie 			:= pand12_alle_functies/id12[nr_OrgEntity];
+		attribute<eenheden/jaar> 		bouwjaar			:= pand12_alle_functies/bouwjaar12[nr_OrgEntity];
+		attribute<uint32>		ID			:= id(.);
+		
+		attribute<uint32>						pand_functie_woon			:= pand12_alle_functies/pand_functie_woon[nr_OrgEntity];
+		attribute<uint32>						pand_functie_anders			:= pand12_alle_functies/pand_functie_anders[nr_OrgEntity];
+		
+		attribute<uint32>                    	count_vbo_wonen         	:= pand12_alle_functies/count_vbo_pand12[nr_OrgEntity];
+		attribute<uint32>                    	count_vbo_niet_wonen 		:= pand12_alle_functies/count_vbo_pand12_niet_woon[nr_OrgEntity];
+	}			
+	
+	unit<uint32> pand_nieuwbouw := subset(pand17/nieuwbouw)				
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm (polygon)		:= pand17/geom_mm[nr_OrgEntity];
+		attribute<string> 			identificatie 			:= pand17/id17[nr_OrgEntity];
+		attribute<eenheden/jaar> 		bouwjaar			:= pand17/bouwjaar17[nr_OrgEntity];
+		
+		attribute<uint32>						pand_functie_woon			:= pand17/pand_functie_woon[nr_OrgEntity];
+		attribute<uint32>						pand_functie_anders			:= pand17/pand_functie_anders[nr_OrgEntity];
+		
+		attribute<uint32>                    	count_vbo_wonen         	:= pand17/count_vbo_pand17[nr_OrgEntity];
+		attribute<uint32>                    	count_vbo_niet_wonen 		:= pand17/count_vbo_pand17_niet_woon[nr_OrgEntity];
+	}
+	
+	unit<uint32> pand_nieuwbouw_juistBJ := subset(pand_nieuwbouw/bouwjaar >= 2012[eenheden/jaar] && pand_nieuwbouw/bouwjaar != 9999[eenheden/jaar])				
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm (polygon)		:= pand_nieuwbouw/geom_mm[nr_OrgEntity];
+		attribute<string> 			identificatie 			:= pand_nieuwbouw/identificatie[nr_OrgEntity];
+		attribute<eenheden/jaar> 		bouwjaar			:= pand_nieuwbouw/bouwjaar[nr_OrgEntity];
+		
+		attribute<uint32>						pand_functie_woon			:= pand_nieuwbouw/pand_functie_woon[nr_OrgEntity];
+		attribute<uint32>						pand_functie_anders			:= pand_nieuwbouw/pand_functie_anders[nr_OrgEntity];
+		
+		attribute<uint32>                    	count_vbo_wonen         	:= pand_nieuwbouw/count_vbo_wonen[nr_OrgEntity];
+		attribute<uint32>                    	count_vbo_niet_wonen 		:= pand_nieuwbouw/count_vbo_niet_wonen[nr_OrgEntity];
+	}
+	
+	unit<uint32> pand_nieuwbouw_metBJ := subset(pand_nieuwbouw/bouwjaar == 9999[eenheden/jaar])				
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm (polygon)		:= pand_nieuwbouw/geom_mm[nr_OrgEntity];
+		attribute<string> 			identificatie 			:= pand_nieuwbouw/identificatie[nr_OrgEntity];
+		attribute<eenheden/jaar> 		bouwjaar			:= pand_nieuwbouw/bouwjaar[nr_OrgEntity];
+		
+		attribute<uint32>						pand_functie_woon			:= pand_nieuwbouw/pand_functie_woon[nr_OrgEntity];
+		attribute<uint32>						pand_functie_anders			:= pand_nieuwbouw/pand_functie_anders[nr_OrgEntity];
+		
+		attribute<uint32>                    	count_vbo_wonen         	:= pand_nieuwbouw/count_vbo_wonen[nr_OrgEntity];
+		attribute<uint32>                    	count_vbo_niet_wonen 		:= pand_nieuwbouw/count_vbo_niet_wonen[nr_OrgEntity];
+	}
+
+	
+	unit<uint32> vbo_sloop := subset(vbo12/vbo_sloop)				
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm 			:= vbo12/geom_mm[nr_OrgEntity];
+		attribute<string> 			identificatie			:= vbo12/id[nr_OrgEntity];
+		attribute<eenheden/jaar> 		bouwjaar			:= vbo12/bouwjaar12[nr_OrgEntity];
+	}			
+	
+	unit<uint32> vbo_nieuwbouw := subset(vbo17/vbo_nieuwbouw && vbo17/bouwjaar17 >= 2012[eenheden/jaar] && vbo17/bouwjaar17 != 9999 [eenheden/jaar])			
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm 			:= vbo17/geom_mm[nr_OrgEntity];
+		attribute<string> 			identificatie			:= vbo17/id[nr_OrgEntity];
+		attribute<eenheden/jaar> 		bouwjaar			:= vbo17/bouwjaar17[nr_OrgEntity];
+	}	
+
+	unit<uint32> vbo_adm_toev := subset(vbo17/vbo_nieuwbouw && (vbo17/bouwjaar17 < 2012 [eenheden/jaar] || vbo17/bouwjaar17 = 9999 [eenheden/jaar]))				
+	,	DialogType = "Map"
+	,	DialogData = "geom_mm"
+	, 	FreeData = "False"
+	{
+		attribute<geometries/rdc_mm>		geom_mm 			:= vbo17/geom_mm[nr_OrgEntity];
+		attribute<string> 			identificatie			:= vbo17/id[nr_OrgEntity];
+		attribute<eenheden/jaar> 		bouwjaar			:= vbo17/bouwjaar17[nr_OrgEntity];
+	}	
+	container Sloop_nieuwbouw
+	{
+		unit<uint32> sloop_nieuwbouw_intersect 		:= overlay_polygon(pand_sloop_alle_functies/geom_mm, pand17_alle_functies/geom_mm), 	FreeData = "False";
+
+		unit<uint32> intersect_links := sloop_nieuwbouw_intersect
+		,	DialogType = "Map"
+		,	DialogData = "geometry_mm"
+		, 	FreeData = "False"
+		{
+			attribute<geometries/rdc_mm> geometry_mm (polygon) 	:= sloop_nieuwbouw_intersect/geometry[geometries/rdc_mm];
+			attribute<uint32> 		intersect_id  			:= id(sloop_nieuwbouw_intersect);
+			attribute<uint32> 		intersect_sloop_rel 	:= sloop_nieuwbouw_intersect/first_rel;
+			attribute<uint32>		intersect_gebruik_rel 	:= sloop_nieuwbouw_intersect/second_rel;
+			
+			attribute<uint32> 		sloop_woon  			:= rjoin(intersect_sloop_rel, pand_sloop_alle_functies/id, pand_sloop_alle_functies/pand_functie_woon);
+			attribute<uint32> 		sloop_anders  			:= rjoin(intersect_sloop_rel, pand_sloop_alle_functies/id, pand_sloop_alle_functies/pand_functie_anders);
+			attribute<uint32>		nieuwbouw_woon  		:= rjoin(intersect_gebruik_rel, pand17_alle_functies/id, pand17_alle_functies/pand_functie_woon);
+			attribute<uint32> 		nieuwbouw_anders  		:= rjoin(intersect_gebruik_rel, pand17_alle_functies/id, pand17_alle_functies/pand_functie_anders);
+			
+			attribute<uint32> 		sloop_woon_count 		:= rjoin(intersect_sloop_rel, pand_sloop_alle_functies/id, pand_sloop_alle_functies/count_vbo_wonen);
+			attribute<uint32> 		sloop_anders_count  	:= rjoin(intersect_sloop_rel, pand_sloop_alle_functies/id, pand_sloop_alle_functies/count_vbo_niet_wonen);
+			attribute<uint32>		nieuwbouw_woon_count 	:= rjoin(intersect_gebruik_rel, pand17_alle_functies/id, pand17_alle_functies/count_vbo_pand17_woon);
+			attribute<uint32> 		nieuwbouw_anders_count 	:= rjoin(intersect_gebruik_rel, pand17_alle_functies/id, pand17_alle_functies/count_vbo_pand17_niet_woon);
+			
+			container panden
+			{
+				attribute<uint32> 		woon_woon (intersect_links) := (sloop_woon == nieuwbouw_woon) ? 1[uint32] : 0[uint32];
+				attribute<uint32> 		woon_anders (intersect_links) := (sloop_woon == 1 && nieuwbouw_anders == 1) ? 1[uint32] : 0[uint32];
+				attribute<uint32> 		anders_woon (intersect_links) := (sloop_anders == 1 && nieuwbouw_woon == 1) ? 1[uint32] : 0[uint32];
+				attribute<uint32> 		anders_anders (intersect_links) := (sloop_anders == 1 && nieuwbouw_anders == 1) ? 1[uint32] : 0[uint32];
+			}
+			
+			container vbos
+			{
+				attribute<uint32> 		woon_woon_origineel (intersect_links) 	:= panden/woon_woon ==  1 ? sloop_woon_count : 0[uint32];
+				attribute<uint32> 		woon_woon_nieuw (intersect_links)	:= panden/woon_woon ==  1 ? nieuwbouw_woon_count : 0[uint32];
+				
+				attribute<uint32> 		woon_anders_origineel (intersect_links)	:= panden/woon_anders ==  1 ? sloop_woon_count : 0[uint32];
+				attribute<uint32> 		woon_anders_nieuw (intersect_links)	:= panden/woon_anders ==  1 ? nieuwbouw_anders_count : 0[uint32];
+				
+				attribute<uint32> 		anders_woon_origineel (intersect_links)	:= panden/anders_woon ==  1 ? sloop_anders_count : 0[uint32];
+				attribute<uint32> 		anders_woon_nieuw (intersect_links)	:= panden/anders_woon ==  1 ? nieuwbouw_woon_count : 0[uint32];
+				
+				attribute<uint32> 		anders_anders_origineel (intersect_links) 	:= panden/anders_anders ==  1 ? sloop_anders_count : 0[uint32];
+				attribute<uint32> 		anders_anders_nieuw (intersect_links) 	:= panden/anders_anders ==  1 ? nieuwbouw_anders_count : 0[uint32];
+			}
+		}
+	}
+	
+}

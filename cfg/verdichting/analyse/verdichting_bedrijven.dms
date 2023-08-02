@@ -1,0 +1,81 @@
+container RuimteVoorWerken: using = "eenheden"
+{
+	container Industry :=
+		for_each_nedv(
+			typeringen/jaren/name
+			, 'Brondata/BAG/snapshots/vbos/y'+string(typeringen/jaren/values)+'01/src/GebruiksdoelSets/industrie/GebruiksdoelSet/count_ha'
+			, NL_grid/domain
+			, nrwonha
+		);
+		
+	container Offices :=
+		for_each_nedv(
+			typeringen/jaren/name
+			, 'Brondata/BAG/snapshots/vbos/y'+string(typeringen/jaren/values)+'01/src/GebruiksdoelSets/kantoor/GebruiksdoelSet/count_ha'
+			, NL_grid/domain
+			, nrwonha
+		);
+
+	attribute<nrwonha>  industrie_20122016   (NL_grid/domain)           := Industry/Y2016 - Industry/Y2012;
+	attribute<nrwonha>  industrie_20162020   (NL_grid/domain)           := Industry/Y2020 - Industry/Y2016;
+	attribute<nrwonha>  kantoor_20122016     (NL_grid/domain)           := Offices/Y2016 - Offices/Y2012;
+	attribute<nrwonha>  kantoor_20162020     (NL_grid/domain)           := Offices/Y2020 - Offices/Y2016;
+	
+	// parameter<string> begrenzing := 'gg_zones_bbg2000_begr2000';
+	// parameter<string> begrenzing := 'gg_zones_bbg2012_begr2000';
+	// parameter<string> begrenzing := 'gg_zones_bbg2012_begrbevolkingskern2011';
+	parameter<string> begrenzing := 'gg_zones_bbg2012_begr2012';
+	
+	container IndustryPerProcess
+	{
+		container p2012_2016
+		{
+			attribute<nrwonha>  totaal_nl   (Brondata/regios/nederland/src)  := sum(totaal, Brondata/regios/nederland/src/grid);
+			attribute<nrwonha>  B_dens_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/dens ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  B_grey_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/grey ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  B_green_nl  (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/green ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_dens_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/dens ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_grey_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/grey ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_green_nl  (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/green ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  totaal (NL_grid/domain) := industrie_20122016;
+		}
+		
+		container p2016_2020
+		{
+			attribute<nrwonha>  totaal_nl   (Brondata/regios/nederland/src)  := sum(totaal, Brondata/regios/nederland/src/grid);
+			attribute<nrwonha>  B_dens_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/dens ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  B_grey_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/grey ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  B_green_nl  (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/green ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_dens_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/dens ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_grey_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/grey ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_green_nl  (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/green ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  totaal (NL_grid/domain) := industrie_20162020;
+		}
+	}
+	container OfficesPerProcess
+	{
+		container p2012_2016
+		{
+			attribute<nrwonha>  totaal_nl   (Brondata/regios/nederland/src)  := sum(totaal, Brondata/regios/nederland/src/grid);
+			attribute<nrwonha>  B_dens_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/dens ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  B_grey_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/grey ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  B_green_nl  (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/green ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_dens_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/dens ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_grey_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/grey ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_green_nl  (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/green ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  totaal (NL_grid/domain) := kantoor_20122016;
+		}
+		
+		container p2016_2020
+		{
+			attribute<nrwonha>  totaal_nl   (Brondata/regios/nederland/src)  := sum(totaal, Brondata/regios/nederland/src/grid);
+			attribute<nrwonha>  B_dens_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/dens ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  B_grey_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/grey ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  B_green_nl  (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_in_bbg/green ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_dens_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/dens ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_grey_nl   (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/grey ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  N_green_nl  (Brondata/regios/nederland/src)  := ='sum(Brondata/zones/'+begrenzing+'/gg_3K_buiten_bbg/green ? totaal : 0f, Brondata/regios/nederland/src/grid)';
+			attribute<nrwonha>  totaal (NL_grid/domain) := kantoor_20162020;
+		}
+	}
+}

@@ -1,0 +1,172 @@
+container NVM_CommercieelVastgoed : using = "eenheden"
+{ 
+	unit<uint32> RegioUnit_NL   := /Brondata/RegioIndelingen/Nederland;
+	unit<uint32> RegioUnit_Aggl := /Brondata/RegioIndelingen/Gemeenten/j2021/UrbanCores;
+	
+	unit<uint32> ReadCSV 
+	// :	StorageName     = "%SourceDataDir%/NVM/vintage_geocoded_20220319.csv"
+	// :	StorageName     = "%SourceDataDir%/NVM/NVM_comm_1985_2020-05_geocoded.csv"
+	:	StorageName     = "%SourceDataDir%/NVM/Brondata_NVM_CommercieelVastgoed_ReadCSV_Zichtlijnen_20220525_merged_geocoded.csv"
+	// :	StorageName     = "%SourceDataDir%/NVM/ASRE_dataset_22sept_lean.csv"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	{
+		// attribute<uint32> geocode_id := id(.);
+		// attribute<string>   bouwvorm;
+		// attribute<string>   brutohuuropbrengst;
+		// attribute<string>   jaar;
+		// attribute<string>   jaar_maand;
+		// attribute<string>   koopprijs;
+		// attribute<string>   maand;
+		// attribute<string>   objecttype;
+		// attribute<string>   opp_totaal;
+		// attribute<string>   soortvastgoed;
+		// attribute<string>   bouwjaar;
+		// attribute<string>   geocode_id;
+		// attribute<string>   id;
+		// attribute<string>   x;
+		// attribute<string>   y;
+		
+		// attribute<uint32>      SloopJaar          := rjoin(geocode_id[uint32], /Analyse/CommVastgoedSloopNaTransactie/NVM/geocode_id, /Analyse/CommVastgoedSloopNaTransactie/NVM/SloopJaar);
+		// attribute<uint32>      VergunningJaar     := rjoin(geocode_id[uint32], /Analyse/CommVastgoedSloopNaTransactie/NVM/geocode_id, /Analyse/CommVastgoedSloopNaTransactie/NVM/VergunningJaar);
+		// attribute<geometries/rdc> geometry           := point(x[float32], y[float32], geometries/rdc);
+		attribute<bool>           PandZichtbaarVanafHoofdweg := Analyse/PandZichtlijnen/Panden/PandZichtbaarVanafWeg[point_in_polygon(point(x[float32], y[float32], geometries/rdc), /Analyse/PandZichtlijnen/Panden/Geometry)];
+		attribute<bool>           IsBeschermdStadsgezicht    := IsDefined(point_in_polygon(point(x[float32], y[float32], geometries/rdc), /Brondata/Overig/StadsDorpsGezichten/Beschermd/Geometry));
+		attribute<bool>           IsRijksMonument            := Analyse/PandZichtlijnen/Panden/IsRijksMonument[point_in_polygon(point(x[float32], y[float32], geometries/rdc), /Analyse/PandZichtlijnen/Panden/Geometry)];
+		
+		attribute<uint32>         SloopJaar                  := rjoin(point(x[float32], y[float32], geometries/rdc), Analyse/CommVastgoedSloopNaTransactie/NVM/geometry, Analyse/CommVastgoedSloopNaTransactie/NVM/SloopJaar);
+		attribute<uint32>         VergunningJaar             := rjoin(point(x[float32], y[float32], geometries/rdc), Analyse/CommVastgoedSloopNaTransactie/NVM/geometry, Analyse/CommVastgoedSloopNaTransactie/NVM/VergunningJaar);
+		
+		attribute<string>         huurderkoperscategorie_clean := replace(huurderkoperscategorie, ';', '');
+		
+		// attribute<uint32>         x_int := x[uint32];
+	}
+	
+	container WriteCSV
+	{
+		unit<uint32> context := ReadCSV; 
+		unit<uint32> CSV_attributes := SubItem_PropValues(ReadCSV,'name'); 
+		parameter<string> fieldlist0     := AsList(CSV_attributes/name, ';');
+		parameter<string> fieldlist      := replace(fieldlist0, 'Geometry;', '', 'huurderkoperscategorie;', '');
+		parameter<string> fieldseparator := ';';
+		parameter<string> filename       := '%LocalDataProjDir%/Brondata_NVM_CommercieelVastgoed_ReadCSV_Zichtlijnen_20220530.csv';
+
+		unit<uint32> field := range(uint32, 0,strcount(fieldlist, ';') +1)
+		{
+			attribute<string> name := ReadArray(FieldList, ., string, 0);
+		}
+		parameter<string> newline := '\n';
+		parameter<string> header  := FieldList;
+		attribute<string> body (context) := = AsList(+'string(context/' + field/name + ')',' + '+quote(fieldseparator)+' +');
+	 
+		parameter<string> result := header + newline + AsList(body, newline)
+		,  StorageName = "= filename"
+		,  StorageType = "str";
+	}	
+	
+	// container ReadCSV
+	// {
+	// :	StorageName     = "%SourceDataDir%/NVM/vintage_geocoded_20220319.csv"
+	// :	StorageName     = "%SourceDataDir%/NVM/NVM_comm_1985_2020-05_geocoded.csv"
+	// :	StorageName     = "%SourceDataDir%/NVM/ASRE_dataset_22sept_lean.csv"
+		// parameter<string> filename       := '%SourceDataDir%/NVM/NVM_comm_1985_2020-05_geocoded.csv';
+		// unit<uint32>      domain         := range(uint32, 0, count_rows);
+		// parameter<string> fieldseparator := ';';
+		
+		// parameter<string> filedata
+		// :  StorageType   = "str"
+		// ,  StorageName = "=filename"
+		// ,  StorageReadOnly = "true";
+		// parameter<uint32> count_rows              := (strcount(filedata, fieldseparator) / strcount(headerline, fieldseparator)) + 1;
+
+		// parameter<string> headerline              := readLines(filedata, void, 0);
+		
+		// unit<uint32> field := Range(uint32, 0, strcount(headerline, fieldseparator) + 1)
+		// {
+			// attribute<string> name := ReadArray(headerline , field, string, 0);
+		// }
+			
+		// attribute<string> bodylines (domain) := readLines(filedata, domain, headerline/ReadPos);
+
+		// container data := 
+			// for_each_nedv(
+				// field/name
+				// ,'ReadElems(
+					// BodyLines
+					// ,string
+					// ,'+ MakeDefined(field/name[id(field)-1] + '/ReadPos','const(0, domain)')+'
+				// )'
+				// ,domain
+				// ,string
+			// );
+	// }
+	
+	unit<uint32> MaakFSS := ReadCSV, StorageName     = "%SourceDataDir%/NVM/vintage_geocoded_20220319.fss"
+	// unit<uint32> MaakFSS := ReadCSV/domain, StorageName     = "%SourceDataDir%/NVM/NVM_commercieel_200519.fss"
+	// unit<uint32> MaakFSS := ReadCSV, StorageName     = "%SourceDataDir%/NVM/NVM_commercieel_200922.fss"
+	{
+		// attribute<geometries/rdc> geometry           := point(ReadCSV/data/x[float32], ReadCSV/data/y[float32], geometries/rdc);
+		attribute<geometries/rdc> geometry           := point(ReadCSV/x[float32], ReadCSV/y[float32], geometries/rdc);
+		// attribute<string>   brutohuuropbrengst   := ReadCSV/brutohuuropbrengst;
+		attribute<string>   year                 := ReadCSV/jaar;
+		// attribute<string>   koopprijs            := ReadCSV/koopprijs;
+		// attribute<string>   objecttype           := ReadCSV/objecttype;
+		// attribute<string>   opp_totaal           := ReadCSV/opp_totaal;
+		// attribute<string>   soortvastgoed        := ReadCSV/soortvastgoed;
+		// attribute<string>   bouwjaar             := ReadCSV/bag_bouwjaar;
+		// attribute<string>   xcoord               := ReadCSV/x;
+		// attribute<string>   ycoord               := ReadCSV/y;
+		// attribute<string>   idobject             := ReadCSV/idobject;
+		// attribute<string>   strabo_nr            := ReadCSV/strabo_nr;
+		// attribute<string>   transactieid         := ReadCSV/transactieid;
+		// attribute<string>   invprop                 := ReadCSV/invprop;
+		// attribute<string>   building_type           := ReadCSV/building_type;
+		
+		attribute<uint32>   geocode_id              := ReadCSV/geocode_id[uint32];
+	}		
+	
+	unit<uint32> ReadFSS
+	:	StorageName     = "%SourceDataDir%/NVM/vintage_geocoded_20220319.fss"
+	// :	StorageName     = "%SourceDataDir%/NVM/NVM_commercieel_200519.fss"
+	// :	StorageName     = "%SourceDataDir%/NVM/NVM_commercieel_200922.fss"
+	,	StorageReadOnly = "True"
+	{
+		// attribute<string>   brutohuuropbrengst;
+		// attribute<eur>      brutohuuropbrengst_value := brutohuuropbrengst[eur];
+		attribute<string>   year;
+		attribute<jaar>     year_value               := year[jaar];
+		// attribute<string>   koopprijs;
+		// attribute<eur>      koopprijs_value          := koopprijs[eur];
+		// attribute<string>   objecttype;
+		// attribute<string>   opp_totaal;
+		// attribute<m2>       opp_totaal_value         := opp_totaal[m2];
+		// attribute<string>   soortvastgoed;
+		// attribute<string>   bouwjaar;
+		// attribute<jaar>     bouwjaar_value           := bouwjaar[jaar];
+		// attribute<string>   idobject;
+		// attribute<string>   strabo_nr;
+		// attribute<string>   transactieid;
+		
+		attribute<uint32>   geocode_id;
+		// attribute<string>   xcoord;
+		// attribute<string>   ycoord;
+		// attribute<float32>  xco                      := xcoord[float32];
+		// attribute<float32>  yco                      := ycoord[float32];
+		attribute<geometries/rdc> geometry ;
+		attribute<bool>           PandZichtbaarVanafHoofdweg := Analyse/PandZichtlijnen/Panden/PandZichtbaarVanafWeg[point_in_polygon(geometry, /Analyse/PandZichtlijnen/Panden/Geometry)];
+		attribute<bool>           IsBeschermdStadsgezicht    := IsDefined(point_in_polygon(geometry, /Brondata/Overig/StadsDorpsGezichten/Beschermd/Geometry));
+		attribute<bool>           IsRijksMonument            := Analyse/PandZichtlijnen/Panden/IsRijksMonument[point_in_polygon(geometry, /Analyse/PandZichtlijnen/Panden/Geometry)];
+		
+		attribute<uint32>         SloopJaar                  := Analyse/CommVastgoedSloopNaTransactie/NVM/SloopJaar;
+		attribute<uint32>         VergunningJaar             := Analyse/CommVastgoedSloopNaTransactie/NVM/VergunningJaar;
+		
+		// attribute<RegioUnit_NL>    nl_rel                 := point_in_polygon(geometry, RegioUnit_NL/Geometry);
+		// attribute<RegioUnit_Aggl>  aggl_rel               := point_in_polygon(geometry, RegioUnit_Aggl/Geometry);
+		// attribute<string>          Agglomeration_name     := RegioUnit_Aggl/Agglomeration[aggl_rel];
+		// attribute<NL_grid/domain>  NL_grid_domain_rel     := geometry[NL_grid/domain];
+		
+		
+		
+	}
+	
+}

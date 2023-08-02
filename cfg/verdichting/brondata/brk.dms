@@ -1,0 +1,119 @@
+container BRK
+{ 
+	// unit<uint32> Panden_met_vbo := Analyse/sloop_nieuwbouw_volledige_bag/panden_met_vbo;
+	unit<uint32>      RegioUnit_Aggl      := Brondata/RegioIndelingen/gemeente/Agglomeration_uq;
+	unit<uint32>      RegioUnit_AMS       := Brondata/RegioIndelingen/Gemeente/Amsterdam;
+	
+	unit<uint32> Perceel 
+	:	StorageName     = "%SourceDataDir%/BRK/20210203/fss/perceel.fss"
+	,	StorageReadOnly = "True"
+	{
+		attribute<geometries/rdc>      geometry (poly);
+		attribute<geometries/rdc_mm>   geometry_mm (poly) := geometry[geometries/rdc_mm];
+		attribute<uint32>              PERCEELNUMMER;
+		attribute<uint32>              SECTIE;
+		attribute<geometries/rdc>      centroid                          := centroid_or_mid(geometry);
+		attribute<NL_grid/domain>      NL_grid_domain_rel                := centroid[NL_grid/domain];
+		attribute<.>                   per_grid (NL_grid/domain_10m)     := poly2grid(geometry, NL_grid/domain_10m);
+		attribute<RegioUnit_Aggl>      Aggl_rel              := point_in_polygon(centroid, RegioUnit_Aggl/geometry);
+		attribute<m2> area := area(geometry, m2);
+		
+		unit<uint32> inAggl := subset(IsDefined(Aggl_rel))
+		, FreeData = "False"
+		{
+			attribute<geometries/rdc>     geometry (poly)       := ../geometry[nr_OrgEntity];
+			attribute<geometries/rdc_mm>  geometry_mm (poly)    := geometry[geometries/rdc_mm];
+		}
+		
+		unit<uint32> Read_inAggl_zonderwegen_SHP
+		: StorageName = "%SourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegenSpoor_20211021.shp"
+		, StorageType = "gdal.vect"
+		, StorageReadOnly = "True"
+		{
+			attribute<geometries/rdc>     geometry (poly);
+		}
+		
+		unit<uint32> Make_inAggl_zonderwegen_FSS := Read_inAggl_zonderwegen_SHP
+		, StorageName = "%SourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegen_20211021.fss"
+		{
+			attribute<geometries/rdc>     geometry (poly)    := Read_inAggl_zonderwegen_SHP/geometry;
+		} 
+		
+		unit<uint32> inAggl_zonderwegen
+		: StorageName = "%SourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegen_20211021.fss"
+		, StorageReadOnly = "TRUE"
+		{
+			attribute<geometries/rdc>     geometry (poly);
+			attribute<geometries/rdc_mm>  geometry_mm (poly) := geometry[geometries/rdc_mm];
+			attribute<RegioUnit_Aggl>     Aggl_rel           := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+			
+			container PerAggl :=
+				for_each_ne(
+					RegioUnit_Aggl/name
+					, 'PerAggl_T('+quote(RegioUnit_Aggl/name)+', '+string(id(RegioUnit_Aggl))+'[RegioUnit_Aggl])'
+				)
+			{
+				parameter<String> Generate_PerAggl := 'Ready',
+					ExplicitSuppliers = "=AsList('PerAggl/'+RegioUnit_Aggl/name+'/Aggl_sub/single2multi_1/geometry_rd',';')";
+			}
+			
+			Template PerAggl_T
+			{
+				parameter<string>         Aggl_name;
+				parameter<RegioUnit_Aggl> Aggl_rel;
+				
+				unit<uint32> Aggl_sub := subset(inAggl_zonderwegen/Aggl_rel == Aggl_rel)
+				{
+					attribute<geometries/rdc>     geometry (poly)       := inAggl_zonderwegen/geometry[nr_OrgEntity];
+					attribute<geometries/rdc_mm>  geometry_mm (poly)    := inAggl_zonderwegen/geometry_mm[nr_OrgEntity];
+			
+					attribute<rdc_mm>             deflate     (poly)    := bg_buffer_polygon(geometry_mm,  -parameters/supersmall_inflate, 8b);
+
+					unit<uint32> single2multi_1 := split_polygon(./deflate)
+					, StorageName = "='%LocalDataProjDir%/UnlinkedData/Perceel/Perceel_2021_Aggl_Clean_'+Aggl_name+'.fss'"
+					{
+						attribute<rdc_mm>            inflate     (poly)                := bg_buffer_polygon(geometry,  parameters/supersmall_inflate, 8b);
+						attribute<geometries/rdc>    geometry_rd (poly)                := inflate[geometries/rdc];
+					}
+					unit<uint32> Read_FSS
+					: StorageName = "='%LocalDataProjDir%/UnlinkedData/Perceel/Perceel_2021_Aggl_Clean_'+Aggl_name+'.fss'"
+					, StorageReadOnly = "true"
+					{
+						attribute<geometries/rdc>    geometry_rd (poly);
+					}
+				}
+			}
+
+			parameter<String> Generate_Union := 'Ready',
+				ExplicitSuppliers = "Union_Aggl/geometry_rd";
+
+			unit<uint32> Union_Aggl := ='union_unit('+AsList('PerAggl/'+RegioUnit_Aggl/name+'/Aggl_sub/Read_FSS',',')+')'
+			, StorageName = "%LocalDataProjDir%/UnlinkedData/Perceel/Perceel_2021_Aggl_Clean.fss"
+			{
+				attribute<geometries/rdc>    geometry_rd (poly) := ='union_data(.,'+AsList('PerAggl/'+RegioUnit_Aggl/name+'/Aggl_sub/Read_FSS/geometry_rd',',')+')';
+			}
+			
+			unit<uint32> Read_Union_Aggl 
+			: StorageName = "%LocalDataProjDir%/UnlinkedData/Perceel/Perceel_2021_Aggl_Clean.fss"
+			, StorageReadOnly = "true"
+			{
+				attribute<geometries/rdc>    geometry_rd (poly);
+				attribute<geometries/rdc_mm> geometry_mm (poly)                := geometry_rd[geometries/rdc_mm];
+				attribute<geometries/rdc>    centroid                          := centroid_or_mid(geometry_rd);
+				attribute<NL_grid/domain>    NL_grid_domain_rel                := centroid[NL_grid/domain];
+				attribute<.>                 per_grid_10m (NL_grid/domain_10m) := poly2grid(geometry_rd, NL_grid/domain_10m);
+				attribute<RegioUnit_Aggl>    Aggl_rel                          := point_in_polygon(centroid, RegioUnit_Aggl/geometry);
+				attribute<RegioUnit_Ams>     Ams_rel                           := point_in_polygon(centroid, RegioUnit_Ams/geometry);
+				
+				unit<uint32> sub := subset(IsDefined(Ams_rel))
+				{
+					attribute<geometries/rdc>    geometry_rd (poly) := ../geometry_rd[nr_OrgEntity];
+					attribute<geometries/rdc_mm> geometry_mm (poly) := ../geometry_mm[nr_OrgEntity];
+					attribute<geometries/rdc>    centroid           := ../centroid[nr_OrgEntity];
+					attribute<NL_grid/domain>    NL_grid_domain_rel := ../NL_grid_domain_rel[nr_OrgEntity];
+					attribute<RegioUnit_Aggl>    Aggl_rel           := ../Aggl_rel[nr_OrgEntity];
+				}
+			}
+		}
+	}
+}

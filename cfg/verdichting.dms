@@ -1,0 +1,188 @@
+container Verdichting 
+{ 
+	container Parameters : using = "eenheden"
+	{
+		parameter<int32>   VBO_opp_truncation              := 500i;
+		parameter<int32>   VBO_opp_truncation_lower        := 10i;
+		parameter<int32>   VBO_opp_truncation_defaultvalue := 120i;
+		parameter<bool>    Use_BAG_VoorraadStatussen       := FALSE; // true false     FALSE voor de redevelopment analyse
+		parameter<string>  BAG_Selection_Area              := 'NL'; //'MRA', 'NL', 'AMS', 'Aggl'
+		parameter<float64> supersmall_inflate              := 1000d; //1m
+		parameter<float64> small_inflate                   := 5000d; //5m
+		parameter<float64> big_inflate                     := 10000d; //10m
+		parameter<float64> superbig_inflate                := 20000d; //20m
+		parameter<string>  bouwjaar_truncation_expr        := 'bouwjaar <= 1005s || bouwjaar > @YYYY@[eenheden/jaar] ? (0/0)[int16] : bouwjaar < 1500s ? 1500s : bouwjaar';
+		parameter<m>       highrise_threshold              := 30[m];
+		parameter<m>       verdiepinghoogte                := 2.8[m];
+		parameter<m2>      minimum_site_area               := 25[m2];
+		parameter<bool>    uq_identificatie_ontkoppeld     := true;
+		parameter<bool>    UseSimplify                     := true;
+		parameter<float64> Simplify_Value                  := 500d;
+		// parameter<bool>    AfgeleidePandTyperingOntkoppeld := TRUE;
+		// parameter<bool>    UseAfgeleidePandTypering        := false;
+		parameter<string>  BAG_dir                         := 'OVSRV06'; // 'OVSRV06' 'NORMAAL'
+	}
+	
+	#include <eenheden.dms>
+	#include <typeringen.dms>
+	
+	container geometries: using = "eenheden"
+	{
+		unit<fpoint> rdc_base         : SpatialReference = "EPSG:28992", 	DialogData = "ngr_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
+		unit<fpoint> rdc              := range(rdc_base, point(0f,300000f), point(280000f,625000f));
+		unit<ipoint> rdc_mm           := gridset(rdc, point(0.001,0.001), point(0.0, 0.0), ipoint);
+		unit<dpoint> wgs84_base       : SpatialReference = "EPSG:4326";
+		unit<fpoint> LambertEA_base   : SpatialReference = "EPSG:3035", DialogData = "ngr_layer_lea";
+		unit<fpoint> LambertEA        := range(LambertEA_base, point(2500000f, 1300000f), point(4900000f, 4300000f));
+		unit<fpoint> WebMercator_base : SpatialReference = "EPSG:3857";
+		
+		#include <ngr_layer.dms>
+		
+		container potentialen
+		{
+			unit<uint32> Dist2Range;
+			
+			container pot100m   := potrange_T(10[m] , 100[m]);
+			container pot200m   := potrange_T(100[m], 200[m]);
+			container pot500m   := potrange_T(100[m], 500[m]);
+			container pot600m   := potrange_T(100[m], 600[m]);
+			container pot1000m  := potrange_T(100[m],1000[m]);
+			container pot2000m  := potrange_T(100[m],2000[m]);
+			container pot5000m  := potrange_T(100[m],5000[m]);
+			container pot10000m  := potrange_T(100[m],10000[m]);
+			container pot50000m  := potrange_T(100[m],50000[m]);
+			container pot100000m  := potrange_T(100[m],100000[m]);
+			container pot5000m_25m  := potrange_T(25[m],5000[m]);
+
+			Template potrange_T
+			{
+				parameter<m>       gridgrootte;
+				parameter<m>       afkapstraal;
+				parameter<float32> straal                 := afkapstraal / gridgrootte;
+				unit<spoint>       potRange               := range(spoint, point(-straal[int16], -straal[int16]), point(straal[int16] + 1s, straal[int16] + 1s))
+				{
+					attribute<Dist2Range> distMatr        := dist2(point(0s, 0s, potRange), Dist2Range);
+					attribute<float32> AbsWeight          := distMatr[float32] <= (straal * straal) ? 1f / (distMatr[float32] ^ 2f) : 0f;
+					attribute<float32> AbsWeight_w_center := distMatr[float32] == 0f ? 1f : distMatr[float32] <= (straal * straal) ? 1f / (distMatr[float32] ^ 2f) : 0f;
+					attribute<float32> AbsWeight_wo_center := distMatr[float32] == 0f ? 0f : distMatr[float32] <= (straal * straal) ? 1f / (distMatr[float32] ^ 2f) : 0f;
+					attribute<float32> RelWeightSqrt      := AbsWeight / Sum(AbsWeight);
+					attribute<float32> binair             := distMatr <= 100 ? 1f : 0f;
+					attribute<float32> const              := rev_dist > 0f ? 1f : 0f;
+					attribute<float32> dist               := sqrt(float32(distMatr));
+					attribute<float32> rev_dist           := max_elem(straal - dist, 0f);
+					parameter<float32> rev_dist_max       := max(rev_dist);
+					attribute<float32> rev_dist_scaled    := rev_dist / rev_dist_max;
+				}
+			}
+		}
+	}
+	
+	container NL_grid: Using = "eenheden;geometries"
+	{
+		unit<uint32> Gridsizes : nrofrows = 4
+		{
+			attribute<m>      size : [10, 25, 100, 500];
+			attribute<string> name := 'size_'+string(size)+'m';
+		}
+		
+		unit<spoint> domain       := perGridsize/size_100m/domain;
+		unit<spoint> domain_10m   := perGridsize/size_10m/domain;
+		unit<spoint> domain_25m   := perGridsize/size_25m/domain;
+		unit<spoint> domain_100m  := perGridsize/size_100m/domain;
+		unit<spoint> domain_500m  := perGridsize/size_500m/domain;
+	
+		parameter<m> x_min := 0[m];
+		parameter<m> x_max := 280000[m];
+		parameter<m> y_min := 300000[m];
+		parameter<m> y_max := 625000[m];
+		
+		container perGridsize :=
+			for_each_ne(
+				Gridsizes/name
+				, 'Create_GridDomain_T('+string(Gridsizes/size)+'[m])'
+			);
+		
+		Template Create_GridDomain_T
+		{
+			parameter<m> gridsize;
+			
+			parameter<int16> nr_cols := int16((x_max - x_min) / gridsize);
+			parameter<int16> nr_rows := int16((y_max - y_min) / gridsize);
+			
+			unit<spoint> domain :=
+				range(
+					 gridset(
+						 rdc
+						,point(gridsize, -gridsize, rdc)
+						,point(x_min, y_max, rdc)
+						,spoint
+					)
+					,point(0s, 0s)
+					,point(nr_cols, nr_rows)
+				),	DialogData = "rdc"
+			{
+				attribute<.>                    id               := id(.);
+				attribute<rdc>                  point_rd         := id[rdc] + point(0.5f * gridsize, -0.5f * gridsize, rdc);
+				attribute<uint32>               id_nr            := (pointcol(id)[uint32] + 1) + ((pointrow(id)[uint32]) * (x_max[uint32] / gridsize[uint32]));
+				attribute<NL_grid/domain_25m>   grid_25m_rel     := id(.)[NL_grid/domain_25m];
+				attribute<NL_grid/domain_100m>  grid_100m_rel    := id(.)[NL_grid/domain_100m];
+				attribute<NL_grid/domain_500m>  grid_500m_rel    := id(.)[NL_grid/domain_500m];
+			}
+			
+			unit<uint32> points := select_with_org_rel(isDefined(domain/id))
+			{
+				attribute<rdc> 	                geometry  := org_rel -> point_rd;
+				attribute<uint32>               id        := org_rel -> id_nr;
+				
+				attribute<float32>              x         := PointCol(geometry);
+				attribute<float32>              y         := PointRow(geometry);
+				
+				attribute<domain>               NL_grid_domain_rel  := geometry[domain];
+			}
+		}
+	} 
+
+	#include <brondata.dms>
+	#include <analyse.dms>
+	
+	container ExportSettings: url = "='#'+ExportSettings/Docdata +'/ExportSettings.adms'"
+	{
+		container MetaInfo 
+		{
+			parameter<string> FileName : ='%storageBaseName%.xml';
+			parameter<string> FileType : ='xml'; // default is 'ini' but ini files cannot be used well to store multi-line properties such as error messages of inproperly configured properties
+			
+			container Contents
+			{
+				container Software
+				{
+					parameter<string> GeoDmsVersion: [ '=string(GeoDmsVersion())' ];
+				}
+				container Config
+				{
+					parameter<string> FullName := '=PropValue(this, '+Quote('FullName')+')';
+					parameter<string> Expr     := '=PropValue(this, '+Quote('Expr'    )+')';
+				}
+				container Environment
+				{
+					parameter<string> Processor    := expand(., '%env:PROCESSOR_IDENTIFIER%');
+					parameter<string> User         := expand(., '%env:USERNAME%');
+					parameter<string> ComputerName := expand(., '%env:COMPUTERNAME%');
+					parameter<string> Date         := expand(., '%env:DATE%');
+					parameter<string> Time         := expand(., '%env:TIME%');
+				}
+			}
+		}
+	}
+	container ConfigSettings: isHidden = "True"
+	{
+		container Overridable
+		{
+			parameter<String> BAG_DataDir        := '%sourceDataDir%';
+			parameter<String> BAG_DataDir_OVSRV6 := 'D:/SourceData';
+			
+			parameter<string> AHNDrive           := 'E:/SourceData/AHN';
+		}
+	}
+	
+}

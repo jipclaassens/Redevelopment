@@ -1,0 +1,825 @@
+container AdditionalOperations : using = "geometries"
+{ 
+	parameter<String> Generate_Onveranderd    := 'Ready', ExplicitSuppliers = "Onveranderd/Woon/Generate;Onveranderd/NietWoon/Generate;Onveranderd/Mixed/Generate";
+	parameter<String> Generate_SloopNieuwbouw := 'Ready', ExplicitSuppliers = "SN/Woon/Generate;SN/NietWoon/Generate;SN/Mixed/Generate";
+	
+	
+	container Onveranderd :=
+		for_each_ne(
+			Onveranderd_types/name
+			,'AdditionalOperationsT_onveranderd('+quote(Onveranderd_types/name)+')'
+		);
+		
+	container SN :=
+		for_each_ne(
+			SN_types/name
+			,'AdditionalOperationsT_SN('+quote(SN_types/name)+')'
+		);
+	
+	unit<uint32>  BestaandeBouwIn2012        := ='select_with_org_rel(IsDefined(Pand_domains/'+first(Periods/name)+'/bag_nr))'
+	{
+		attribute<rdc>            geometry (poly)                     := org_rel -> geometry;
+		attribute<rdc_mm>         geometry_mm (poly)                  := org_rel -> geometry_mm_chosen;
+	}
+	
+	unit<uint32> Sloop_Woon_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/Sloop_Woon/overlay_metPercelen/first_rel))) 
+	{
+		attribute<rdc>            geometry (poly)                     := org_rel -> geometry_rd;
+		attribute<rdc_mm>         geometry_mm (poly)                  := org_rel -> geometry_mm;
+		attribute<RegioUnit_Aggl> Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+	}
+	unit<uint32> Sloop_NietWoon_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/Sloop_NietWoon/overlay_metPercelen/first_rel))) 
+	{
+		attribute<rdc>            geometry (poly)                     := org_rel -> geometry_rd;
+		attribute<rdc_mm>         geometry_mm (poly)                  := org_rel -> geometry_mm;
+		attribute<RegioUnit_Aggl> Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+	}
+	unit<uint32> Sloop_Mixed_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/Sloop_Mixed/overlay_metPercelen/first_rel))) 
+	{
+		attribute<rdc>            geometry (poly)                     := org_rel -> geometry_rd;
+		attribute<rdc_mm>         geometry_mm (poly)                  := org_rel -> geometry_mm;
+		attribute<RegioUnit_Aggl> Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+	} 
+	
+	unit<uint32> Nieuwbouw_Woon_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/Nieuwbouw_Woon/overlay_metPercelen/first_rel))) 
+	{
+		attribute<rdc>            geometry (poly)                     := org_rel -> geometry_rd;
+		attribute<rdc_mm>         geometry_mm (poly)                  := org_rel -> geometry_mm;
+		attribute<bool>           IsNieuwbouw_OpBebouwd               := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel));
+		attribute<RegioUnit_Aggl> Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+		unit<uint32>              Nieuwbouw_OpBebouwd                 := overlay_polygon(BestaandeBouwIn2012/geometry_mm, ./geometry_mm), FreeData = "False";
+
+		unit<uint32>                   Nieuwbouw_src                       := PrepDomains/Nieuwbouw_Woon
+		{
+			attribute<bool>            IsNieuwbouw_OpOnbebouwd             := IsDefined(point_in_polygon(centroid, Nieuwbouw_OpOnbebouwd_perceel/geometry));
+			attribute<bool>            IsNieuwbouw_OpBebouwd               := IsDefined(point_in_polygon(centroid, Nieuwbouw_OpBebouwd_perceel/geometry));
+		}
+		unit<uint32>                   Nieuwbouw_OpOnbebouwd_perceel       := select_with_org_rel(!./IsNieuwbouw_OpBebouwd)
+		{        
+			attribute<rdc>  geometry (poly)                     := org_rel -> geometry;
+		}
+		unit<uint32>                   Nieuwbouw_OpBebouwd_perceel         := select_with_org_rel(./IsNieuwbouw_OpBebouwd)
+		{        
+			attribute<rdc>  geometry (poly)                     := org_rel -> geometry;
+		}
+	}
+	
+	unit<uint32> Nieuwbouw_Mixed_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/Nieuwbouw_Mixed/overlay_metPercelen/first_rel))) 
+	{
+		attribute<rdc>                 geometry (poly)                     := org_rel -> geometry_rd;
+		attribute<rdc_mm>              geometry_mm (poly)                  := org_rel -> geometry_mm;
+		attribute<bool>                IsNieuwbouw_OpBebouwd               := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel));
+		attribute<RegioUnit_Aggl>      Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
+		unit<uint32>                   Nieuwbouw_OpBebouwd                 := overlay_polygon(BestaandeBouwIn2012/geometry_mm, ./geometry_mm), FreeData = "False";
+
+		unit<uint32>                   Nieuwbouw_src                       := PrepDomains/Nieuwbouw_Mixed
+		{
+			attribute<bool>            IsNieuwbouw_OpOnbebouwd             := IsDefined(point_in_polygon(centroid, Nieuwbouw_OpOnbebouwd_perceel/geometry));
+			attribute<bool>            IsNieuwbouw_OpBebouwd               := IsDefined(point_in_polygon(centroid, Nieuwbouw_OpBebouwd_perceel/geometry));
+		}
+		unit<uint32>                   Nieuwbouw_OpOnbebouwd_perceel       := select_with_org_rel(!./IsNieuwbouw_OpBebouwd)
+		{        
+			attribute<rdc>  geometry (poly)                     := org_rel -> geometry;
+		}
+		unit<uint32>                   Nieuwbouw_OpBebouwd_perceel         := select_with_org_rel(./IsNieuwbouw_OpBebouwd)
+		{        
+			attribute<rdc>  geometry (poly)                     := org_rel -> geometry;
+		}
+	}
+	
+	unit<uint32>  Nieuwbouw_Wonen_OpOnbebouwd  := select_with_org_rel(Nieuwbouw_Woon_perceel/Nieuwbouw_src/IsNieuwbouw_OpOnbebouwd)
+	{
+		attribute<rdc>                 geometry (poly)                     := org_rel -> geometry;
+		attribute<rdc_mm>              geometry_mm (poly)                  := org_rel -> geometry_mm;
+		attribute<rdc>                 centroid                            := centroid_or_mid(geometry);
+		attribute<uint16>              pand_hoogte                         := org_rel -> pand_hoogte;
+		attribute<m2>                  buildingfootprint                   := org_rel -> buildingfootprint;
+		attribute<Periods>             RelevantJaar                        := org_rel -> RelevantJaar;
+		attribute<jaar>                bouwjaar                            := org_rel -> bouwjaar;
+		attribute<WP5>                 WP5_rel                             := org_rel -> WP5_rel;
+		attribute<m2>                  N_vbo_opp_woon                      := org_rel -> N_vbo_opp_woon;
+		attribute<m2>                  N_vbo_opp_niet_woon                 := org_rel -> N_vbo_opp_niet_woon;
+		
+		attribute<m2>                  N_avg_vbo_opp_vrijstaand            := org_rel -> N_avg_vbo_opp_vrijstaand;
+		attribute<m2>                  N_avg_vbo_opp_twee_onder_1_kap      := org_rel -> N_avg_vbo_opp_twee_onder_1_kap;
+		attribute<m2>                  N_avg_vbo_opp_rijtjeswoning         := org_rel -> N_avg_vbo_opp_rijtjeswoning;
+		attribute<m2>                  N_avg_vbo_opp_appartement           := org_rel -> N_avg_vbo_opp_appartement;
+		
+		attribute<uint32>              N_count_vbo_pand_vrijstaand         := WP5_rel == WP5/v/vrijstaand ? N_count_vbo_woon : 0;
+		attribute<uint32>              N_count_vbo_pand_twee_onder_1_kap   := WP5_rel == WP5/v/twee_onder_1_kap ? N_count_vbo_woon : 0;
+		attribute<uint32>              N_count_vbo_pand_rijtjeswoning      := WP5_rel == WP5/v/rijtjeswoning ? N_count_vbo_woon : 0;
+		attribute<uint32>              N_count_vbo_pand_appartement        := WP5_rel == WP5/v/appartement ? N_count_vbo_woon : 0;
+				
+		attribute<uint32>              O_count_vbo_woon                    := org_rel -> O_count_vbo_woon;
+		attribute<uint32>              N_count_vbo_woon                    := org_rel -> N_count_vbo_woon;
+		attribute<uint32>              O_count_vbo_niet_woon               := org_rel -> O_count_vbo_niet_woon;
+		attribute<uint32>              N_count_vbo_niet_woon               := org_rel -> N_count_vbo_niet_woon;
+		
+		unit<uint32> Step1 := split_union_polygon(geometry_mm)
+		{
+			attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry, parameters/big_inflate, 8b);
+		}
+		
+		unit<uint32> Step2 := split_polygon(Step1/inflate)
+		{
+			attribute<rdc_mm> deflate (poly)                      := bg_buffer_polygon(geometry, -parameters/big_inflate, 8b);
+			attribute<rdc>    geometry_rd (poly)                  := deflate[rdc];
+			attribute<m2>     area                                := area(geometry_rd, m2);
+		}
+		
+		unit<uint32> CleanUp := select_with_org_rel(Step2/area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc>              geometry (poly)                     := org_rel -> geometry_rd;
+			attribute<rdc>              geometry_rd (poly) := geometry;
+			attribute<m2>               area                                := area(geometry, m2);
+			attribute<rdc>              centroid                            := centroid_or_mid(geometry);
+			
+			unit<uint32>                Nieuwbouw                           := Nieuwbouw_Wonen_OpOnbebouwd;
+			attribute<.>                Nieuwbouw_rel (Nieuwbouw)           := point_in_polygon(Nieuwbouw/centroid, geometry);
+			
+			attribute<uint16>           max_pand_hoogte0                    := max(Nieuwbouw/pand_hoogte                   , Nieuwbouw_rel);
+			attribute<uint16>           max_pand_hoogte                     := max_pand_hoogte0 == 0w ? 0w/0w : max_pand_hoogte0;
+			
+			attribute<uint16>           Nr_Panden_boven100m                 := sum(Nieuwbouw/pand_hoogte >= 10000w                                  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>           Nr_Panden_60_100m                   := sum(Nieuwbouw/pand_hoogte >= 6000w && Nieuwbouw/pand_hoogte < 10000w ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>           Nr_Panden_40_60m                    := sum(Nieuwbouw/pand_hoogte >= 4000w && Nieuwbouw/pand_hoogte < 6000w  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>           Nr_Panden_25_40m                    := sum(Nieuwbouw/pand_hoogte >= 2500w && Nieuwbouw/pand_hoogte < 4000w  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>           Nr_Panden_onder25m                  := sum(Nieuwbouw/pand_hoogte <  2500w                                   ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>           Nr_Panden_hoogte_onbekend           := sum(!IsDefined(Nieuwbouw/pand_hoogte)                                ? 1w : 0w         , Nieuwbouw_rel);
+			
+			
+			
+			attribute<bool>             IsBeschermdStadsgezicht             := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/geometry));
+			attribute<jaar>             O_mod_bouwjaar                      := const((0/0)[jaar], .);
+			attribute<Jaar>             O_mod_sloopjaar                     := modus(rjoin(Nieuwbouw/RelevantJaar, id(Periods), Periods/year)           , Nieuwbouw_rel);
+			attribute<jaar>             N_mod_bouwjaar                      := modus(Nieuwbouw/bouwjaar               , Nieuwbouw_rel);
+			attribute<m2>               O_sum_buildingfootprint             := const(0[m2],.);
+			attribute<m2>               N_sum_buildingfootprint             := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+			attribute<m2>               O_vbo_opp_woon                      := const(0[m2],.);
+			attribute<m2>               O_vbo_opp_niet_woon                 := const(0[m2],.);
+			attribute<m2>               N_vbo_opp_woon                      := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+			attribute<m2>               N_vbo_opp_niet_woon                 := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+			attribute<RegioUnit_wijk>   Wijk_rel                            := point_in_polygon(centroid, RegioUnit_wijk/Geometry);
+			attribute<int32>            Wijk_P_woningcorporatie             := RegioUnit_wijk/p_wcorpw[Wijk_rel];
+			
+			attribute<m2>               N_vbo_opp_vrijstaand                := mean(Nieuwbouw/N_avg_vbo_opp_vrijstaand           , Nieuwbouw_rel);
+			attribute<m2>               N_vbo_opp_twee_onder_1_kap          := mean(Nieuwbouw/N_avg_vbo_opp_twee_onder_1_kap     , Nieuwbouw_rel);
+			attribute<m2>               N_vbo_opp_rijtjeswoning             := mean(Nieuwbouw/N_avg_vbo_opp_rijtjeswoning        , Nieuwbouw_rel);
+			attribute<m2>               N_vbo_opp_appartement               := mean(Nieuwbouw/N_avg_vbo_opp_appartement          , Nieuwbouw_rel);
+			
+			attribute<uint32>            N_count_niet_woonpand              := sum(Nieuwbouw/WP5_rel == WP5/v/geen_woonpand ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_appartement                := sum(Nieuwbouw/WP5_rel == WP5/v/appartement ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_rijtjeswoning              := sum(Nieuwbouw/WP5_rel == WP5/v/rijtjeswoning ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_twee_onder_1_kap           := sum(Nieuwbouw/WP5_rel == WP5/v/twee_onder_1_kap ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_vrijstaand                 := sum(Nieuwbouw/WP5_rel == WP5/v/vrijstaand ? 1 : 0, Nieuwbouw_rel);
+			
+			attribute<uint32>            N_count_vbo_pand_vrijstaand        := sum(Nieuwbouw/N_count_vbo_pand_vrijstaand       , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_twee_onder_1_kap  := sum(Nieuwbouw/N_count_vbo_pand_twee_onder_1_kap , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_rijtjeswoning     := sum(Nieuwbouw/N_count_vbo_pand_rijtjeswoning    , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_appartement       := sum(Nieuwbouw/N_count_vbo_pand_appartement      , Nieuwbouw_rel);
+
+			attribute<uint32>            O_count_vbo_woon                   := sum(Nieuwbouw/O_count_vbo_woon , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_woon                   := sum(Nieuwbouw/N_count_vbo_woon , Nieuwbouw_rel);
+			attribute<uint32>            O_count_vbo_niet_woon              := sum(Nieuwbouw/O_count_vbo_niet_woon , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_niet_woon              := sum(Nieuwbouw/N_count_vbo_niet_woon , Nieuwbouw_rel);
+		}
+	}
+	
+	unit<uint32>  Nieuwbouw_Mixed_OpOnbebouwd  := select_with_org_rel(Nieuwbouw_Mixed_perceel/Nieuwbouw_src/IsNieuwbouw_OpOnbebouwd)
+	{
+		attribute<rdc>                   geometry (poly)                    := org_rel -> geometry;
+		attribute<rdc_mm>                geometry_mm (poly)                 := org_rel -> geometry_mm;
+		attribute<rdc>                   centroid                           := centroid_or_mid(geometry);
+		attribute<uint16>                pand_hoogte                        := org_rel -> pand_hoogte;
+		attribute<Periods>               RelevantJaar                       := org_rel -> RelevantJaar;
+		attribute<m2>                    buildingfootprint                  := org_rel -> buildingfootprint;
+		attribute<m2>                    N_vbo_opp_woon                     := org_rel -> N_vbo_opp_woon;
+		attribute<m2>                    N_vbo_opp_niet_woon                := org_rel -> N_vbo_opp_niet_woon;
+		attribute<jaar>                  bouwjaar                           := org_rel -> bouwjaar;
+		attribute<WP5>                   WP5_rel                            := org_rel -> WP5_rel;
+		
+		attribute<m2>                    N_avg_vbo_opp_vrijstaand           := org_rel -> N_avg_vbo_opp_vrijstaand;
+		attribute<m2>                    N_avg_vbo_opp_twee_onder_1_kap     := org_rel -> N_avg_vbo_opp_twee_onder_1_kap;
+		attribute<m2>                    N_avg_vbo_opp_rijtjeswoning        := org_rel -> N_avg_vbo_opp_rijtjeswoning;
+		attribute<m2>                    N_avg_vbo_opp_appartement          := org_rel -> N_avg_vbo_opp_appartement;
+		
+		attribute<uint32>                N_count_vbo_pand_vrijstaand        := WP5_rel == WP5/v/vrijstaand ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_twee_onder_1_kap  := WP5_rel == WP5/v/twee_onder_1_kap ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_rijtjeswoning     := WP5_rel == WP5/v/rijtjeswoning ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_appartement       := WP5_rel == WP5/v/appartement ? N_count_vbo_woon : 0;
+				
+		attribute<uint32>                O_count_vbo_woon                   := org_rel -> O_count_vbo_woon;
+		attribute<uint32>                N_count_vbo_woon                   := org_rel -> N_count_vbo_woon;
+		attribute<uint32>                O_count_vbo_niet_woon              := org_rel -> O_count_vbo_niet_woon;
+		attribute<uint32>                N_count_vbo_niet_woon              := org_rel -> N_count_vbo_niet_woon;
+		
+		unit<uint32> Step1 := split_union_polygon(geometry_mm)
+		{
+			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(geometry, parameters/big_inflate, 8b);
+		}
+		
+		unit<uint32> Step2 := split_polygon(Step1/inflate)
+		{
+			attribute<rdc_mm>            deflate (poly)                     := bg_buffer_polygon(geometry, -parameters/big_inflate, 8b);
+			attribute<rdc>               geometry_rd (poly)                 := deflate[rdc];
+			attribute<m2>                area                               := area(geometry_rd, m2);
+		}
+		
+		unit<uint32> CleanUp := select_with_org_rel(Step2/area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc>               geometry (poly)                    := org_rel -> geometry_rd;
+			attribute<rdc>               geometry_rd (poly)                 := geometry;
+			attribute<m2>                area                               := area(geometry, m2);
+			attribute<rdc>               centroid                           := centroid_or_mid(geometry);
+			
+			unit<uint32>                 Nieuwbouw                          := Nieuwbouw_Mixed_OpOnbebouwd;
+			attribute<.>                 Nieuwbouw_rel (Nieuwbouw)          := point_in_polygon(Nieuwbouw/centroid, geometry);
+			
+			attribute<uint16>            max_pand_hoogte0                   := max(Nieuwbouw/pand_hoogte                   , Nieuwbouw_rel);
+			attribute<uint16>            max_pand_hoogte                    := max_pand_hoogte0 == 0w ? 0w/0w : max_pand_hoogte0;
+			
+			attribute<uint16>            Nr_Panden_boven100m                := sum(Nieuwbouw/pand_hoogte >= 10000w                                  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_60_100m                  := sum(Nieuwbouw/pand_hoogte >= 6000w && Nieuwbouw/pand_hoogte < 10000w ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_40_60m                   := sum(Nieuwbouw/pand_hoogte >= 4000w && Nieuwbouw/pand_hoogte < 6000w  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_25_40m                   := sum(Nieuwbouw/pand_hoogte >= 2500w && Nieuwbouw/pand_hoogte < 4000w  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_onder25m                 := sum(Nieuwbouw/pand_hoogte <  2500w                                   ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_hoogte_onbekend          := sum(!IsDefined(Nieuwbouw/pand_hoogte)                                ? 1w : 0w         , Nieuwbouw_rel);
+			
+			attribute<bool>              IsBeschermdStadsgezicht            := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/geometry));
+			attribute<jaar>              O_mod_bouwjaar                     := const((0/0)[jaar], .);
+			attribute<Jaar>              O_mod_sloopjaar                    := modus(rjoin(Nieuwbouw/RelevantJaar, id(Periods), Periods/year)           , Nieuwbouw_rel);
+			attribute<jaar>              N_mod_bouwjaar                     := modus(Nieuwbouw/bouwjaar               , Nieuwbouw_rel);
+			attribute<m2>                O_sum_buildingfootprint            := const(0[m2],.);
+			attribute<m2>                N_sum_buildingfootprint            := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+			attribute<m2>                O_vbo_opp_woon                     := const(0[m2],.);
+			attribute<m2>                O_vbo_opp_niet_woon                := const(0[m2],.);
+			attribute<m2>                N_vbo_opp_woon                     := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_niet_woon                := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+			attribute<RegioUnit_wijk>    Wijk_rel                           := point_in_polygon(centroid, RegioUnit_wijk/Geometry);
+			attribute<int32>             Wijk_P_woningcorporatie            := RegioUnit_wijk/p_wcorpw[Wijk_rel];
+			
+			attribute<m2>                N_vbo_opp_vrijstaand               := mean(Nieuwbouw/N_avg_vbo_opp_vrijstaand           , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_twee_onder_1_kap         := mean(Nieuwbouw/N_avg_vbo_opp_twee_onder_1_kap     , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_rijtjeswoning            := mean(Nieuwbouw/N_avg_vbo_opp_rijtjeswoning        , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_appartement              := mean(Nieuwbouw/N_avg_vbo_opp_appartement          , Nieuwbouw_rel);
+			
+			attribute<uint32>            N_count_niet_woonpand              := sum(Nieuwbouw/WP5_rel == WP5/v/geen_woonpand ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_appartement                := sum(Nieuwbouw/WP5_rel == WP5/v/appartement ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_rijtjeswoning              := sum(Nieuwbouw/WP5_rel == WP5/v/rijtjeswoning ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_twee_onder_1_kap           := sum(Nieuwbouw/WP5_rel == WP5/v/twee_onder_1_kap ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_vrijstaand                 := sum(Nieuwbouw/WP5_rel == WP5/v/vrijstaand ? 1 : 0, Nieuwbouw_rel);
+
+			attribute<uint32>            N_count_vbo_pand_vrijstaand        := sum(Nieuwbouw/N_count_vbo_pand_vrijstaand       , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_twee_onder_1_kap  := sum(Nieuwbouw/N_count_vbo_pand_twee_onder_1_kap , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_rijtjeswoning     := sum(Nieuwbouw/N_count_vbo_pand_rijtjeswoning    , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_appartement       := sum(Nieuwbouw/N_count_vbo_pand_appartement      , Nieuwbouw_rel);
+
+			attribute<uint32>            O_count_vbo_woon                   := sum(Nieuwbouw/O_count_vbo_woon , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_woon                   := sum(Nieuwbouw/N_count_vbo_woon , Nieuwbouw_rel);
+			attribute<uint32>            O_count_vbo_niet_woon              := sum(Nieuwbouw/O_count_vbo_niet_woon , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_niet_woon              := sum(Nieuwbouw/N_count_vbo_niet_woon , Nieuwbouw_rel);
+		}
+	}
+
+	unit<uint32>  Nieuwbouw_Wonen_OpBebouwd   := select_with_org_rel(Nieuwbouw_Woon_perceel/Nieuwbouw_src/IsNieuwbouw_OpBebouwd)
+	{
+		attribute<rdc>                   geometry (poly)                    := org_rel -> geometry;
+		attribute<rdc_mm>                geometry_mm (poly)                 := geometry[rdc_mm];
+		attribute<m2>                    area                               := area(geometry, m2);
+		
+		attribute<bool>                  GeenOverlapmet_SN_Woon             := !IsDefined(rlookup(id(.),intersect_met_SN_Woon/first_rel));
+		attribute<bool>                  GeenOverlapmet_SN_NietWoon         := !IsDefined(rlookup(id(.),intersect_met_SN_NietWoon/first_rel));
+		attribute<bool>                  GeenOverlapmet_SN_Mixed            := !IsDefined(rlookup(id(.),intersect_met_SN_Mixed/first_rel));
+		attribute<bool>                  GeenOverlapmet_SN                  := GeenOverlapmet_SN_Woon && GeenOverlapmet_SN_NietWoon && GeenOverlapmet_SN_Mixed;
+		
+		unit<uint32>                     intersect_met_SN_Woon              := overlay_polygon(geometry_mm, SN/Woon/Result/geometry[rdc_mm]), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_NietWoon          := overlay_polygon(geometry_mm, SN/NietWoon/Result/geometry[rdc_mm]), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_Mixed             := overlay_polygon(geometry_mm, SN/Mixed/Result/geometry[rdc_mm]), FreeData = "False";
+		attribute<Periods>               RelevantJaar                       := org_rel -> RelevantJaar;
+		attribute<rdc>                   centroid                           := centroid_or_mid(geometry);
+		attribute<uint16>                pand_hoogte                        := org_rel -> pand_hoogte;
+		attribute<m2>                    buildingfootprint                  := org_rel -> buildingfootprint;
+		attribute<jaar>                  bouwjaar                           := org_rel -> bouwjaar;
+		attribute<WP5>                   WP5_rel                            := org_rel -> WP5_rel;
+		attribute<m2>                    N_vbo_opp_woon                     := org_rel -> N_vbo_opp_woon;
+		attribute<m2>                    N_vbo_opp_niet_woon                := org_rel -> N_vbo_opp_niet_woon;
+		
+		attribute<m2>                    N_avg_vbo_opp_vrijstaand           := org_rel -> N_avg_vbo_opp_vrijstaand;
+		attribute<m2>                    N_avg_vbo_opp_twee_onder_1_kap     := org_rel -> N_avg_vbo_opp_twee_onder_1_kap;
+		attribute<m2>                    N_avg_vbo_opp_rijtjeswoning        := org_rel -> N_avg_vbo_opp_rijtjeswoning;
+		attribute<m2>                    N_avg_vbo_opp_appartement          := org_rel -> N_avg_vbo_opp_appartement;
+		
+		attribute<uint32>                N_count_vbo_pand_vrijstaand        := WP5_rel == WP5/v/vrijstaand ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_twee_onder_1_kap  := WP5_rel == WP5/v/twee_onder_1_kap ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_rijtjeswoning     := WP5_rel == WP5/v/rijtjeswoning ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_appartement       := WP5_rel == WP5/v/appartement ? N_count_vbo_woon : 0;
+				
+		attribute<uint32>                O_count_vbo_woon                   := org_rel -> O_count_vbo_woon;
+		attribute<uint32>                N_count_vbo_woon                   := org_rel -> N_count_vbo_woon;
+		attribute<uint32>                O_count_vbo_niet_woon              := org_rel -> O_count_vbo_niet_woon;
+		attribute<uint32>                N_count_vbo_niet_woon              := org_rel -> N_count_vbo_niet_woon;
+		
+		unit<uint32>  Netto   := select_with_org_rel(GeenOverlapmet_SN && area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc_mm>            geometry_mm (poly)                 := org_rel -> geometry_mm;
+			attribute<rdc>               geometry_rd (poly)                 := geometry_mm[rdc];
+			attribute<rdc>               geometry (poly)                    := geometry_rd;
+			attribute<rdc>               centroid                           := centroid_or_mid(geometry_rd);
+			
+			unit<uint32>                 Nieuwbouw                          := Nieuwbouw_Wonen_OpBebouwd;
+			attribute<.>                 Nieuwbouw_rel (Nieuwbouw)          := point_in_polygon(Nieuwbouw/centroid, geometry_rd);
+			
+			attribute<uint16>            max_pand_hoogte0                   := max(Nieuwbouw/pand_hoogte                   , Nieuwbouw_rel);
+			attribute<uint16>            max_pand_hoogte                    := max_pand_hoogte0 == 0w ? 0w/0w : max_pand_hoogte0;
+			
+			attribute<uint16>            Nr_Panden_boven100m                := sum(Nieuwbouw/pand_hoogte >= 10000w                                  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_60_100m                  := sum(Nieuwbouw/pand_hoogte >= 6000w && Nieuwbouw/pand_hoogte < 10000w ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_40_60m                   := sum(Nieuwbouw/pand_hoogte >= 4000w && Nieuwbouw/pand_hoogte < 6000w  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_25_40m                   := sum(Nieuwbouw/pand_hoogte >= 2500w && Nieuwbouw/pand_hoogte < 4000w  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_onder25m                 := sum(Nieuwbouw/pand_hoogte <  2500w                                   ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_hoogte_onbekend          := sum(!IsDefined(Nieuwbouw/pand_hoogte)                                ? 1w : 0w         , Nieuwbouw_rel);
+			
+			attribute<bool>              IsBeschermdStadsgezicht            := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/geometry));
+			attribute<jaar>              O_mod_bouwjaar                     := const((0/0)[jaar], .);
+			attribute<Jaar>              O_mod_sloopjaar                    := modus(rjoin(Nieuwbouw/RelevantJaar, id(Periods), Periods/year)           , Nieuwbouw_rel);
+			attribute<jaar>              N_mod_bouwjaar                     := modus(Nieuwbouw/bouwjaar               , Nieuwbouw_rel);
+			attribute<m2>                O_sum_buildingfootprint            := const(0[m2],.);
+			attribute<m2>                N_sum_buildingfootprint            := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+			attribute<m2>                O_vbo_opp_woon                     := const(0[m2],.);
+			attribute<m2>                O_vbo_opp_niet_woon                := const(0[m2],.);
+			attribute<m2>                N_vbo_opp_woon                     := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_niet_woon                := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+			attribute<RegioUnit_wijk>    Wijk_rel                           := point_in_polygon(centroid, RegioUnit_wijk/Geometry);
+			attribute<int32>             Wijk_P_woningcorporatie            := RegioUnit_wijk/p_wcorpw[Wijk_rel];
+			
+			attribute<m2>                N_vbo_opp_vrijstaand               := mean(Nieuwbouw/N_avg_vbo_opp_vrijstaand           , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_twee_onder_1_kap         := mean(Nieuwbouw/N_avg_vbo_opp_twee_onder_1_kap     , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_rijtjeswoning            := mean(Nieuwbouw/N_avg_vbo_opp_rijtjeswoning        , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_appartement              := mean(Nieuwbouw/N_avg_vbo_opp_appartement          , Nieuwbouw_rel);
+			
+			attribute<uint32>            N_count_niet_woonpand              := sum(Nieuwbouw/WP5_rel == WP5/v/geen_woonpand ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_appartement                := sum(Nieuwbouw/WP5_rel == WP5/v/appartement ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_rijtjeswoning              := sum(Nieuwbouw/WP5_rel == WP5/v/rijtjeswoning ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_twee_onder_1_kap           := sum(Nieuwbouw/WP5_rel == WP5/v/twee_onder_1_kap ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_vrijstaand                 := sum(Nieuwbouw/WP5_rel == WP5/v/vrijstaand ? 1 : 0, Nieuwbouw_rel);
+			
+			attribute<uint32>            N_count_vbo_pand_vrijstaand        := sum(Nieuwbouw/N_count_vbo_pand_vrijstaand       , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_twee_onder_1_kap  := sum(Nieuwbouw/N_count_vbo_pand_twee_onder_1_kap , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_rijtjeswoning     := sum(Nieuwbouw/N_count_vbo_pand_rijtjeswoning    , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_appartement       := sum(Nieuwbouw/N_count_vbo_pand_appartement      , Nieuwbouw_rel);
+			
+			attribute<uint32>            O_count_vbo_woon                   := sum(Nieuwbouw/O_count_vbo_woon , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_woon                   := sum(Nieuwbouw/N_count_vbo_woon , Nieuwbouw_rel);
+			attribute<uint32>            O_count_vbo_niet_woon              := sum(Nieuwbouw/O_count_vbo_niet_woon , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_niet_woon              := sum(Nieuwbouw/N_count_vbo_niet_woon , Nieuwbouw_rel);
+		}
+	}
+	
+	unit<uint32>  Nieuwbouw_Mixed_OpBebouwd   := select_with_org_rel(Nieuwbouw_Mixed_perceel/Nieuwbouw_src/IsNieuwbouw_OpBebouwd)
+	{
+		attribute<rdc>                   geometry (poly)                    := org_rel -> geometry;
+		attribute<rdc_mm>                geometry_mm (poly)                 := geometry[rdc_mm];
+		attribute<m2>                    area                               := area(geometry, m2);
+
+		attribute<bool>                  GeenOverlapmet_SN_Woon             := !IsDefined(rlookup(id(.),intersect_met_SN_Woon/first_rel));
+		attribute<bool>                  GeenOverlapmet_SN_NietWoon         := !IsDefined(rlookup(id(.),intersect_met_SN_NietWoon/first_rel));
+		attribute<bool>                  GeenOverlapmet_SN_Mixed            := !IsDefined(rlookup(id(.),intersect_met_SN_Mixed/first_rel));
+		attribute<bool>                  GeenOverlapmet_SN                  := GeenOverlapmet_SN_Woon && GeenOverlapmet_SN_NietWoon && GeenOverlapmet_SN_Mixed;
+		
+		unit<uint32>                     intersect_met_SN_Woon              := overlay_polygon(geometry_mm, SN/Woon/Result/geometry[rdc_mm]), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_NietWoon          := overlay_polygon(geometry_mm, SN/NietWoon/Result/geometry[rdc_mm]), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_Mixed             := overlay_polygon(geometry_mm, SN/Mixed/Result/geometry[rdc_mm]), FreeData = "False";
+		attribute<Periods>               RelevantJaar                       := org_rel -> RelevantJaar;
+		attribute<rdc>                   centroid                           := centroid_or_mid(geometry);
+		attribute<uint16>                pand_hoogte                        := org_rel -> pand_hoogte;
+		attribute<m2>                    buildingfootprint                  := org_rel -> buildingfootprint;
+		attribute<jaar>                  bouwjaar                           := org_rel -> bouwjaar;
+		attribute<WP5>                   WP5_rel                            := org_rel -> WP5_rel;
+		attribute<m2>                    N_vbo_opp_woon                     := org_rel -> N_vbo_opp_woon;
+		attribute<m2>                    N_vbo_opp_niet_woon                := org_rel -> N_vbo_opp_niet_woon;
+		
+		attribute<m2>                    N_avg_vbo_opp_vrijstaand           := org_rel -> N_avg_vbo_opp_vrijstaand;
+		attribute<m2>                    N_avg_vbo_opp_twee_onder_1_kap     := org_rel -> N_avg_vbo_opp_twee_onder_1_kap;
+		attribute<m2>                    N_avg_vbo_opp_rijtjeswoning        := org_rel -> N_avg_vbo_opp_rijtjeswoning;
+		attribute<m2>                    N_avg_vbo_opp_appartement          := org_rel -> N_avg_vbo_opp_appartement;
+		
+		attribute<uint32>                N_count_vbo_pand_vrijstaand        := WP5_rel == WP5/v/vrijstaand ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_twee_onder_1_kap  := WP5_rel == WP5/v/twee_onder_1_kap ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_rijtjeswoning     := WP5_rel == WP5/v/rijtjeswoning ? N_count_vbo_woon : 0;
+		attribute<uint32>                N_count_vbo_pand_appartement       := WP5_rel == WP5/v/appartement ? N_count_vbo_woon : 0;
+				
+		attribute<uint32>                O_count_vbo_woon                   := org_rel -> O_count_vbo_woon;
+		attribute<uint32>                N_count_vbo_woon                   := org_rel -> N_count_vbo_woon;
+		attribute<uint32>                O_count_vbo_niet_woon              := org_rel -> O_count_vbo_niet_woon;
+		attribute<uint32>                N_count_vbo_niet_woon              := org_rel -> N_count_vbo_niet_woon;
+		
+		
+		unit<uint32>  Netto   := select_with_org_rel(GeenOverlapmet_SN && area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc_mm>            geometry_mm (poly)                 := org_rel -> geometry_mm;
+			attribute<rdc>               geometry_rd (poly)                 := geometry_mm[rdc];
+			attribute<rdc>               geometry (poly)                    := geometry_rd;
+			attribute<rdc>               centroid                           := centroid_or_mid(geometry_rd);
+			
+			unit<uint32>                 Nieuwbouw                          := Nieuwbouw_Mixed_OpBebouwd;
+			attribute<.>                 Nieuwbouw_rel (Nieuwbouw)          := point_in_polygon(Nieuwbouw/centroid, geometry_rd);
+			
+			attribute<uint16>            max_pand_hoogte0                   := max(Nieuwbouw/pand_hoogte                   , Nieuwbouw_rel);
+			attribute<uint16>            max_pand_hoogte                    := max_pand_hoogte0 == 0w ? 0w/0w : max_pand_hoogte0;
+			
+			attribute<uint16>            Nr_Panden_boven100m                := sum(Nieuwbouw/pand_hoogte >= 10000w                                  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_60_100m                  := sum(Nieuwbouw/pand_hoogte >= 6000w && Nieuwbouw/pand_hoogte < 10000w ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_40_60m                   := sum(Nieuwbouw/pand_hoogte >= 4000w && Nieuwbouw/pand_hoogte < 6000w  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_25_40m                   := sum(Nieuwbouw/pand_hoogte >= 2500w && Nieuwbouw/pand_hoogte < 4000w  ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_onder25m                 := sum(Nieuwbouw/pand_hoogte <  2500w                                   ? 1w : 0w         , Nieuwbouw_rel);
+			attribute<uint16>            Nr_Panden_hoogte_onbekend          := sum(!IsDefined(Nieuwbouw/pand_hoogte)                                ? 1w : 0w         , Nieuwbouw_rel);
+			
+			attribute<bool>              IsBeschermdStadsgezicht            := IsDefined(point_in_polygon(centroid, Brondata/overig/StadsDorpsGezichten/geometry));
+			attribute<Jaar>              O_mod_sloopjaar                    := modus(rjoin(Nieuwbouw/RelevantJaar, id(Periods), Periods/year)           , Nieuwbouw_rel);
+			attribute<jaar>              O_mod_bouwjaar                     := const((0/0)[jaar], .);
+			attribute<jaar>              N_mod_bouwjaar                     := modus(Nieuwbouw/bouwjaar               , Nieuwbouw_rel);
+			attribute<m2>                O_sum_buildingfootprint            := const(0[m2],.);
+			attribute<m2>                N_sum_buildingfootprint            := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+			attribute<m2>                O_vbo_opp_woon                     := const(0[m2],.);
+			attribute<m2>                O_vbo_opp_niet_woon                := const(0[m2],.);
+			attribute<m2>                N_vbo_opp_woon                     := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_niet_woon                := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+			attribute<RegioUnit_wijk>    Wijk_rel                           := point_in_polygon(centroid_or_mid(geometry_rd), RegioUnit_wijk/Geometry);
+			attribute<int32>             Wijk_P_woningcorporatie            := RegioUnit_wijk/p_wcorpw[Wijk_rel];
+			
+			attribute<m2>                N_vbo_opp_vrijstaand               := mean(Nieuwbouw/N_avg_vbo_opp_vrijstaand           , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_twee_onder_1_kap         := mean(Nieuwbouw/N_avg_vbo_opp_twee_onder_1_kap     , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_rijtjeswoning            := mean(Nieuwbouw/N_avg_vbo_opp_rijtjeswoning        , Nieuwbouw_rel);
+			attribute<m2>                N_vbo_opp_appartement              := mean(Nieuwbouw/N_avg_vbo_opp_appartement          , Nieuwbouw_rel);
+			
+			attribute<uint32>            N_count_niet_woonpand              := sum(Nieuwbouw/WP5_rel == WP5/v/geen_woonpand ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_appartement                := sum(Nieuwbouw/WP5_rel == WP5/v/appartement ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_rijtjeswoning              := sum(Nieuwbouw/WP5_rel == WP5/v/rijtjeswoning ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_twee_onder_1_kap           := sum(Nieuwbouw/WP5_rel == WP5/v/twee_onder_1_kap ? 1 : 0, Nieuwbouw_rel);
+			attribute<uint32>            N_count_vrijstaand                 := sum(Nieuwbouw/WP5_rel == WP5/v/vrijstaand ? 1 : 0, Nieuwbouw_rel);
+			
+			attribute<uint32>            N_count_vbo_pand_vrijstaand        := sum(Nieuwbouw/N_count_vbo_pand_vrijstaand       , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_twee_onder_1_kap  := sum(Nieuwbouw/N_count_vbo_pand_twee_onder_1_kap , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_rijtjeswoning     := sum(Nieuwbouw/N_count_vbo_pand_rijtjeswoning    , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_pand_appartement       := sum(Nieuwbouw/N_count_vbo_pand_appartement      , Nieuwbouw_rel);
+			
+			attribute<uint32>            O_count_vbo_woon                   := sum(Nieuwbouw/O_count_vbo_woon , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_woon                   := sum(Nieuwbouw/N_count_vbo_woon , Nieuwbouw_rel);
+			attribute<uint32>            O_count_vbo_niet_woon              := sum(Nieuwbouw/O_count_vbo_niet_woon , Nieuwbouw_rel);
+			attribute<uint32>            N_count_vbo_niet_woon              := sum(Nieuwbouw/N_count_vbo_niet_woon , Nieuwbouw_rel);
+		}
+	}
+	
+	unit<uint32> TeClusterenTypes : nrofrows = 3
+	{
+		attribute<string> name : ['Toevoeging_Woon','Onttrekking_Woon','Transformatie_Woon'];
+	}
+
+	container Clustering :=
+		for_each_ne(
+			TeClusterenTypes/name
+			, 'Clustering_T('+quote(TeClusterenTypes/name)+')'
+		);
+	
+	Template Clustering_T
+	{
+		parameter<string> RedevType;
+		///
+		unit<uint32> domain := ='PrepDomains/'+RedevType;
+		
+		unit<uint32> Step1 := split_union_polygon(domain/geometry_mm)
+		{
+			attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry, parameters/small_inflate, 8b);
+		}
+		
+		unit<uint32> Step2 := split_union_polygon(Step1/inflate)
+		{
+			attribute<rdc_mm> deflate     (poly) := bg_buffer_polygon(geometry, -parameters/small_inflate, 8b); //, DisableStorage = "true";
+			attribute<rdc>    geometry_rd (poly) := deflate[rdc];
+			attribute<m2>     area               := area(geometry_rd, m2);
+		}
+		
+		unit<uint32> CleanUp := select_with_org_rel(Step2/area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc>               geometry (poly)                    := org_rel -> Step2/geometry_rd;
+			attribute<rdc>               geometry_rd (poly)                 := geometry;
+			attribute<m2>                area                               := area(geometry, m2);
+			attribute<rdc>               centroid                           := centroid_or_mid(geometry);
+			attribute<.>                 sub_group_rel (domain)             := point_in_polygon(domain/centroid, geometry_rd);
+			
+			attribute<uint16>            max_pand_hoogte0                   := max(domain/pand_hoogte                   , sub_group_rel);
+			attribute<uint16>            max_pand_hoogte                    := max_pand_hoogte0 == 0w ? 0w/0w : max_pand_hoogte0;
+			
+			attribute<uint16>            Nr_Panden_boven100m                := sum(domain/pand_hoogte >= 10000w                                  ? 1w : 0w         , sub_group_rel);
+			attribute<uint16>            Nr_Panden_60_100m                  := sum(domain/pand_hoogte >= 6000w && domain/pand_hoogte < 10000w ? 1w : 0w         , sub_group_rel);
+			attribute<uint16>            Nr_Panden_40_60m                   := sum(domain/pand_hoogte >= 4000w && domain/pand_hoogte < 6000w  ? 1w : 0w         , sub_group_rel);
+			attribute<uint16>            Nr_Panden_25_40m                   := sum(domain/pand_hoogte >= 2500w && domain/pand_hoogte < 4000w  ? 1w : 0w         , sub_group_rel);
+			attribute<uint16>            Nr_Panden_onder25m                 := sum(domain/pand_hoogte <  2500w                                   ? 1w : 0w         , sub_group_rel);
+			attribute<uint16>            Nr_Panden_hoogte_onbekend          := sum(!IsDefined(domain/pand_hoogte)                                ? 1w : 0w         , sub_group_rel);
+			
+			attribute<uint32>            N_count_niet_woonpand              := sum(domain/WP5_rel == WP5/v/geen_woonpand ? 1 : 0, sub_group_rel);
+			attribute<uint32>            N_count_appartement                := sum(domain/WP5_rel == WP5/v/appartement ? 1 : 0, sub_group_rel);
+			attribute<uint32>            N_count_rijtjeswoning              := sum(domain/WP5_rel == WP5/v/rijtjeswoning ? 1 : 0, sub_group_rel);
+			attribute<uint32>            N_count_twee_onder_1_kap           := sum(domain/WP5_rel == WP5/v/twee_onder_1_kap ? 1 : 0, sub_group_rel);
+			attribute<uint32>            N_count_vrijstaand                 := sum(domain/WP5_rel == WP5/v/vrijstaand ? 1 : 0, sub_group_rel);
+			
+			attribute<bool>              IsBeschermdStadsgezicht            := any(domain/IsBeschermdStadsgezicht           , sub_group_rel);
+			attribute<jaar>              O_mod_bouwjaar                     := modus(domain/O_mod_bouwjaar                        , sub_group_rel);
+			attribute<Jaar>              O_mod_sloopjaar                    := modus(domain/O_mod_sloopjaar                        , sub_group_rel);
+			attribute<m2>                O_sum_buildingfootprint            := sum(domain/buildingfootprint           , sub_group_rel);
+			attribute<m2>                N_sum_buildingfootprint            := sum(domain/buildingfootprint           , sub_group_rel);
+			attribute<m2>                O_vbo_opp_woon                     := sum(domain/O_vbo_opp_woon                    , sub_group_rel);
+			attribute<m2>                N_vbo_opp_woon                     := sum(domain/N_vbo_opp_woon                    , sub_group_rel);
+			attribute<m2>                O_vbo_opp_niet_woon                := sum(domain/O_vbo_opp_niet_woon               , sub_group_rel);
+			attribute<m2>                N_vbo_opp_niet_woon                := sum(domain/N_vbo_opp_niet_woon               , sub_group_rel);
+			attribute<RegioUnit_wijk>    Wijk_rel                           := point_in_polygon(centroid, RegioUnit_wijk/Geometry);
+			attribute<int32>             Wijk_P_woningcorporatie            := RegioUnit_wijk/p_wcorpw[Wijk_rel];
+			
+			attribute<m2>                N_vbo_opp_vrijstaand               := mean(domain/N_avg_vbo_opp_vrijstaand           , sub_group_rel);
+			attribute<m2>                N_vbo_opp_twee_onder_1_kap         := mean(domain/N_avg_vbo_opp_twee_onder_1_kap     , sub_group_rel);
+			attribute<m2>                N_vbo_opp_rijtjeswoning            := mean(domain/N_avg_vbo_opp_rijtjeswoning        , sub_group_rel);
+			attribute<m2>                N_vbo_opp_appartement              := mean(domain/N_avg_vbo_opp_appartement          , sub_group_rel);
+
+			attribute<uint32>            N_count_vbo_pand_vrijstaand        := sum(domain/N_count_vbo_pand_vrijstaand       , sub_group_rel);
+			attribute<uint32>            N_count_vbo_pand_twee_onder_1_kap  := sum(domain/N_count_vbo_pand_twee_onder_1_kap , sub_group_rel);
+			attribute<uint32>            N_count_vbo_pand_rijtjeswoning     := sum(domain/N_count_vbo_pand_rijtjeswoning    , sub_group_rel);
+			attribute<uint32>            N_count_vbo_pand_appartement       := sum(domain/N_count_vbo_pand_appartement      , sub_group_rel);
+
+			attribute<uint32>            O_count_vbo_woon                   := sum(domain/O_count_vbo_woon , sub_group_rel);
+			attribute<uint32>            N_count_vbo_woon                   := sum(domain/N_count_vbo_woon , sub_group_rel);
+			attribute<uint32>            O_count_vbo_niet_woon              := sum(domain/O_count_vbo_niet_woon , sub_group_rel);
+			attribute<uint32>            N_count_vbo_niet_woon              := sum(domain/N_count_vbo_niet_woon , sub_group_rel);
+		}
+	
+	}
+
+	Template AdditionalOperationsT_onveranderd
+	{
+		parameter<string> OnveranderdTypeName;
+		///
+		
+		parameter<string> Generate := 'Ready', ExplicitSuppliers = "Step2/geometry_rd";
+		
+		unit<uint32> Onveranderd_domain := = 'PrepDomains/Onveranderd_'+OnveranderdTypeName;
+		
+		unit<uint32> Step1 := split_union_polygon(Onveranderd_domain/geometry_mm)
+		{
+			attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry,  parameters/small_inflate, 8b);
+		}
+		
+		unit<uint32> Step2 := split_union_polygon(Step1/inflate)
+		, StorageName = "='%LocalDataProjDir%/Temp/Onveranderd_'+OnveranderdTypeName+'.fss'"
+		{
+			attribute<rdc_mm> deflate     (poly) := bg_buffer_polygon(geometry,  -parameters/small_inflate, 8b), DisableStorage = "true";
+			attribute<rdc>    geometry_rd (poly) := deflate[rdc];
+			attribute<rdc_mm> geometry    (poly) : DisableStorage = "true";
+		}
+		
+		unit<uint32> Read_Step2
+		: StorageName = "='%LocalDataProjDir%/Temp/Onveranderd_'+OnveranderdTypeName+'.fss'"
+		, StorageReadOnly = "true"
+		{
+			attribute<rdc>    geometry_rd (poly);
+			attribute<rdc>    geometry (poly) := geometry_rd;
+			attribute<m2>     area                := area(geometry_rd, m2);
+		}
+		
+		unit<uint32> CleanUp := select_with_org_rel(Read_Step2/area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc>               geometry (poly)                    := org_rel -> geometry_rd;
+			attribute<rdc>               geometry_rd (poly)                 := geometry;
+			attribute<m2>                area                               := area(geometry, m2);
+			
+			unit<uint32> domain := = 'PrepDomains/Onveranderd_'+OnveranderdTypeName;
+			
+			attribute<uint16>            max_pand_hoogte0                   := max(domain/pand_hoogte                   , Onveranderd_group_rel);
+			attribute<uint16>            max_pand_hoogte                    := max_pand_hoogte0 == 0w ? 0w/0w : max_pand_hoogte0;
+			
+			attribute<uint16>            Nr_Panden_boven100m                := sum(domain/pand_hoogte >= 10000w                                  ? 1w : 0w         , Onveranderd_group_rel);
+			attribute<uint16>            Nr_Panden_60_100m                  := sum(domain/pand_hoogte >= 6000w && domain/pand_hoogte < 10000w ? 1w : 0w         , Onveranderd_group_rel);
+			attribute<uint16>            Nr_Panden_40_60m                   := sum(domain/pand_hoogte >= 4000w && domain/pand_hoogte < 6000w  ? 1w : 0w         , Onveranderd_group_rel);
+			attribute<uint16>            Nr_Panden_25_40m                   := sum(domain/pand_hoogte >= 2500w && domain/pand_hoogte < 4000w  ? 1w : 0w         , Onveranderd_group_rel);
+			attribute<uint16>            Nr_Panden_onder25m                 := sum(domain/pand_hoogte <  2500w                                   ? 1w : 0w         , Onveranderd_group_rel);
+			attribute<uint16>            Nr_Panden_hoogte_onbekend          := sum(!IsDefined(domain/pand_hoogte)                                ? 1w : 0w         , Onveranderd_group_rel);
+			
+			attribute<.>                 Onveranderd_group_rel (domain)     := point_in_polygon(domain/centroid, geometry);
+			attribute<bool>              IsBeschermdStadsgezicht            := any(domain/IsBeschermdStadsgezicht           , Onveranderd_group_rel);
+			attribute<jaar>              O_mod_bouwjaar                     := modus(domain/bouwjaar                        , Onveranderd_group_rel);
+			attribute<Jaar>              O_mod_sloopjaar                    := modus(rjoin(domain/RelevantJaar, id(Periods), Periods/year)                    , Onveranderd_group_rel);
+			attribute<m2>                O_sum_buildingfootprint            := sum(domain/buildingfootprint                 , Onveranderd_group_rel);
+			attribute<m2>                N_sum_buildingfootprint            := O_sum_buildingfootprint;
+			attribute<m2>                O_vbo_opp_woon                     := sum(domain/O_vbo_opp_woon                    , Onveranderd_group_rel);
+			attribute<m2>                N_vbo_opp_woon                     := sum(domain/N_vbo_opp_woon                    , Onveranderd_group_rel);
+			attribute<m2>                O_vbo_opp_niet_woon                := sum(domain/O_vbo_opp_niet_woon               , Onveranderd_group_rel);
+			attribute<m2>                N_vbo_opp_niet_woon                := sum(domain/N_vbo_opp_niet_woon               , Onveranderd_group_rel);
+			attribute<RegioUnit_wijk>    Wijk_rel                           := point_in_polygon(centroid_or_mid(geometry), RegioUnit_wijk/Geometry);
+			attribute<int32>             Wijk_P_woningcorporatie            := RegioUnit_wijk/p_wcorpw[Wijk_rel];
+			
+			attribute<m2>                N_vbo_opp_vrijstaand               := mean(domain/N_avg_vbo_opp_vrijstaand           , Onveranderd_group_rel);
+			attribute<m2>                N_vbo_opp_twee_onder_1_kap         := mean(domain/N_avg_vbo_opp_twee_onder_1_kap     , Onveranderd_group_rel);
+			attribute<m2>                N_vbo_opp_rijtjeswoning            := mean(domain/N_avg_vbo_opp_rijtjeswoning        , Onveranderd_group_rel);
+			attribute<m2>                N_vbo_opp_appartement              := mean(domain/N_avg_vbo_opp_appartement          , Onveranderd_group_rel);
+			
+			attribute<uint32>            N_count_niet_woonpand              := sum(domain/WP5_rel == WP5/v/geen_woonpand ? 1 : 0, Onveranderd_group_rel);
+			attribute<uint32>            N_count_appartement                := N_count_vbo_pand_appartement > 0 ? sum(domain/WP5_rel == WP5/v/appartement ? 1 : 0, Onveranderd_group_rel) : 0;
+			attribute<uint32>            N_count_rijtjeswoning              := sum(domain/WP5_rel == WP5/v/rijtjeswoning ? 1 : 0, Onveranderd_group_rel);
+			attribute<uint32>            N_count_twee_onder_1_kap           := sum(domain/WP5_rel == WP5/v/twee_onder_1_kap ? 1 : 0, Onveranderd_group_rel);
+			attribute<uint32>            N_count_vrijstaand                 := sum(domain/WP5_rel == WP5/v/vrijstaand ? 1 : 0, Onveranderd_group_rel);
+					
+			attribute<uint32>            N_count_vbo_pand_vrijstaand        := sum(domain/N_count_vbo_pand_vrijstaand       , Onveranderd_group_rel);
+			attribute<uint32>            N_count_vbo_pand_twee_onder_1_kap  := sum(domain/N_count_vbo_pand_twee_onder_1_kap , Onveranderd_group_rel);
+			attribute<uint32>            N_count_vbo_pand_rijtjeswoning     := sum(domain/N_count_vbo_pand_rijtjeswoning    , Onveranderd_group_rel);
+			attribute<uint32>            N_count_vbo_pand_appartement       := sum(domain/N_count_vbo_pand_appartement      , Onveranderd_group_rel);
+
+			attribute<uint32>            O_count_vbo_woon                   := sum(domain/O_count_vbo_woon , Onveranderd_group_rel);
+			attribute<uint32>            N_count_vbo_woon                   := sum(domain/N_count_vbo_woon , Onveranderd_group_rel);
+			attribute<uint32>            O_count_vbo_niet_woon              := sum(domain/O_count_vbo_niet_woon , Onveranderd_group_rel);
+			attribute<uint32>            N_count_vbo_niet_woon              := sum(domain/N_count_vbo_niet_woon , Onveranderd_group_rel);
+		}
+		
+		unit<uint32> Result := CleanUp;
+	}
+	
+	Template AdditionalOperationsT_SN
+	{
+		parameter<string> Was;
+		///
+		parameter<string> Generate := 'Ready', ExplicitSuppliers = "NB_metSloop_TouchSloopPerc/Step3/geometry_rd;NB_metSloop_TouchSloopPerc/Step3/Modus_Sloopjaar";
+		
+		unit<uint32> Sloop_domain := ='PrepDomains/Sloop_'+Was
+		{ 
+			attribute<rdc_mm>            geometry_mm (poly)                 := geometry[rdc_mm];
+			attribute<rdc_mm>            centroid                           := centroid_or_mid(geometry_mm);
+			attribute<NB_metSloop_TouchSloopPerc/Step3> Aggregated_rel      := point_in_polygon(centroid, NB_metSloop_TouchSloopPerc/Step3/inflate);
+			
+			unit<uint32> Step1 := split_union_polygon(geometry_mm)
+			{
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende percelen en voeg die samen
+			}
+			
+			unit<uint32> Step2 := split_union_polygon(Step1/inflate)
+			{
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);
+			}
+		}
+		
+		unit<uint32> Nieuwbouw_domain  := ='PrepDomains/Nieuwbouw_Woon'
+		{ 
+			attribute<rdc_mm>            geometry_mm (poly)                 := geometry[rdc_mm];
+			
+			unit<uint32> Step1 := split_union_polygon(geometry_mm)
+			{
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende panden en voeg die samen
+			}
+			
+			unit<uint32> Step2 := split_union_polygon(Step1/inflate)
+			{
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  //deflate 
+			}
+		}
+		
+		unit<uint32> NieuwbouwPerceel_Tile := Nieuwbouw_Woon_perceel
+		{
+			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(geometry_mm,  parameters/supersmall_inflate, 8b);   
+		
+			unit<uint32> Step1 := split_union_polygon(inflate)
+			{
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  
+			}
+			
+			unit<uint32> Step2 := split_union_polygon(Step1/deflate)
+			{
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b);   
+			}
+		}
+		
+		unit<uint32> SloopPerceel_Tile := ='Sloop_'+Was+'_perceel'
+		{
+			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(geometry_mm,  parameters/supersmall_inflate, 8b);   
+			
+			unit<uint32> Step1 := split_union_polygon(inflate)
+			{
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  
+			}
+			
+			unit<uint32> Step2 := split_union_polygon(Step1/deflate)
+			{
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b);   
+			}
+		}
+		
+		unit<uint32> intersect  := ='overlay_polygon(Sloop_domain/Step2/deflate, NieuwbouwPerceel_Tile/Step2/inflate)' //intersect perceel met nieuwbouw met gesloopte panden
+		{
+			unit<uint32> nieuwbouw_perceel_metSloop := select_with_org_rel(IsDefined(second_rel)) //nieuwbouw perceel dat een gesloopt pand bevat
+			{
+				attribute<uint32>        second_rel                         := org_rel -> second_rel;
+				attribute<rdc_mm>        geometry_mm (poly)                 := NieuwbouwPerceel_Tile/Step2/inflate[second_rel];
+				
+				unit<uint32> overlay_metSloopPercelen  := ='overlay_polygon(SloopPerceel_Tile/Step2/inflate, geometry_mm)'; //intersect nieuwbouw_perceel_metSloop met gesloopte panden
+			}
+			
+			unit<uint32> TouchingSloopPercelen := select_with_org_rel(IsDefined(nieuwbouw_perceel_metSloop/overlay_metSloopPercelen/first_rel))
+			{
+				attribute<uint32>        first_rel                          := org_rel -> first_rel;
+				attribute<rdc_mm>        geometry_mm (poly)                 := SloopPerceel_Tile/Step2/inflate[first_rel];
+			}
+		}
+		
+		unit<uint32> NB_metSloop_TouchSloopPerc := union_unit(intersect/nieuwbouw_perceel_metSloop, intersect/TouchingSloopPercelen)
+		{
+			attribute<rdc_mm>            geometry_mm (poly)                 := union_data(., intersect/nieuwbouw_perceel_metSloop/geometry_mm, intersect/TouchingSloopPercelen/geometry_mm);
+			
+			unit<uint32> Step1 := split_union_polygon(geometry_mm)
+			{
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/small_inflate, 8b);
+			}
+			
+			unit<uint32> Step2 := split_union_polygon(Step1/deflate)
+			{
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b);
+			}
+			
+			unit<uint32> Step3 := split_union_polygon(Step2/inflate)
+			, StorageName = "='%LocalDataProjDir%/Temp/SN_'+Was+'_Woon.fss'"
+			{
+				attribute<rdc_mm>        geometry (poly)                    : DisableStorage = "true";
+				attribute<rdc>           geometry_rd (poly)                 := geometry[rdc];
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b), DisableStorage = "true";
+				attribute<Periods>       Modus_Sloopjaar                    := modus(Sloop_domain/RelevantJaar, Sloop_domain/Aggregated_rel);
+			}
+			
+			unit<uint32> Read_Step3 
+			: StorageName = "='%LocalDataProjDir%/Temp/SN_'+Was+'_Woon.fss'"
+			, StorageReadOnly = "true"
+			{
+				attribute<rdc>           geometry_rd (poly);
+				attribute<Periods>       Modus_Sloopjaar;
+				attribute<m2>            area                               := area(geometry_rd, m2);
+			}
+			
+			unit<uint32> CleanUp := select_with_org_rel(Read_Step3/area >= Parameters/minimum_site_area)
+			{
+				attribute<upoint>        fdom_id                            := point(const(0,.), id(.));
+				attribute<rdc>           geometry  (poly)                   := org_rel -> geometry_rd;
+				attribute<rdc>           geometry_rd (poly)                 := geometry;
+				attribute<rdc_mm>        geometry_mm (poly)                 := geometry[rdc_mm];
+				attribute<Periods>       Modus_Sloopjaar                    := org_rel -> Modus_Sloopjaar;
+
+				attribute<ha>            area                               := area(geometry, ha);
+				attribute<jaar>          O_mod_sloopjaar                    := rjoin(Modus_Sloopjaar, id(Periods), Periods/year);
+				
+				unit<uint32>             Sloop                              := ='PrepDomains/Sloop_'+Was;
+				unit<uint32>             Nieuwbouw                          := ='PrepDomains/Nieuwbouw_Woon';
+				
+				attribute<.>             Sloop_rel     (Sloop)              := point_in_polygon(Sloop/centroid, geometry);
+				attribute<.>             Nieuwbouw_rel (Nieuwbouw)          := point_in_polygon(Nieuwbouw/centroid, geometry);
+				
+				attribute<uint16>        max_pand_hoogte0                   := max(Nieuwbouw/pand_hoogte                   , Nieuwbouw_rel);
+				attribute<uint16>        max_pand_hoogte                    := max_pand_hoogte0 == 0w ? 0w/0w : max_pand_hoogte0;
+				
+				attribute<uint16>        Nr_Panden_boven100m                := sum(Nieuwbouw/pand_hoogte >= 10000w                                  ? 1w : 0w         , Nieuwbouw_rel);
+				attribute<uint16>        Nr_Panden_60_100m                  := sum(Nieuwbouw/pand_hoogte >= 6000w && Nieuwbouw/pand_hoogte < 10000w ? 1w : 0w         , Nieuwbouw_rel);
+				attribute<uint16>        Nr_Panden_40_60m                   := sum(Nieuwbouw/pand_hoogte >= 4000w && Nieuwbouw/pand_hoogte < 6000w  ? 1w : 0w         , Nieuwbouw_rel);
+				attribute<uint16>        Nr_Panden_25_40m                   := sum(Nieuwbouw/pand_hoogte >= 2500w && Nieuwbouw/pand_hoogte < 4000w  ? 1w : 0w         , Nieuwbouw_rel);
+				attribute<uint16>        Nr_Panden_onder25m                 := sum(Nieuwbouw/pand_hoogte <  2500w                                   ? 1w : 0w         , Nieuwbouw_rel);
+				attribute<uint16>        Nr_Panden_hoogte_onbekend          := sum(!IsDefined(Nieuwbouw/pand_hoogte)                                ? 1w : 0w         , Nieuwbouw_rel);
+				
+				attribute<bool>          IsBeschermdStadsgezicht            := any(Sloop/IsBeschermdStadsgezicht             , Sloop_rel);
+				attribute<jaar>          O_mod_bouwjaar                     := modus(Sloop/bouwjaar                          , Sloop_rel);
+				attribute<jaar>          N_mod_bouwjaar                     := modus(Nieuwbouw/bouwjaar                      , Nieuwbouw_rel);
+				attribute<m2>            O_sum_buildingfootprint            := sum(Sloop/buildingfootprint                   , Sloop_rel);
+				attribute<m2>            N_sum_buildingfootprint            := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
+				attribute<m2>            O_vbo_opp_woon                     := sum(Sloop/O_vbo_opp_woon                      , Sloop_rel);
+				attribute<m2>            N_vbo_opp_woon                     := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
+				attribute<m2>            O_vbo_opp_niet_woon                := sum(Sloop/O_vbo_opp_niet_woon                 , Sloop_rel);
+				attribute<m2>            N_vbo_opp_niet_woon                := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
+				attribute<RegioUnit_wijk>Wijk_rel                           := point_in_polygon(centroid_or_mid(geometry) , RegioUnit_wijk/Geometry);
+				attribute<int32>         Wijk_P_woningcorporatie            := RegioUnit_wijk/p_wcorpw[Wijk_rel];
+
+				attribute<m2>            N_vbo_opp_vrijstaand               := mean(Nieuwbouw/N_avg_vbo_opp_vrijstaand           , Nieuwbouw_rel);
+				attribute<m2>            N_vbo_opp_twee_onder_1_kap         := mean(Nieuwbouw/N_avg_vbo_opp_twee_onder_1_kap     , Nieuwbouw_rel);
+				attribute<m2>            N_vbo_opp_rijtjeswoning            := mean(Nieuwbouw/N_avg_vbo_opp_rijtjeswoning        , Nieuwbouw_rel);
+				attribute<m2>            N_vbo_opp_appartement              := mean(Nieuwbouw/N_avg_vbo_opp_appartement          , Nieuwbouw_rel);
+
+				attribute<uint32>        O_count_vbo_woon                   := sum(Sloop/O_count_vbo_woon, Sloop_rel);
+				attribute<uint32>        N_count_vbo_woon                   := sum(Nieuwbouw/N_count_vbo_woon, Nieuwbouw_rel);
+				attribute<uint32>        O_count_vbo_niet_woon              := sum(Sloop/O_count_vbo_niet_woon, Sloop_rel);
+				attribute<uint32>        N_count_vbo_niet_woon              := sum(Nieuwbouw/N_count_vbo_niet_woon, Nieuwbouw_rel);
+				
+				attribute<uint32>        N_count_niet_woonpand              := sum(Nieuwbouw/WP5_rel == WP5/v/geen_woonpand ? 1 : 0, Nieuwbouw_rel);
+				
+				attribute<uint32>        N_count_appartement                := sum(Nieuwbouw/WP5_rel == WP5/v/appartement ? 1 : 0, Nieuwbouw_rel);
+				attribute<uint32>        N_count_rijtjeswoning              := sum(Nieuwbouw/WP5_rel == WP5/v/rijtjeswoning ? 1 : 0, Nieuwbouw_rel);
+				attribute<uint32>        N_count_twee_onder_1_kap           := sum(Nieuwbouw/WP5_rel == WP5/v/twee_onder_1_kap ? 1 : 0, Nieuwbouw_rel);
+				attribute<uint32>        N_count_vrijstaand                 := sum(Nieuwbouw/WP5_rel == WP5/v/vrijstaand ? 1 : 0, Nieuwbouw_rel);
+
+				attribute<uint32>        N_count_vbo_pand_vrijstaand        := sum(Nieuwbouw/N_count_vbo_pand_vrijstaand, Nieuwbouw_rel);
+				attribute<uint32>        N_count_vbo_pand_twee_onder_1_kap  := sum(Nieuwbouw/N_count_vbo_pand_twee_onder_1_kap, Nieuwbouw_rel);
+				attribute<uint32>        N_count_vbo_pand_rijtjeswoning     := sum(Nieuwbouw/N_count_vbo_pand_rijtjeswoning, Nieuwbouw_rel);
+				attribute<uint32>        N_count_vbo_pand_appartement       := sum(Nieuwbouw/N_count_vbo_pand_appartement, Nieuwbouw_rel);
+			}
+		}
+		
+		unit<uint32> Result := NB_metSloop_TouchSloopPerc/CleanUp;
+	}
+}

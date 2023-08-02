@@ -1,0 +1,24 @@
+container Groen_bij_NVM 
+{  
+	// unit<uint32> NVM := Brondata/NVM/points;
+	
+	// attribute<geometries/rdc>        geometry           (NVM)                := Brondata/NVM/points/geometry;
+	// attribute<NL_grid/domain_10m>    per_grid_10m       (NVM)                := geometry[NL_grid/domain_10m];
+	// attribute<bool>                  GroenNabij_1996    (NVM)                := bbg1996_groen_buff[per_grid_10m];
+	// attribute<bool>                  GroenNabij_2000    (NVM)                := bbg2000_groen_buff[per_grid_10m];
+	// attribute<bool>                  GroenNabij_2003    (NVM)                := bbg2003_groen_buff[per_grid_10m];
+	// attribute<bool>                  GroenNabij_2006    (NVM)                := bbg2006_groen_buff[per_grid_10m];
+	// attribute<bool>                  GroenNabij_2008    (NVM)                := bbg2008_groen_buff[per_grid_10m];
+	// attribute<bool>                  GroenNabij_2010    (NVM)                := bbg2010_groen_buff[per_grid_10m];
+	// attribute<bool>                  GroenNabij_2012    (NVM)                := bbg2012_groen_buff[per_grid_10m];
+	// attribute<bool>                  GroenNabij_2015    (NVM)                := bbg2015_groen_buff[per_grid_10m];
+	
+	attribute<bool>                  bbg1996_groen_buff (NL_grid/domain_10m) := potential((typeringen/gg_src/IsGroen[Brondata/bestand_bodem_gebruik/Tijdreeks_behoudrandvoorwaarden/bbg1996_10m])[float32], geometries/potentialen/pot100m/potrange/binair) == 0f ? FALSE : TRUE;
+	attribute<bool>                  bbg2000_groen_buff (NL_grid/domain_10m) := potential((typeringen/gg_src/IsGroen[Brondata/bestand_bodem_gebruik/Tijdreeks_behoudrandvoorwaarden/bbg2000_10m])[float32], geometries/potentialen/pot100m/potrange/binair) == 0f ? FALSE : TRUE;
+	attribute<bool>                  bbg2003_groen_buff (NL_grid/domain_10m) := potential((typeringen/gg_src/IsGroen[Brondata/bestand_bodem_gebruik/Tijdreeks_behoudrandvoorwaarden/bbg2003_10m])[float32], geometries/potentialen/pot100m/potrange/binair) == 0f ? FALSE : TRUE;
+	attribute<bool>                  bbg2006_groen_buff (NL_grid/domain_10m) := potential((typeringen/gg_src/IsGroen[Brondata/bestand_bodem_gebruik/Tijdreeks_behoudrandvoorwaarden/bbg2006_10m])[float32], geometries/potentialen/pot100m/potrange/binair) == 0f ? FALSE : TRUE;
+	attribute<bool>                  bbg2008_groen_buff (NL_grid/domain_10m) := potential((typeringen/gg_src/IsGroen[Brondata/bestand_bodem_gebruik/Tijdreeks_behoudrandvoorwaarden/bbg2008_10m])[float32], geometries/potentialen/pot100m/potrange/binair) == 0f ? FALSE : TRUE;
+	attribute<bool>                  bbg2010_groen_buff (NL_grid/domain_10m) := potential((typeringen/gg_src/IsGroen[Brondata/bestand_bodem_gebruik/Tijdreeks_behoudrandvoorwaarden/bbg2010_10m])[float32], geometries/potentialen/pot100m/potrange/binair) == 0f ? FALSE : TRUE;
+	attribute<bool>                  bbg2012_groen_buff (NL_grid/domain_10m) := potential((typeringen/gg_src/IsGroen[Brondata/bestand_bodem_gebruik/Tijdreeks_behoudrandvoorwaarden/bbg2012_10m])[float32], geometries/potentialen/pot100m/potrange/binair) == 0f ? FALSE : TRUE;
+	attribute<bool>                  bbg2015_groen_buff (NL_grid/domain_10m) := potential((typeringen/gg_src/IsGroen[Brondata/bestand_bodem_gebruik/Tijdreeks_behoudrandvoorwaarden/bbg2015_10m])[float32], geometries/potentialen/pot100m/potrange/binair) == 0f ? FALSE : TRUE;
+}

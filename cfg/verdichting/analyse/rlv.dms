@@ -1,0 +1,6 @@
+container RLV
+{	
+	attribute<uint32>   count_pand_buurt 		(brondata/regios/buurten/src_2012)   := count(brondata/bag/snapshots/panden/p2012/pand_2012_vbo/pand_centroid, brondata/bag/snapshots/panden/p2012/pand_2012_vbo/pand_buurt_rel);
+	attribute<float32>   sum_vbo_in_pand_div_opp 	(brondata/regios/buurten/src_2012)   := sum(brondata/bag/snapshots/panden/p2012/pand_2012_vbo/vbo_in_pand_div_opp, brondata/bag/snapshots/panden/p2012/pand_2012_vbo/pand_buurt_rel);
+	attribute<float32>   avg_RLV				(brondata/regios/buurten/src_2012)   := sum_vbo_in_pand_div_opp / count_pand_buurt[float32] * brondata/regios/buurten/src_2012/woz[float32];
+}

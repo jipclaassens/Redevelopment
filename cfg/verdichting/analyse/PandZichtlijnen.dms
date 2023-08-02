@@ -1,0 +1,170 @@
+container PandZichtlijnen : using = "eenheden;typeringen;typeringen/bag;typeringen/redev;typeringen/tijd;geometries"
+{  
+	unit<uint32>      RegioUnit_Gem       := Brondata/RegioIndelingen/gemeenten/j2021;
+	unit<uint32>      RegioUnit_Aggl      := Brondata/RegioIndelingen/gemeenten/j2021/Agglomeration_uq;
+	unit<uint8>       WP2                 := typeringen/bag/type_woonpand_2;
+	unit<uint8>       WP4                 := typeringen/bag/type_woonpand_4;
+	unit<uint8>       WP5                 := typeringen/bag/type_woonpand;
+	
+	unit<uint32>      BAG_panden          := /Brondata/BAG/Snapshots/Panden/Y202201/pand/Voorraad;
+	
+	unit<uint32> panden := BAG_panden
+	, FreeData = "false" 
+	{ 
+		attribute<rdc>       geometry (poly)                            := BAG_panden/geometry;
+		attribute<rdc>       centroid                                   := centroid_or_mid(geometry);
+		attribute<bool>      IsAmsterdam                                := IsDefined(point_in_polygon(centroid, Brondata/RegioIndelingen/Gemeenten/j2021/Amsterdam/Geometry));
+		
+		attribute<rdc>       ConnectingRoad_point                       := connect_info/CutPOint;
+		attribute<rdc>       ConnectingRoad_line (arc)                  := points2sequence(MakeRoadBuildingLines/points, MakeRoadBuildingLines/sequnece, MakeRoadBuildingLines/ordinal);
+		attribute<m>         ConnectingRoad_dist                        := connect_info/dist[m];
+		attribute<bool>      IsRijksMonument                            := IsDefined(invert(point_in_polygon(/Brondata/Overig/Rijksmonumenten/Geometry, geometry)));
+		// attribute<bool>      PandZichtbaarVanafWeg                      := Zichtlijnen/PandZichtbaarVanafWeg[invert(Zichtlijnen/nr_OrgEntity)];
+		
+		unit<uint32> MakeRoadBuildingLines := union_unit(., .)
+		{
+			attribute<rdc>    points   := union_data(., centroid, ConnectingRoad_point);
+			attribute<uint32> sequnece := union_data(., id(..), id(..));
+			attribute<uint32> ordinal  := union_data(., const(0,..), const(1,..));
+		}
+		
+		container connect_info := connect_info(wegen/geometry, centroid); //is in panden domein.
+		
+		unit<uint32> sub := subset(IsAmsterdam)
+		, FreeData = "false"
+		{
+			attribute<rdc>       geometry (poly)                            := ../geometry[nr_OrgEntity];
+			attribute<rdc>       centroid                                   := ../centroid[nr_OrgEntity];
+			
+			attribute<rdc>       ConnectingRoad_point                       := connect_info/CutPOint;
+			attribute<rdc>       ConnectingRoad_line (arc)                  := points2sequence(MakeRoadBuildingLines/points, MakeRoadBuildingLines/sequnece, MakeRoadBuildingLines/ordinal);
+			attribute<m>         ConnectingRoad_dist                        := connect_info/dist[m];
+			
+			unit<uint32> MakeRoadBuildingLines := union_unit(., .)
+			{
+				attribute<rdc>    points   := union_data(., centroid, ConnectingRoad_point);
+				attribute<uint32> sequnece := union_data(., id(..), id(..));
+				attribute<uint32> ordinal  := union_data(., const(0,..), const(1,..));
+			}
+			
+			container connect_info := connect_info(wegen/geometry, centroid); //is in panden domein.
+		}
+	}
+	
+	unit<uint32> wegen := subset(Brondata/OSM/Network_Car/IsHoofdweg)
+	, FreeData = "false"
+	{
+		attribute<rdc>       geometry (arc)                            := Brondata/OSM/Network_Car/geometry[nr_OrgEntity];
+	}
+	
+	
+	unit<uint32> Zichtlijnen := subset(panden/ConnectingRoad_dist <= 40[m])
+	, FreeData = "false"
+	{
+		attribute<rdc>    geometry (arc)            := panden/ConnectingRoad_line[nr_OrgEntity];
+		attribute<rdc>    point_building            := panden/centroid[nr_OrgEntity];
+		attribute<rdc>    point_road                := panden/ConnectingRoad_point[nr_OrgEntity];
+		
+		// attribute<m>      Pand_hoogte               := max(DynaWithStartEnd/IsRelevantPand ? DynaWithStartEnd/Hoogte_m : (0/0)[m], DynaWithStartEnd/Zichtlijn_rel);
+		// attribute<m>      Road_hoogte               := max(DynaWithStartEnd/IsRoad ? DynaWithStartEnd/Hoogte_m : (0/0)[m], DynaWithStartEnd/Zichtlijn_rel);
+		// attribute<m>      MaxTussen_hoogte          := max(DynaWithStartEnd/IsTussen ? DynaWithStartEnd/Hoogte_m : (0/0)[m],DynaWithStartEnd/Zichtlijn_rel);
+		// attribute<bool>   PandZichtbaarVanafWeg     := MaxTussen_hoogte < Pand_hoogte;
+		
+		attribute<uint32> MaxDynaOrdinal            := max(DynaPoints/Ordinal, DynaPoints/SequenceNr);
+		attribute<panden> pand_rel_relevant    := nr_OrgEntity;
+		
+		unit<uint32> DynaPoints_new := dyna_point_with_ends(point_building, point_road, 5f)
+		{
+			attribute<rdc>         line (arc, Zichtlijnen) := points2sequence(point, SequenceNr , Ordinal);
+		}
+		
+		unit<uint32> DynaPoints := dyna_point(point_building, point_road, 5f)
+		, DialogData = "point", DialogType = "map", FreeData = "true"
+		{
+		}
+		
+		unit<uint32> DynaWithStartEnd := union_unit(Zichtlijnen, DynaPoints, Zichtlijnen)
+		{
+			attribute<rdc>         geometry          := union_data(., Zichtlijnen/point_building, DynaPoints/point, Zichtlijnen/point_road);
+			attribute<bool>        IsPand            := union_data(., const(TRUE,Zichtlijnen), const(FALSE,DynaPoints), const(FALSE,Zichtlijnen));
+			attribute<bool>        IsTussen          := Ordinal > RelevantPandOrdinal && !IsRoad;
+			attribute<bool>        IsRoad            := union_data(., const(FALSE,Zichtlijnen), const(FALSE,DynaPoints), const(TRUE,Zichtlijnen));
+			attribute<uint32>      Ordinal           := union_data(., const(0,Zichtlijnen), DynaPoints/Ordinal + 1, Zichtlijnen/MaxDynaOrdinal + 2);
+			
+			attribute<panden>      pand_rel_relevant     := Zichtlijnen/pand_rel_relevant[Zichtlijn_rel];
+			attribute<Zichtlijnen> Zichtlijn_rel         := union_data(., id(Zichtlijnen), DynaPoints/SequenceNr, id(Zichtlijnen));
+			attribute<upoint>      zichtlijn_ordinal_rel := point(zichtlijn_rel, ordinal, upoint);
+			attribute<panden>      pand_rel              := point_in_polygon(geometry, panden/geometry);
+			attribute<upoint>      zichtlijn_relevant_ordinal_rel := InPand/InRelevantPand/zichtlijn_ordinal_rel[Zichtlijn_rel];
+			
+			attribute<bool>        LigtInPand            := IsDefined(pand_rel);
+			attribute<bool>        IsRelevantPand        := zichtlijn_relevant_ordinal_rel == zichtlijn_ordinal_rel;
+			attribute<uint32>      RelevantPandOrdinal   := InPand/InRelevantPand/MaxOrdinalZichtlijn[Zichtlijn_rel];
+			
+			// attribute<cm>          Hoogte0               := rjoin(geometry, Brondata/AHN/MergeBladen/Geometry, Brondata/AHN/MergeBladen/hoogte_cm);
+			// attribute<cm>          Hoogte                := !ISDefined(Hoogte0) ? Hoogte0[Ordinal + 1] : Hoogte0;
+			// attribute<m>           Hoogte_m              := convert(Hoogte, m);
+			
+			attribute<rdc>         line (arc, Zichtlijnen) := points2sequence(geometry, Zichtlijn_rel, Ordinal);
+		
+			unit<uint32>           InPand          := subset(LigtInPand)
+			{
+				attribute<rdc>         geometry           := ../geometry[nr_OrgEntity];
+				attribute<uint32>      Ordinal            := ../Ordinal[nr_OrgEntity];
+				attribute<Zichtlijnen> Zichtlijn_rel      := ../Zichtlijn_rel[nr_OrgEntity];
+				attribute<panden>      pand_rel           := ../pand_rel[nr_OrgEntity];
+				attribute<panden>      pand_rel_relevant  := ../pand_rel_relevant[nr_OrgEntity];
+				attribute<bool>        LigtInRelevantPand := pand_rel == pand_rel_relevant;
+				
+				
+				unit<uint32>           InRelevantPand          := subset(LigtInRelevantPand)
+				{
+					attribute<rdc>         geometry           := ../geometry[nr_OrgEntity];
+					attribute<uint32>      Ordinal            := ../Ordinal[nr_OrgEntity];
+					attribute<Zichtlijnen> Zichtlijn_rel      := ../Zichtlijn_rel[nr_OrgEntity];
+					
+					attribute<uint32>      MaxOrdinalZichtlijn   (Zichtlijnen) := max(Ordinal, zichtlijn_rel);
+					attribute<upoint>      zichtlijn_ordinal_rel (Zichtlijnen) := point(id(Zichtlijnen), MaxOrdinalZichtlijn);
+				}
+			}
+		}
+	}
+	
+	   
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	// unit<uint32> NVM_path        := /Brondata/NVM_CommercieelVastgoed/ReadFSS;
+	
+	// unit<uint32> NVM             := NVM_path
+	// {
+		// attribute<rdc>         geometry           := NVM_path/geometry;
+		// attribute<float32>     x                  := pointcol(geometry);
+		// attribute<float32>     y                  := pointrow(geometry);
+		// attribute<jaar>        TransactionYear    := NVM_path/year_value;
+		// attribute<uint32>      SloopJaar          := rjoin(pand_id, Pand_Sloop/identificatie, Pand_Sloop/SloopJaar);
+		// attribute<uint32>      VergunningJaar     := rjoin(pand_id, Pand_Vergunning/identificatie, Pand_Vergunning/VergunnningJaar);
+		
+		// attribute<int32>       CheckSloop              := SloopJaar[int32] - TransactionYear[int32];
+		// attribute<int32>       CheckVergunning         := VergunningJaar[int32] - TransactionYear[int32];
+		
+		// attribute<uint32>      geocode_id         := NVM_path/geocode_id;
+	// }
+}

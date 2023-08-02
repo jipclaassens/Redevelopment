@@ -1,0 +1,54 @@
+container Bouwjaar: using = "eenheden"
+{
+	unit<uint32>				RegioUnit_buurt     	:= brondata/regios/buurten/src_2012;
+	unit<uint32>				RegioUnit_wijk    		:= brondata/regios/wijken/src_2012;
+	unit<uint32>				RegioUnit_gem    		:= BronData/regios/gemeenten/gem_2012/gem_uq;
+	unit<uint32>				RegioUnit_nvm    		:= BronData/regios/nvm/src;
+	unit<uint32>				RegioUnit_prov   		:= BronData/regios/provincies/src_2012;
+	unit<uint32>				RegioUnit_pc4   		:= BronData/regios/Postcode_gebieden/Postcode4;
+	unit<uint32>				RegioUnit_nl   			:= BronData/regios/nederland/src;
+
+	unit<uint32>       bouwjaar_2012_sub   := subset(uint32(Brondata/BAG/snapshots/vbos/Y201201/src/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar) < uint32(2018) && uint32(Brondata/BAG/snapshots/vbos/Y201201/src/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar) > uint32(1001))
+		,	DialogType = "Map"
+		,	DialogData = "geometry_mm"
+		{
+			attribute<geometries/rdc_mm>                           geometry_mm         := Brondata/BAG/snapshots/vbos/Y201201/src/GebruiksdoelSets/woon/GebruiksdoelSet/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>                              geometry            := geometry_mm[geometries/rdc];
+			attribute<NL_grid/domain>                              NL_grid_domain_rel  := geometry[NL_grid/domain];
+			attribute<RegioUnit_gem>                               gem_rel             := point_in_polygon(geometry, RegioUnit_gem/geometry);
+			attribute<RegioUnit_buurt>                             buurt_rel           := point_in_polygon(geometry, RegioUnit_buurt/geometry);
+
+			attribute<jaar>                                        bouwjaar            := Brondata/BAG/snapshots/vbos/Y201201/src/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar[nr_OrgEntity];
+			attribute<jaar>                                        bouwjaar_edit       := bouwjaar < int16(1600) ? int16(1600) : bouwjaar;
+		}
+	
+	unit<uint32>       bouwjaar_2017_sub   := subset(uint32(Brondata/BAG/snapshots/vbos/y201701/src/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar) < uint32(2018) && uint32(Brondata/BAG/snapshots/vbos/y201701/src/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar) > uint32(1001))
+		,	DialogType = "Map"
+		,	DialogData = "geometry_mm"
+		{
+			attribute<geometries/rdc_mm>                           geometry_mm         := Brondata/BAG/snapshots/vbos/y201701/src/GebruiksdoelSets/woon/GebruiksdoelSet/geometry_mm[nr_OrgEntity];
+			attribute<geometries/rdc>                              geometry            := geometry_mm[geometries/rdc];
+			attribute<NL_grid/domain>                              NL_grid_domain_rel  := geometry[NL_grid/domain];
+			attribute<RegioUnit_gem>                               gem_rel             := point_in_polygon(geometry, RegioUnit_gem/geometry);
+			attribute<RegioUnit_buurt>                             buurt_rel           := point_in_polygon(geometry, RegioUnit_buurt/geometry);
+
+			attribute<jaar>                                        bouwjaar            := Brondata/BAG/snapshots/vbos/y201701/src/GebruiksdoelSets/woon/GebruiksdoelSet/bouwjaar[nr_OrgEntity];
+			attribute<jaar>                                        bouwjaar_edit       := bouwjaar < int16(1600) ? int16(1600) : bouwjaar;
+		}
+		
+	attribute<string>            gem_label          (RegioUnit_gem)              := RegioUnit_gem/label;
+	attribute<jaar>              avg_bj_2012_gem    (RegioUnit_gem)              := mean(bouwjaar_2012_sub/bouwjaar_edit, bouwjaar_2012_sub/gem_rel);
+	attribute<jaar>              avg_bj_2012_buurt  (RegioUnit_buurt)            := mean(bouwjaar_2012_sub/bouwjaar_edit, bouwjaar_2012_sub/buurt_rel);
+	
+	attribute<jaar>              avg_bj_2017_gem    (RegioUnit_gem)              := mean(bouwjaar_2017_sub/bouwjaar_edit, bouwjaar_2017_sub/gem_rel);
+	attribute<jaar>              avg_bj_2017_buurt  (RegioUnit_buurt)            := mean(bouwjaar_2017_sub/bouwjaar_edit, bouwjaar_2017_sub/buurt_rel);
+
+	
+	
+	attribute<jaar>             modus_bouwjaar      (NL_grid/domain)             := modus(bouwjaar_2012_sub/bouwjaar_edit, bouwjaar_2012_sub/NL_grid_domain_rel);
+	attribute<jaar>             avg_bouwjaar        (NL_grid/domain)             := mean(bouwjaar_2012_sub/bouwjaar_edit, bouwjaar_2012_sub/NL_grid_domain_rel);
+	attribute<int32>            var_bouwjaar        (NL_grid/domain)             := var(int32(bouwjaar_2012_sub/bouwjaar_edit), bouwjaar_2012_sub/NL_grid_domain_rel);
+	attribute<int16>            sd_bouwjaar         (NL_grid/domain)             := sd(int16(bouwjaar_2012_sub/bouwjaar_edit), bouwjaar_2012_sub/NL_grid_domain_rel);
+	attribute<uint32>           count_bouwjaar      (NL_grid/domain)             := count(uint32(bouwjaar_2012_sub/bouwjaar_edit), bouwjaar_2012_sub/NL_grid_domain_rel);
+
+}

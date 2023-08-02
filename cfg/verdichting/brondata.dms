@@ -6,10 +6,7 @@ container Brondata:  using = "eenheden;geometries;typeringen"
 	#include <begrbebgeb.dms>
 	#include <brk.dms>
 	#include <brt.dms>
-	// #include <geluid.dms>
-	#include <LISA.dms>
 	#include <nvm.dms>
-	#include <nvm_commercieelvastgoed.dms>
 	#include <overig.dms>
 	#include <osm.dms>
 	#include <regios.dms>
@@ -17,5 +14,4 @@ container Brondata:  using = "eenheden;geometries;typeringen"
 	#include <vierkanten.dms>
 	#include <woz.dms>
 	#include <zones.dms>
-	#include <Eigendom.dms>
 }

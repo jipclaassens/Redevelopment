@@ -1,6 +1,5 @@
 container Brondata:  using = "eenheden;geometries;typeringen"
 {
-	#include <ahn.dms>
 	#include <bag.dms>
 	#include <bbg.dms>
 	#include <begrbebgeb.dms>
@@ -8,10 +7,7 @@ container Brondata:  using = "eenheden;geometries;typeringen"
 	#include <brt.dms>
 	#include <nvm.dms>
 	#include <overig.dms>
-	#include <osm.dms>
 	#include <regios.dms>
 	#include <spatial_data.dms>
-	#include <vierkanten.dms>
 	#include <woz.dms>
-	#include <zones.dms>
 }

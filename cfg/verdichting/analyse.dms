@@ -2,7 +2,6 @@ container Analyse : using = "eenheden;typeringen;geometries"
 {  
 	unit<uint32>    RegioUnit_buurt   := /Brondata/RegioIndelingen/buurt;
 	unit<uint32>    RegioUnit_wijk    := /Brondata/RegioIndelingen/wijk;
-	// unit<uint32>    RegioUnit_pc4     := /Brondata/RegioIndelingen/PC4_vlakken;
 	unit<uint32>    RegioUnit_gem     := /Brondata/RegioIndelingen/gemeente;
 	unit<uint32>    RegioUnit_gem_oud := /Brondata/RegioIndelingen/Gemeente_oud;
 	unit<uint32>    RegioUnit_Aggl    := /Brondata/RegioIndelingen/gemeente/Agglomeration_uq;
@@ -293,39 +292,10 @@ container Analyse : using = "eenheden;typeringen;geometries"
 
 
 
-	// parameter<string> export_frederieke := 'ready', ExplicitSuppliers = "=AsList('Brondata/BAG/Snapshots/VBOs/'+/typeringen/Tijd/jaren12_22/name+'01/vbo/Voorraad/Export', ';')";
 
 
-	// #include <analyse_per_gemeente.dms>
-	// #include <avg_prijzen_henri.dms>
-	// #include <BAG_Mathieu.dms>
-	// #include <Begrenzing_Bebouwd_Gebied.dms>
-	// #include <bouwjaar.dms>
-	// #include <CommVastgoedSloopNaTransactie.dms>
-	// #include <greyfield_density.dms>
-	// #include <groen_bij_nvm.dms>
-	// #include <hedonische_prijs_index.dms>
-	// #include <geluid.dms>
-	// #include <landuse_change.dms>
-	// #include <oppervlakte.dms>
-	// #include <optimaal_woning_type_2012.dms>
-	// #include <optimaal_ontwikkelingsoptie.dms>
-	// #include <PandZichtlijnen.dms>
 	#include <RedevelopmentOptionValue.dms>
-	// #include <rlv.dms>
-	// #include <SIMETRI.dms>
-	// #include <sloop_nieuwbouw.dms>
-	// #include <sloop_nieuwbouw_cbs.dms>
-	// #include <sloop_nieuwbouw_snapshots.dms>
 	#include <sloop_nieuwbouw_snapshots_kwartalen.dms>
-	// #include <sloop_nieuwbouw_volledige_bag.dms>
 	#include <UAI.dms>
-	// #include <VastgoedOntwikkeling.dms>
-	// #include <vbo_in_bbg.dms>
-	// #include <verdichting_bedrijven.dms>
 	#include <verschil_per_ha.dms> // jaarlijkse verdichting analyse en paper 1
-	// #include <Volledige_bag.dms>
-	// #include <Woonmileu_klassificatie.dms>
-	// #include <woningprijs_amsterdam.dms>
-	
 }

@@ -145,7 +145,7 @@ container Verdichting
 	#include <brondata.dms>
 	#include <analyse.dms>
 	
-	container ExportSettings: url = "='#'+ExportSettings/Docdata +'/ExportSettings.adms'"
+	container ExportSettings
 	{
 		container MetaInfo 
 		{
@@ -174,7 +174,7 @@ container Verdichting
 			}
 		}
 	}
-	container ConfigSettings: isHidden = "True"
+	container ConfigSettings
 	{
 		container Overridable
 		{

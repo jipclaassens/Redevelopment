@@ -165,7 +165,7 @@ container RegioIndelingen : using = "geometries"
 		attribute<geometries/rdc>   centroid                   := centroid_or_mid(geometry);
 		attribute<string>           label                      := WK_NAAM ;
 		attribute<.>                per_grid      (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
-		attribute<uint32>           aggl_rel                   := point_in_polygon(centroid, gemeenten/j2020/Agglomeration_uq/Geometry);
+		attribute<uint32>           aggl_rel                   := point_in_polygon(centroid, gemeente/Agglomeration_uq/Geometry);
 		
 		attribute<uint32>            Kerncijfers_rel := rlookup(WK_CODE, CBS_kerncijfers/gwb_code_10);
 		
@@ -322,13 +322,13 @@ container RegioIndelingen : using = "geometries"
 		attribute<string>               label               : DialogType = "LabelText";
 	}
 	
-	unit<uint32> BBG_2000
-	:	StorageName     = "%SourceDataDir%/CBS/Begrenzing_Bebouwd_Gebied/bg00.shp"
-	,	StorageReadOnly = "true"
-	,	StorageType     = "gdal.vect"
-	{
-		attribute<geometries/rdc> geometry (poly);
-	}
+	// unit<uint32> BBG_2000
+	// :	StorageName     = "%SourceDataDir%/CBS/Begrenzing_Bebouwd_Gebied/bg00.shp"
+	// ,	StorageReadOnly = "true"
+	// ,	StorageType     = "gdal.vect"
+	// {
+		// attribute<geometries/rdc> geometry (poly);
+	// }
 	
 	unit<uint32> BBG_2003 
 	:	StorageName     = "%SourceDataDir%/CBS/Begrenzing_Bebouwd_Gebied/BBG_2003.fss"
@@ -337,15 +337,15 @@ container RegioIndelingen : using = "geometries"
 		attribute<geometries/rdc> geometry (poly);
 	}
 
-	unit<uint32> Randstad
-	:	StorageName     = "%SourceDataDir%/CBS/Randstad.shp"
-	,	StorageType     = "gdal.vect"
-	,	StorageReadOnly = "True"
-	{
-		attribute<geometries/rdc> geometry   (poly) ;
-		attribute<.>              per_grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
-		attribute<bool>           IsRandstad (NL_grid/domain) := IsDefined(per_grid);
-	}
+	// unit<uint32> Randstad
+	// :	StorageName     = "%SourceDataDir%/CBS/Randstad.shp"
+	// ,	StorageType     = "gdal.vect"
+	// ,	StorageReadOnly = "True"
+	// {
+		// attribute<geometries/rdc> geometry   (poly) ;
+		// attribute<.>              per_grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+		// attribute<bool>           IsRandstad (NL_grid/domain) := IsDefined(per_grid);
+	// }
 	
 	container grootstedelijke_agglomeratie
 	{
@@ -360,15 +360,15 @@ container RegioIndelingen : using = "geometries"
 		}
 	}
 
-	unit<uint32> NVM
-	:	StorageName     = "%SourceDataDir%/CBS/NVMregios.shp"
-	,	StorageType     = "gdal.vect"
-	,	StorageReadOnly = "True"
-	{
-		attribute<geometries/rdc> geometry (poly) ;
-		attribute<string>         label := NVMREG_NAA ;
-		attribute<.>              per_grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
-	}
+	// unit<uint32> NVM
+	// :	StorageName     = "%SourceDataDir%/CBS/NVMregios.shp"
+	// ,	StorageType     = "gdal.vect"
+	// ,	StorageReadOnly = "True"
+	// {
+		// attribute<geometries/rdc> geometry (poly) ;
+		// attribute<string>         label := NVMREG_NAA ;
+		// attribute<.>              per_grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+	// }
 	
 	
 	parameter<string> JaarVanOudeGebiedsIndelingen := '2000';

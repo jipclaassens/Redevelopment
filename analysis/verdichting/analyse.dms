@@ -9,6 +9,8 @@ container Analyse : using = "eenheden;typeringen;geometries"
 	unit<uint32>    RegioUnit_Prov    := /Brondata/RegioIndelingen/provincie;
 	unit<uint32>    RegioUnit_NL      := /Brondata/RegioIndelingen/nederland;
 
+	#include<redev_obv_hele_bag.dms>
+
 	container DetermineUrbanisationK
 	{
 		container CountRedevPerUrbK 
@@ -285,15 +287,8 @@ container Analyse : using = "eenheden;typeringen;geometries"
 				attribute<rdc>      geometry (poly) := org_rel -> geometry;
 				attribute<string>   label           := org_rel -> statnaam;
 			}
-			
-			
 		}
 	}
-
-
-
-
-
 	#include <RedevelopmentOptionValue.dms>
 	#include <sloop_nieuwbouw_snapshots_kwartalen.dms>
 	// #include <UAI.dms>

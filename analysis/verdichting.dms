@@ -181,8 +181,16 @@ container Verdichting
 			parameter<String> BAG_DataDir        := '%sourceDataDir%';
 			parameter<String> BAG_DataDir_OVSRV6 := 'D:/SourceData';
 			
+			parameter<String> AltSourceDataDir   := 'E:/SourceData';
 			parameter<string> AHNDrive           := 'E:/SourceData/AHN';
 		}
 	}
 	
 }
+
+
+///Brondata/BAG/Snapshots/Panden/Y202301/pand/Voorraad/geometry
+// /Brondata/BAG/Snapshots/Panden/Y201201/pand/Voorraad/geometry
+
+///Brondata/BRK/Perceel/Make_inAggl_zonderwegen_FSS
+

@@ -5,7 +5,7 @@ container BRK
 	unit<uint32>      RegioUnit_AMS       := Brondata/RegioIndelingen/Gemeente/Amsterdam;
 	
 	unit<uint32> Perceel 
-	:	StorageName     = "%SourceDataDir%/BRK/20210203/fss/perceel.fss"
+	:	StorageName     = "%AltSourceDataDir%/BRK/20210203/fss/perceel.fss"
 	,	StorageReadOnly = "True"
 	{
 		attribute<geometries/rdc>      geometry (poly);
@@ -26,7 +26,7 @@ container BRK
 		}
 		
 		unit<uint32> Read_inAggl_zonderwegen_SHP
-		: StorageName = "%SourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegenSpoor_20211021.shp"
+		: StorageName = "%AltSourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegenSpoor_20211021.shp"   
 		, StorageType = "gdal.vect"
 		, StorageReadOnly = "True"
 		{
@@ -34,13 +34,13 @@ container BRK
 		}
 		
 		unit<uint32> Make_inAggl_zonderwegen_FSS := Read_inAggl_zonderwegen_SHP
-		, StorageName = "%SourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegen_20211021.fss"
+		, StorageName = "%AltSourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegen_20211021.fss"
 		{
 			attribute<geometries/rdc>     geometry (poly)    := Read_inAggl_zonderwegen_SHP/geometry;
 		} 
 		
 		unit<uint32> inAggl_zonderwegen
-		: StorageName = "%SourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegen_20211021.fss"
+		: StorageName = "%AltSourceDataDir%/BRK/20210203/Perceel_2021_minus_BRTwegen_20211021.fss"  
 		, StorageReadOnly = "TRUE"
 		{
 			attribute<geometries/rdc>     geometry (poly);

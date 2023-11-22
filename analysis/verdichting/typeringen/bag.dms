@@ -3,6 +3,7 @@ container BAG: using = "eenheden"
 	unit<uint8> vbo_gebruiksdoel: nrofrows = 11
 	{
 		attribute<uint8> ID := ID(.);
+		attribute<uint16> functie_code : [1,2,4,8,16,32,64,128,256,512,1024];
 		attribute<string> label:
 		[
 			'bijeenkomstfunctie','celfunctie','gezondheidszorgfunctie','industriefunctie','kantoorfunctie','logiesfunctie'
@@ -31,6 +32,7 @@ container BAG: using = "eenheden"
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		
 		attribute<bool>   IsUtiliteit := label != 'woonfunctie';
+		attribute<bool>   IsWonen     := label == 'woonfunctie';
 		unit<uint8> Utiliteiten := subset(IsUtiliteit)
 		{
 			attribute<string> label        := ../label[nr_OrgEntity];
@@ -117,7 +119,10 @@ container BAG: using = "eenheden"
 	{
 		attribute<string>    label      : ['Bouw gestart','Bouwvergunning verleend','Niet gerealiseerd pand','Pand buiten gebruik','Pand gesloopt','Pand in gebruik','Pand in gebruik (niet ingemeten)','Sloopvergunning verleend','Pand ten onrechte opgevoerd','Verbouwing pand'], DialogType = "LabelText";
 		attribute<string>    name       := replace(label, ' ', '_', '-', '_', '(', '', ')', '');
-		attribute<bool>      IsVoorraad : [FALSE, FALSE, FALSE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, TRUE];
+		attribute<bool>      IsInAanbouw   : [TRUE,   TRUE,  FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
+		attribute<bool>      IsVoorraad    : [FALSE,  FALSE, FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
+		attribute<bool>      IsIngetrokken : [FALSE,  FALSE, TRUE,  FALSE, TRUE,  FALSE, FALSE, TRUE,  TRUE,  FALSE];
+		
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	unit<uint8> vbo_status : nrofrows = 8
@@ -127,7 +132,28 @@ container BAG: using = "eenheden"
 		attribute<string>    name        := replace(label, ' ', '_', '-', '_', '(', '', ')', '');
 		attribute<string>    name_short  := AsItemName(label_short);
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-		attribute<bool>      IsVoorraad : [FALSE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, TRUE];
-		attribute<bool>      IsIngetrokken : [FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE];
+		attribute<bool>      IsInAanbouw   : [FALSE, FALSE, TRUE,  FALSE, FALSE, FALSE, FALSE, FALSE];
+		attribute<bool>      IsVoorraad    : [FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
+		attribute<bool>      IsIngetrokken : [TRUE,  FALSE, FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE];
+	}
+	
+	unit<uint8> nummeraanduiding_status : nrofrows = 3
+	{
+		unit<uint8> elements := range(uint8, 0b, uint8(2*#.))
+		{
+			attribute<string> values:
+			[
+				//name'                   , selected
+				 'onbekend'               ,'False'
+				,'naamgeving ingetrokken' ,'False'
+				,'naamgeving uitgegeven'  ,'True'
+			];
+		}
+
+		attribute<string> label    := elements/values[value(id(.) * 2b, elements)];
+		attribute<string> name     := replace(label, ' ', '_', '(','',')','');
+		attribute<bool>   selected := bool(elements/values[value(id(.) * 2b + 1b, elements)]);
+
+		container V := for_each_nedv(lowercase(name), 'value('+string(id(.))+', ..)', void, .);
 	}
 }

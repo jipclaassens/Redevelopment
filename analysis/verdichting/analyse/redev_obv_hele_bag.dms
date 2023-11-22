@@ -1,0 +1,136 @@
+container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;typeringen/redev;typeringen/tijd;geometries"
+{
+	unit<uint32> BAG_Tabel_path := /Brondata/BAG/VolledigeBAG/Volledige_VBOs_Panden_set/SelectChainEndPoints;
+	
+	unit<uint32> BAG_Tabel := BAG_Tabel_path
+	{
+		// attribute<rdc>                  geometry                := BAG_Tabel_path/geometry;
+		attribute<uint64>               pand_bag_nr             := BAG_Tabel_path/pand_bag_nr;
+		attribute<uint64>               vbo_bag_nr              := BAG_Tabel_path/vbo_bag_nr;
+		attribute<int32>                begindatum              := BAG_Tabel_path/begindatum;
+		attribute<int32>                einddatum               := BAG_Tabel_path/einddatum;
+		attribute<pand_status>          pand_status_rel         := BAG_Tabel_path/pand_status_rel;
+		attribute<vbo_status>           vbo_status_rel          := BAG_Tabel_path/vbo_status_rel;
+		attribute<uint16>               vbo_functie_code        := BAG_Tabel_path/vbo_functie_code;
+		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel        := rlookup(impl/gebruiksdoel, vbo_gebruiksdoel_ext/name);
+		
+		attribute<FunctieK>             functie_rel             := vbo_gebruiksdoel_ext/functie_rel[gebruiksdoel_rel];
+		attribute<VoorraadK>            vbo_voorraad_rel        := vbo_status/Voorraad_rel[vbo_status_rel];
+		attribute<VoorraadK>            pand_voorraad_rel       := pand_status/Voorraad_rel[pand_status_rel];
+		
+		attribute<bool>                 VBO_IsVoorraad          := vbo_voorraad_rel == VoorraadK/V/voorraad;
+		attribute<bool>                 Pand_IsVoorraad         := pand_voorraad_rel == VoorraadK/V/voorraad;
+		attribute<bool>                 IsWonen                 := functie_rel == FunctieK/v/wonen;
+
+		attribute<bool>                 ActiefOp20220101        := VBO_IsVoorraad
+																	// && Pand_IsVoorraad
+																	&& IsWonen 
+																	&& begindatum <= PrikMoment 
+																	&& einddatum > PrikMoment;
+																	
+																	
+		container Impl
+		{
+			container gebruiksdoelen :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'bitand(vbo_functie_code,vbo_gebruiksdoel/V/'+vbo_gebruiksdoel/name+'->functie_code) > 0w' 
+					, BAG_Tabel
+					, bool
+				);
+				
+				
+			
+			container gebruiksdoelen_cbs
+			{
+				attribute<bool>   utiliteit         (...) := ='('+AsList('gebruiksdoelen/'+vbo_gebruiksdoel/Utiliteiten/name, ' || ')+') && !woon';
+				attribute<uint32> Count_Utiliteiten (...) := =AsList('gebruiksdoelen/'+vbo_gebruiksdoel/Utiliteiten/name+'[uint32]', ' + ');
+				
+				attribute<bool>   bijeenkomst       (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/bijeenkomst;
+				attribute<bool>   cel               (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/cel;
+				attribute<bool>   gezondheidszorg   (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/gezondheidszorg;
+				attribute<bool>   industrie         (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/industrie;
+				attribute<bool>   kantoor           (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/kantoor;
+				attribute<bool>   logies            (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/logies;
+				attribute<bool>   onderwijs         (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/onderwijs;
+				attribute<bool>   overige_gebruiks  (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/overige_gebruiks;
+				attribute<bool>   sport             (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/sport;
+				attribute<bool>   winkel            (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/winkel;
+				attribute<bool>   woon              (...) := gebruiksdoelen/woon;
+				attribute<bool>   utiliteit_combi   (...) := !woon && Count_Utiliteiten > 1;
+			}
+			
+			attribute<string> gebruiksdoel (..) := switch(
+													 case(gebruiksdoelen_cbs/woon, 'woon')
+													, case(gebruiksdoelen_cbs/bijeenkomst, 'bijeenkomst')
+													, case(gebruiksdoelen_cbs/cel, 'cel')
+													, case(gebruiksdoelen_cbs/gezondheidszorg, 'gezondheidszorg')
+													, case(gebruiksdoelen_cbs/industrie, 'industrie')
+													, case(gebruiksdoelen_cbs/kantoor, 'kantoor')
+													, case(gebruiksdoelen_cbs/logies, 'logies')
+													, case(gebruiksdoelen_cbs/onderwijs, 'onderwijs')
+													, case(gebruiksdoelen_cbs/overige_gebruiks, 'overige_gebruiks')
+													, case(gebruiksdoelen_cbs/sport, 'sport')
+													, case(gebruiksdoelen_cbs/winkel, 'winkel')
+													, 'utiliteit_combi'
+													);
+		}
+	}
+	
+	
+
+
+	parameter<int32> PrikMoment := 20220101i;
+	
+	unit<uint32> Voorraad_op_20220101 := select_with_attr_by_cond(BAG_Tabel,BAG_Tabel/ActiefOp20220101)
+	{
+		attribute<uq_geom> uqGeom_rel := rlookup(geometry, uq_geom/values);
+		attribute<uint32>  duplicate_count := uq_geom/count_duplicates[uqGeom_rel];
+		
+		unit<uint32> uq_geom := unique(geometry)
+		{
+			attribute<uint32> count_duplicates := pcount(uqGeom_rel);
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	unit<uint8> vbo_status := typeringen/bag/vbo_status
+	{
+		attribute<VoorraadK> Voorraad_rel := IsInAanbouw ? VoorraadK/V/aanbouw : IsVoorraad ? VoorraadK/V/voorraad : VoorraadK/V/ingetrokken;
+	}
+	
+	unit<uint8> pand_status := typeringen/bag/pand_status
+	{
+		attribute<VoorraadK> Voorraad_rel := IsInAanbouw ? VoorraadK/V/aanbouw : IsVoorraad ? VoorraadK/V/voorraad : VoorraadK/V/ingetrokken;
+	}
+	
+	unit<uint8> vbo_gebruiksdoel_ext := typeringen/bag/vbo_gebruiksdoel_ext
+	{
+		attribute<FunctieK> functie_rel := IsWonen ? FunctieK/V/wonen : FunctieK/V/niet_wonen;
+	}
+	unit<uint8> FunctieK : nrofrows = 2
+	{
+		attribute<string> name : ['wonen', 'niet_wonen'];
+		attribute<string> label := name;
+		
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+	
+	unit<uint8> VoorraadK : nrofrows = 3
+	{
+		attribute<string> name : ['aanbouw', 'voorraad', 'ingetrokken'];
+		attribute<string> label := name;
+		
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+
+}
+
+

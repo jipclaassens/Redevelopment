@@ -10,7 +10,7 @@ container BAG : using = "typeringen;eenheden"
 	unit<uint32>    RegioUnit_corop   := /Brondata/RegioIndelingen/corop;
 	unit<uint32>    RegioUnit_prov    := /Brondata/RegioIndelingen/provincie;
 	unit<uint32>    RegioUnit_NL      := /Brondata/RegioIndelingen/nederland;
-	unit<uint32>    RegioUnit_bbg     := Brondata/RegioIndelingen/BBG_2000;
+	// unit<uint32>    RegioUnit_bbg     := Brondata/RegioIndelingen/BBG_2000;
 	unit<uint32>    RegioUnit_MRA     := Brondata/RegioIndelingen/MRA/MRA1;
 	unit<uint32>    RegioUnit_AMS     := Brondata/RegioIndelingen/Gemeente/Amsterdam;
 	unit<uint32>    Perceel           := Brondata/BRK/Perceel;
@@ -29,6 +29,9 @@ container BAG : using = "typeringen;eenheden"
 	
 	parameter<string> vbo_voorraad_status_str  := 'status_rel == vbo_status/v/verblijfsobject_in_gebruik || status_rel == vbo_status/v/verblijfsobject_in_gebruik_niet_ingemeten || status_rel == vbo_status/v/verblijfsobject_buiten_gebruik || status_rel == vbo_status/v/verbouwing_verblijfsobject';
 	parameter<string> pand_voorraad_status_str := 'status_rel == pand_status/V/pand_in_gebruik || status_rel == pand_status/V/pand_in_gebruik_niet_ingemeten || status_rel == pand_status/V/pand_buiten_gebruik || status_rel == pand_status/V/verbouwing_pand';
+	
+	#include<MaakVolledigeBAG.dms>
+	#include<VolledigeBAG.dms>
 	
 	container Snapshots
 	{
@@ -190,8 +193,8 @@ container BAG : using = "typeringen;eenheden"
 				
 				attribute<rdc_mm>                       NW                           := lower_bound(src/geometry_mm_chosen);
 				attribute<rdc_mm>                       SE                           := upper_bound(src/geometry_mm_chosen);
-				attribute<int32>                        X_ext                        := PointCol(SE) - PointCol(NW);
-				attribute<int32>                        Y_ext                        := PointRow(SE) - PointRow(NW);
+				attribute<int32>                        X_ext                        := sub_or_null(PointCol(SE),PointCol(NW));
+				attribute<int32>                        Y_ext                        := sub_or_null(PointRow(SE),PointRow(NW));
 
 				attribute<bool>                         pand_selection_condition     := ='src/X_ext < 1000000i && src/Y_ext < 1000000i && '+VoorraadStatus_str+' && '+Selectie_str;
 			}

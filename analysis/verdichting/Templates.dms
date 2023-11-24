@@ -1,0 +1,42 @@
+container Templates : using = "eenheden"
+{ 
+	Template Date2UnixTimeStamp_T
+	{
+		unit<uint32>      domain;
+		attribute<string> date      (domain);
+		/// 
+		attribute<uint32> year      (domain) := uint32(substr(date,0,4));
+		attribute<uint32> month     (domain) := uint32(substr(date,4,2));
+		attribute<uint32> day       (domain) := uint32(substr(date,6,2));
+		
+		parameter<uint32> StartYear          := 1970;
+		
+		attribute<uint32> YearDays  (domain) := (((Year <= StartYear ? StartYear : Year - 1) - StartYear) * 365) + MakeDefined(rjoin(year, id(Years), Years/cumulate_leaps),0); //Number of days in finished years + extra years due to leap Years
+		attribute<uint32> MonthDays (domain) := Year < StartYear ? 0 : MakeDefined(rjoin((sub_or_null(month,1))[DayPerMonth], id(DayPerMonth), DayPerMonth/days_up_to),0); // number of days in the year up to the month
+		attribute<uint32> Days      (domain) := Year < StartYear ? 0 : day;
+		
+		attribute<uint32> Result    (domain) := YearDays + MonthDays + Days;
+		
+		unit<uint8> DayPerMonth := range(uint8,1b,13b)
+		{
+			attribute<string> name             : ['January','February','March','April','May','June','July','August','September','October','November','December'];
+			attribute<uint32> days             : [31,28,31,30,31,30,31,31,30,31,30,31];
+			attribute<uint32> days_up_to       := cumulate(days);
+		}
+		
+		unit<uint32> Years := range(uint32, 1970, 2061)
+		{
+			attribute<bool>   IsLeapYear       := IsDefined(rlookup(id(.), uint32(LeapYears/value)));
+			attribute<uint32> cumulate_leaps   := cumulate(uint32(IsLeapYear));
+		}
+		
+		unit<uint8> LeapYears : nrofrows = 23
+		{
+			attribute<uint32> value            : [1972,1976,1980,1984,1988,1992,1996,2000,2004,2008,2012,2016,2020,2024,2028,2032,2036,2040,2044,2048,2052,2056,2060];
+		}
+	}
+
+
+
+
+}

@@ -145,6 +145,8 @@ container Verdichting
 	#include <brondata.dms>
 	#include <analyse.dms>
 	
+	#include <Templates.dms>
+	
 	container ExportSettings
 	{
 		container MetaInfo 

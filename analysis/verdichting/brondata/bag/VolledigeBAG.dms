@@ -4,12 +4,12 @@ container VolledigeBAG : using = "typeringen/BAG"
 	parameter<string>  Result_FSS_dir      := '%SourceDataDir%/BAG/VolledigeTabel_' + Snapshot_Date_Input;
 	parameter<int32>   MaxDatum            := 20500101i;
 	
-	
 	unit<uint32>              uq_pand_bag_nr                                 := unique(vbos/vbo/pand_bag_nr); // X
 	attribute<uq_pand_bag_nr> vbo_uq_pand_nr_rel  (vbos/vbo)                 := rlookup(vbos/vbo/pand_bag_nr, uq_pand_bag_nr/values);
 	attribute<uq_pand_bag_nr> pand_uq_pand_nr_rel (panden/pand)              := rlookup(panden/pand/pand_bag_nr, uq_pand_bag_nr/values);
 	
-	unit<uint32> Volledige_VBOs_Panden_set := join_equal_values(vbo_uq_pand_nr_rel, pand_uq_pand_nr_rel)
+	//Create new domain with the combination of all existing pand_nrs associated with VBO's and the pand_nrs in the panden domain. 
+	unit<uint32> Historische_Join := join_equal_values(vbo_uq_pand_nr_rel, pand_uq_pand_nr_rel)
 	{
 		attribute<rdc>         geometry                       := vbos/vbo/geometry[nr_1_rel];
 		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[nr_2_rel];
@@ -32,9 +32,10 @@ container VolledigeBAG : using = "typeringen/BAG"
 		attribute<bool>        selectie_2                     := vbo_begindatum < pand_einddatum;
 		attribute<bool>        selectie_3                     := vbo_begindatum != vbo_einddatum && pand_begindatum != pand_einddatum;
 		
-		
+		//This combination results in overlapping begin/einddatum and identical begin/eind datums. We need to omit these. Now we split up the begin-einddatum combination to get distinct periods.
 		unit<uint32> SelectNonOverlappingPeriods      := select_with_org_rel(selectie_1 && selectie_2 && selectie_3)
 		{
+			attribute<rdc>         geometry                       := org_rel -> geometry;
 			attribute<int32>       pand_begindatum                := org_rel -> pand_begindatum;
 			attribute<int32>       pand_einddatum                 := org_rel -> pand_einddatum;
 			attribute<int32>       vbo_begindatum                 := org_rel -> vbo_begindatum;
@@ -57,6 +58,8 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<string>      pv_isd_einddatum_key           := pand_vbo_key +'_'+ string(einddatum)  +'_'+ pand_vbo_status_key +'_'+ string(vbo_functie_code);
 			attribute<.>           pv_isd_eind_begin_rel          := rlookup(pv_isd_einddatum_key, pv_isd_begindatum_key);
 		}
+		
+		//We need to identify records that are part of a chain of mutations. So that we use the service_area()-operator to find the first record of a mutation chain per pv_id. 
 		unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(SelectNonOverlappingPeriods/pv_isd_eind_begin_rel))
 		{
 			attribute<SelectNonOverlappingPeriods> F1                                                := org_rel;
@@ -66,8 +69,10 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<bool>                        IsOnlyOrLastInChain (SelectNonOverlappingPeriods) := id(SelectNonOverlappingPeriods) == ServiceArea;
 		}
 
+		//We only need to keep the record if it is the only one in a chain or if it is the last in a chain. All intermediate records hold no value for us. Additionally we need to update the begindatum of the first one of the chain.
 		unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
 		{
+			attribute<rdc>         geometry                       := org_rel -> geometry;
 			attribute<int32>       begindatum                     := min(SelectNonOverlappingPeriods/begindatum, per_SelectNonOverlappingPeriods);
 			attribute<int32>       einddatum                      := org_rel -> einddatum;
 			
@@ -82,51 +87,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			
 			attribute<.>           per_SelectNonOverlappingPeriods (SelectNonOverlappingPeriods) := invert(org_rel)[SelectOnlyObjectWithChainRel/ServiceArea];
 		}
-			
-
-
-			
-			// attribute<uq_pv_isd> uq_pv_isd_rel := rlookup(pv_isd_key, uq_pv_isd/values);
-			// unit<uint32> uq_pv_isd := unique(pv_isd_key)
-			// {
-				// attribute<uint32> pcount_id_status := pcount(uq_pv_isd_rel);
-			
-			// }
-			
-			
-			// attribute<string>        pv_isd_key    := pand_vbo_key +'_'+ pand_vbo_status_key +'_'+ string(vbo_functie_code);
-			// attribute<bool>          IsPrevSameID_status_doel       := pv_isd_key == pv_isd_key[sub_or_null(id(.),1)];
-			// unit<uint32>             uq_pv_isd_key                  := unique(pv_isd_key);
-			// attribute<uq_pv_isd_key> uq_pv_isd_key_rel              := rlookup(pv_isd_key, uq_pv_isd_key/values);
-			// attribute<int32>         einddatum_new                  := last(einddatum, uq_pv_isd_key_rel)[uq_pv_isd_key_rel];
-			
-			// unit<uint32> woDuplicates := select_with_attr_by_cond(.,!IsPrevSameID_status_doel)
-			// {
-			// }
-		// }
 	}
-	
-	
-	
-	
-	// parameter<uint64> pand_id_subset := 3100000117486u64;
-	// unit<uint32> Test_subset := select_with_attr_by_cond(VBOs_Panden_set, VBOs_Panden_set/pand_bag_nr == pand_id_subset)
-	// {
-		// attribute<string> pand_vbo_key           := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
-		// attribute<string> pand_vbo_id_status_key := pand_vbo_key +'_'+ pand_vbo_status_key;
-		
-		// attribute<bool>   IsPrevSameID_status    := pand_vbo_id_status_key == pand_vbo_id_status_key[sub_or_null(id(.),1)];
-		
-		// unit<uint32> clean_duplicate_status := select_with_attr_by_cond(.,!IsPrevSameID_status)
-		// {
-			// attribute<bool>       IsNextSameID         := pand_vbo_id_status_key == pand_vbo_id_status_key[add_or_null(id(.),1)];
-			// attribute<int32>     pand_einddatum_new   := IsNextSameID ? pand_begindatum[add_or_null(id(.),1)] : pand_einddatum;
-			// attribute<int32>     vbo_einddatum_new    := IsNextSameID ? vbo_begindatum[add_or_null(id(.),1)] : vbo_einddatum;
-		// }
-	// }
-	
-	
-	
 	
 	container panden
 	{
@@ -148,11 +109,17 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<rdc>                          geometry (poly)              := import/geometry;
 			attribute<uint64>                       pand_bag_nr                  := uint64(identificatie);
 			attribute<typeringen/bag/pand_status>   status_rel                   := import/meta/status_rel;
-			attribute<int32>                      begindatum                := import/meta/BEGINDATUM == 0i ? MaxDatum : import/meta/BEGINDATUM;
-			attribute<int32>                      einddatum                 := import/meta/EINDDATUM == 0i ? MaxDatum : import/meta/EINDDATUM;
+			
+			attribute<int32>                        begindatum                   := impl/begindatum0 < 19600101i ? impl/TIJDSTIPREGISTRATIE : impl/begindatum0;
+			attribute<int32>                        einddatum                    := impl/einddatum0 < 19600101i ? impl/EINDREGISTRATIE : impl/einddatum0;
+			
 			
 			unit<uint32> impl := .
 			{
+				attribute<int32>                        TIJDSTIPREGISTRATIE          := int32(replace(substr(import/meta/TIJDSTIPREGISTRATIE,0,10),'-',''));
+				attribute<int32>                        EINDREGISTRATIE              := int32(replace(substr(import/meta/EINDREGISTRATIE,0,10),'-',''));
+				attribute<int32>                        begindatum0                  := import/meta/BEGINDATUM == 0i ? MaxDatum : import/meta/BEGINDATUM;
+				attribute<int32>                        einddatum0                   := import/meta/EINDDATUM == 0i ? MaxDatum : import/meta/EINDDATUM;
 				attribute<rdc>                          NW                           := lower_bound(geometry);
 				attribute<rdc>                          SE                           := upper_bound(geometry);
 				attribute<float32>                      X_ext                        := sub_or_null(PointCol(SE),PointCol(NW));
@@ -171,17 +138,13 @@ container VolledigeBAG : using = "typeringen/BAG"
 			}
 		}  
 			
-		// unit<uint32> pand := select_with_attr_by_org_rel(src, src/Impl/pand_selection_condition)
-		unit<uint32> pand := select_with_attr_by_org_rel(src, const(TRUE,src))
-		{
-		}	
-		
+		// unit<uint32> pand := select_with_attr_by_org_rel(src, src/Impl/pand_selection_condition);
+		unit<uint32> pand := select_with_attr_by_org_rel(src, const(TRUE,src));
 	}
 	
 	container VBOs
 	{
-		unit<uint32> pand_domein := panden/pand;
-		
+		//import the source BAG files
 		unit<uint32> import
 		:	StorageName = "= Result_FSS_dir + '/vbo.fss'"
 		,	StorageReadOnly = "True"
@@ -207,6 +170,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			container meta := meta_src_template(., vbo_status);
 		}
 		
+		//enrich the source attributes, and prepare selection criteria.
 		unit<uint32> src := import
 		{
 			attribute<rdc>                        geometry                  := import/geometry;
@@ -238,103 +202,9 @@ container VolledigeBAG : using = "typeringen/BAG"
 			}
 		}
 
-		// unit<uint32> vbo := select_with_attr_by_org_rel(src, src/impl/vbo_selection_condition)
-		unit<uint32> vbo := select_with_attr_by_org_rel(src, const(TRUE,src))
-		{
-			// attribute<string>        pand_vbo_id_status_doel_key    := string(pand_bag_nr) +'_'+ string(vbo_bag_nr) +'_'+ string(status_rel) +'_'+ string(functie_code);
-			// attribute<bool>          IsPrevSameID_status_doel       := pand_vbo_id_status_doel_key == pand_vbo_id_status_doel_key[sub_or_null(id(.),1)];
-			// unit<uint32>             uq_pv_isd_key                  := unique(pand_vbo_id_status_doel_key);
-			// attribute<uq_pv_isd_key> uq_pv_isd_key_rel              := rlookup(pand_vbo_id_status_doel_key, uq_pv_isd_key/values);
-			// attribute<int32>         einddatum_new                  := last(einddatum, uq_pv_isd_key_rel)[uq_pv_isd_key_rel];
-			
-			
-		
-		
-		
-		
-		
-		
-			// attribute<bool> Heeft_Geen_Bestaand_Pand_ID := rjoin(vbo_bag_nr
-																	// , Check_BAG_interne_consistentie/VBO_ids_zonder_bestaand_pand_id/uq_vbo_bag_nr/vbo_bag_nr
-																	// , Check_BAG_interne_consistentie/VBO_ids_zonder_bestaand_pand_id/uq_vbo_bag_nr/Heeft_Geen_Bestaand_Pand_ID
-																// );
-			
-			// unit<uint32> Fouten := select_with_attr_by_cond(., Heeft_Geen_Bestaand_Pand_ID)
-			// {
-			
-			// }
-			
-			// unit<uint32> uq_id_datum_key := unique(id_datum_key)
-			// {
-				// attribute<string>     id_datum_key := values;
-				// attribute<uint64>     vbo_bag_nr          := rjoin(id_datum_key, ../id_datum_key, ../vbo_bag_nr); 
-				// attribute<vbo_status> status_rel          := rjoin(id_datum_key, ../id_datum_key, ../status_rel); 
-				// attribute<uq_bag_nr>  uq_bag_nr_rel       := rlookup(vbo_bag_nr, uq_bag_nr/vbo_bag_nr);
-				// attribute<string>     label                  := values;
-				// attribute<uint32>     begindatum             := rjoin(id_datum_key, ../id_datum_key, uint32(../begindatum));
-			// }
-			// unit<uint32> uq_id_status_datum_key := unique(id_status_datum_key)
-			// {
-				// attribute<string>     id_status_datum_key    := values;
-				// attribute<string>     id_status_key          := rjoin(id_status_datum_key, ../id_status_datum_key, ../id_status_key);
-				// attribute<string>     id_datum_key           := rjoin(id_status_datum_key, ../id_status_datum_key, ../id_datum_key);
-				// attribute<uint64>     vbo_bag_nr             := rjoin(id_status_datum_key, ../id_status_datum_key, ../vbo_bag_nr); 
-				// attribute<vbo_status> status_rel             := rjoin(id_status_datum_key, ../id_status_datum_key, ../status_rel); 
-				// attribute<uq_bag_nr>  uq_bag_nr_rel          := rlookup(vbo_bag_nr, uq_bag_nr/vbo_bag_nr);
-				// attribute<string>     label                  := values;
-				// attribute<uint32>     begindatum             := rjoin(id_status_datum_key, ../id_status_datum_key, uint32(../begindatum)); 
-				// attribute<uint32>     einddatum              := rjoin(id_status_datum_key, ../id_status_datum_key, uint32(../einddatum)); 
-				// attribute<string>     first_id_datum_key     := first(uq_id_status_datum_key/id_datum_key, uq_id_status_datum_key/uq_bag_nr_rel)[(uq_bag_nr_rel)];
-				// attribute<.>          first_id_datum_key_rel := rlookup(first_id_datum_key, id_datum_key);
-				// attribute<uint32>     ordinal                := id(.) - first_id_datum_key_rel;
-				
-				// attribute<bool>       IsPrevSameID_status    := id_status_key == id_status_key[sub_or_null(id(.),1)];
-				
-				// attribute<string>     einddatum_cleaned      := 
-				
-				// unit<uint32> clean_duplicate_status := select_with_attr_by_cond(.,!IsPrevSameID_status)
-				// {
-					// attribute<bool>       IsNextSameID    := vbo_bag_nr == vbo_bag_nr[add_or_null(id(.),1)];
-					// attribute<uint32>     einddatum_new   := IsNextSameID ? begindatum[add_or_null(id(.),1)] : einddatum;
-				// }
-			// }
-			// unit<uint32> uq_bag_nr := unique(vbo_bag_nr)
-			// {
-				// attribute<uint64>    vbo_bag_nr          := values;
-				// attribute<ipoint>    bag_nr_status_key  (arc) := points2sequence(point(int32(uq_id_status_datum_key/status_rel),int32(uq_id_status_datum_key/begindatum),ipoint), uq_id_status_datum_key/uq_bag_nr_rel, uq_id_status_datum_key/ordinal);
-			// }
-			
-			// parameter<int32> prik_datum := 20120101i;
-			
-			// container Prik_per_Kwartaal := 
-				// for_each_ne(
-					// typeringen/tijd/kwartalen/name 
-					// , 'Prik_Condities_T(vbo,' +string( typeringen/tijd/kwartalen/value )+ '01[int32], ' +string( typeringen/tijd/kwartalen/next_value )+ '01[int32])' 
-				// );
-			
-			// Template Prik_Condities_T
-			// {
-				// unit<uint32> domain;
-				// parameter<int32> prik_start;
-				// parameter<int32> prik_eind;
-				
-				// attribute<bool> IsInAanbouw      (domain) := vbo_status/IsInAanbouw[status_rel];
-				// attribute<bool> IsVoorraad       (domain) := vbo_status/IsVoorraad[status_rel];
-				// attribute<bool> IsOnttrokken     (domain) := vbo_status/IsIngetrokken[status_rel];
-				// attribute<bool> WasGestart       (domain) := BEGINDATUM <  prik_start;
-				// attribute<bool> IsGestart        (domain) := BEGINDATUM >= prik_start && BEGINDATUM <  prik_eind;
-				// attribute<bool> IsBeeindigd      (domain) := EINDDATUM  >  prik_start && EINDDATUM  <= prik_eind;
-				
-				// attribute<bool> IsInAanbouw_InPrik  (domain) := IsInAanbouw  && WasGestart && not(WasBeeindigd);
-				// attribute<bool> IsVoorraad_InPrik   (domain) := IsVoorraad   && WasGestart && not(WasBeeindigd);
-				// attribute<bool> IsOnttrokken_InPrik (domain) := IsOnttrokken && WasGestart && not(WasBeeindigd);
-			// }
-		}
-		
-		// unit<uint32> vbo_woDuplicates := select_with_attr_by_cond(vbo,!vbo/IsPrevSameID_status_doel)
-		// {
-		// }
-
+		// We only select valid records. We omit for example all records that have a geometry outside of the bounding box of Netherlands 
+		// unit<uint32> vbo := select_with_attr_by_org_rel(src, src/impl/vbo_selection_condition);
+		unit<uint32> vbo := select_with_attr_by_org_rel(src, const(TRUE,src));
 	}
 	
 	template meta_src_template // Voor het inlezen van de generieke BAG attributen
@@ -358,9 +228,6 @@ container VolledigeBAG : using = "typeringen/BAG"
 		attribute<string>     DOCUMENTNUMMER         (domain);
 
 		attribute<bool>       IS_GECONSTATEERD       (domain);
-		
-		// attribute<int32>      EIND_minus_BEGIN       (domain) := EINDDATUM - BEGINDATUM;
-		
 	}
 	
  	
@@ -370,8 +237,8 @@ container VolledigeBAG : using = "typeringen/BAG"
 		attribute<uq_pand_bag_nr> vbo_uq_pand_nr_rel  (vbos/vbo)    := rlookup(vbos/vbo/pand_bag_nr, uq_pand_bag_nr/values);
 		attribute<uq_pand_bag_nr> pand_uq_pand_nr_rel (panden/pand) := rlookup(panden/pand/pand_bag_nr, uq_pand_bag_nr/values);
 		
-	
-		unit<uint32> join_equal_values_pand_zichzelf := join_equal_values(pand_uq_pand_nr_rel, pand_uq_pand_nr_rel) //check op database consistentie. Geen overlap in geldigheidsperiodes
+		//check op database consistentie. Geen overlap in geldigheidsperiodes
+		unit<uint32> join_equal_values_pand_zichzelf := join_equal_values(pand_uq_pand_nr_rel, pand_uq_pand_nr_rel) 
 		{
 			attribute<uint64>      pand_bag_nr_1                    := panden/pand/pand_bag_nr[nr_1_rel];
 			attribute<int32>       pand_begindatum_1                := panden/pand/begindatum[nr_1_rel];
@@ -390,7 +257,8 @@ container VolledigeBAG : using = "typeringen/BAG"
 		unit<uint32>              uq_vbo_bag_nr                    := unique(vbos/vbo/vbo_bag_nr); // X
 		attribute<uq_vbo_bag_nr>  vbo_uq_vbo_nr_rel  (vbos/vbo)    := rlookup(vbos/vbo/vbo_bag_nr, uq_vbo_bag_nr/values);
 		
-		unit<uint32> join_equal_values_vbo_zichzelf := join_equal_values(vbo_uq_vbo_nr_rel, vbo_uq_vbo_nr_rel)  //check op database consistentie. Geen overlap in geldigheidsperiodes
+		//check op database consistentie. Geen overlap in geldigheidsperiodes
+		unit<uint32> join_equal_values_vbo_zichzelf := join_equal_values(vbo_uq_vbo_nr_rel, vbo_uq_vbo_nr_rel)  
 		{
 			attribute<uint64>      vbo_bag_nr_1                    := vbos/vbo/vbo_bag_nr[nr_1_rel];
 			attribute<int32>       vbo_begindatum_1                := vbos/vbo/begindatum[nr_1_rel];

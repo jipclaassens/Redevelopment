@@ -1,9 +1,6 @@
 container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;typeringen/redev;typeringen/tijd;geometries"
 {
-	unit<uint32> BAG_Tabel_path := /Brondata/BAG/VolledigeBAG/Historische_Join/SelectChainEndPoints;
-	
-	
-	//ideeen: duur van onjuiste status-combi gebruiken om onjuistheden wellicht te kunnen negeren?
+	unit<uint32> BAG_Tabel_path := /Brondata/BAG/VolledigeBAG/Historische_Join/Condense_based_on_SF/SelectChainEndPoints;
 	
 	unit<uint32> BAG_Tabel := BAG_Tabel_path, using = "AdditionalClassifications" 
 	{
@@ -38,32 +35,8 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		
 		attribute<.>                     pv_isf_eind_begin_rel   := rlookup(pv_isf_einddatum_key, pv_isf_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
 
-		//We need to identify records that are part of a chain of mutations. So that we use the service_area()-operator to find the first record of a mutation chain per pv_id. 
-		unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(BAG_Tabel/pv_isf_eind_begin_rel))
-		{
-			attribute<BAG_Tabel>    F1                              := org_rel;
-			attribute<BAG_Tabel>    F2                              := BAG_Tabel/pv_isf_eind_begin_rel[org_rel];
-			attribute<.>            TraceBack           (BAG_Tabel) := invert(org_rel);
-			attribute<BAG_Tabel>    ServiceArea         (BAG_Tabel) := service_area(F1, F2, TraceBack);
-			attribute<bool>         IsOnlyOrLastInChain (BAG_Tabel) := id(BAG_Tabel) == ServiceArea;
-		}
-		
-		//We only need to keep the record if it is the only one in a chain or if it is the last in a chain. All intermediate records hold no value for us. Additionally we need to update the begindatum of the first one of the chain.
-		unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
-		{
-			attribute<rdc>         geometry                       := org_rel -> geometry;
-			attribute<int32>       begindatum                     := min(BAG_Tabel/begindatum, per_BAG_Tabel);
-			attribute<int32>       einddatum                      := org_rel -> einddatum;
-			
-			attribute<string>      old_pv_isf_begindatum_key      := BAG_Tabel/pv_isf_begindatum_key[org_rel];
-			attribute<string>      old_pv_isf_einddatum_key       := BAG_Tabel/pv_isf_einddatum_key[org_rel];
-			
-			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
-			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
-			attribute<USF>         usf_rel                        := BAG_Tabel/usf_rel[org_rel];
-			
-			attribute<.>           per_BAG_Tabel (BAG_Tabel) := invert(org_rel)[SelectOnlyObjectWithChainRel/ServiceArea];
-		}
+
+		container Condense_based_on_USF := Condense_T(BAG_Tabel, BAG_Tabel/pv_isf_eind_begin_rel);
 
 		container Impl
 		{
@@ -111,7 +84,7 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		}
 	}
 	
-	unit<uint32> Condensed_BAG_Table_obv_USF_path := BAG_Tabel/SelectChainEndPoints;
+	unit<uint32> Condensed_BAG_Table_obv_USF_path := BAG_Tabel/Condense_based_on_USF/SelectChainEndPoints;
 	unit<uint32> Condensed_BAG_Table_obv_USF := Condensed_BAG_Table_obv_USF_path, using = "AdditionalClassifications" 
 	{
 		attribute<rdc>         geometry                         := Condensed_BAG_Table_obv_USF_path/geometry;
@@ -133,130 +106,100 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		attribute<USF>         i0_usf_rel                       := Condensed_BAG_Table_obv_USF_path/usf_rel;
 		attribute<USF>         i0_usf_rel_of_prev_in_chain      := not(IsDefined(i0_usf_rel[pv_begin_eind_rel])) ? i0_usf_rel : i0_usf_rel[pv_begin_eind_rel];
 		attribute<USF>         i0_usf_rel_of_next_in_chain      := not(IsDefined(i0_usf_rel[pv_eind_begin_rel])) && einddatum == /Brondata/BAG/VolledigeBAG/MaxDatum ? i0_usf_rel : i0_usf_rel[pv_eind_begin_rel];
-		attribute<string>      i0_rt_key                        := string(i0_usf_rel) + '_' + string(i0_usf_rel_of_next_in_chain);
-		attribute<RT>          i0_rt_rel                        := rlookup(i0_rt_key, RT/key);
-		attribute<URT>         i0_urt_rel                       := RT/URT_rel[i0_rt_rel];
-		attribute<URT>         i0_urt_rel_of_prev_in_chain      := i0_urt_rel[pv_begin_eind_rel];
-		attribute<URT>         i0_urt_rel_of_next_in_chain      := i0_urt_rel[pv_eind_begin_rel];
+		attribute<string>      i0_tusf_key                      := string(i0_usf_rel) + '_' + string(i0_usf_rel_of_next_in_chain); //fka i0_rt_key
+		attribute<tusf>        i0_tusf_rel                      := rlookup(i0_tusf_key, tusf/key); // fka i0_rt_rel
+		attribute<utusf>       i0_utusf_rel                     := tusf/utusf_rel[i0_tusf_rel]; // fka i0_urt_rel
+		attribute<utusf>       i0_utusf_rel_of_prev_in_chain    := i0_utusf_rel[pv_begin_eind_rel]; // fka i0_urt_rel_of_prev_in_chain
+		attribute<utusf>       i0_utusf_rel_of_next_in_chain    := i0_utusf_rel[pv_eind_begin_rel]; // fka i0_urt_rel_of_next_in_chain
 		
-		// deze worden geherclassificeerd, zodat URT in iter 2 juist wordt.
+		// deze worden geherclassificeerd, zodat utusf in iter 2 juist wordt.
 		attribute<USF>         i1_usf_rel                       := switch(
 																	// wat als een valide mutatie in de keten is onderbroken door een onjuiste mutatie?
-																	 case(i0_urt_rel_of_prev_in_chain == URT/V/W_A_to_W_onjuist       && i0_urt_rel                  == URT/V/W_Onjuist_to_W_V,    USF/V/Woning_in_aanbouw)  
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/W_V_to_W_onjuist       && i0_urt_rel                  == URT/V/W_Onjuist_to_W_S,    USF/V/Woning_in_voorraad) 
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/NW_A_to_NW_Onjuist     && i0_urt_rel                  == URT/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_aanbouw)  
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/NW_V_to_NW_onjuist     && i0_urt_rel                  == URT/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_in_voorraad)  
+																	 case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_A_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_V,    USF/V/Woning_in_aanbouw)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_V_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_S,    USF/V/Woning_in_voorraad) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_A_to_NW_Onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_aanbouw)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_in_voorraad)  
 																	
 																	// wat als het onderbroken is door een onjuiste mutatie?
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/W_S_to_W_onjuist       && i0_urt_rel                  == URT/V/W_Onjuist_to_W_S,    USF/V/Woning_is_gesloopt)  
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/W_A_to_W_onjuist       && i0_urt_rel                  == URT/V/W_Onjuist_to_W_A,    USF/V/Woning_in_aanbouw)  
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/W_V_to_W_onjuist       && i0_urt_rel                  == URT/V/W_Onjuist_to_W_V,    USF/V/Woning_in_voorraad)  
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/W_O_to_W_onjuist       && i0_urt_rel                  == URT/V/W_Onjuist_to_W_O,    USF/V/Woning_is_onttrokken) 
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/W_T_to_W_onjuist       && i0_urt_rel                  == URT/V/W_Onjuist_to_W_T,    USF/V/Woning_is_toegevoegd) 
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/NW_S_to_NW_onjuist     && i0_urt_rel                  == URT/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)  
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/NW_A_to_NW_onjuist     && i0_urt_rel                  == URT/V/NW_Onjuist_to_NW_A,  USF/V/NietWoning_in_aanbouw)  
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/NW_V_to_NW_onjuist     && i0_urt_rel                  == URT/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/NW_O_to_NW_onjuist     && i0_urt_rel                  == URT/V/NW_Onjuist_to_NW_O,  USF/V/NietWoning_is_onttrokken) 
-																	,case(i0_urt_rel_of_prev_in_chain == URT/V/NW_T_to_NW_onjuist     && i0_urt_rel                  == URT/V/NW_Onjuist_to_NW_T,  USF/V/NietWoning_is_toegevoegd) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_S_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_S,    USF/V/Woning_is_gesloopt)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_A_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_A,    USF/V/Woning_in_aanbouw)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_V_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_V,    USF/V/Woning_in_voorraad)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_O_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_O,    USF/V/Woning_is_onttrokken) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_T_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_T,    USF/V/Woning_is_toegevoegd) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_S_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_A_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_A,  USF/V/NietWoning_in_aanbouw)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_O_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_O,  USF/V/NietWoning_is_onttrokken) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_T_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_T,  USF/V/NietWoning_is_toegevoegd) 
 																	
 																	,i0_usf_rel
 																	);
 																	
-		// deze worden geherclassificeerd, zodat URT in iter 2 juist wordt.
+		// deze worden geherclassificeerd, zodat utusf in iter 2 juist wordt.
 		attribute<USF>         i1_usf_rel_of_next_in_chain      := switch(
 																	// wat als een valide mutatie in de keten is onderbroken door een onjuiste mutatie?
-																	 case(i0_urt_rel                  == URT/V/W_A_to_W_onjuist       && i0_urt_rel_of_next_in_chain == URT/V/W_Onjuist_to_W_V,   USF/V/Woning_in_voorraad)      // dan gaat het wel van aanbouw naar voorraad
-																	,case(i0_urt_rel                  == URT/V/W_V_to_W_onjuist       && i0_urt_rel_of_next_in_chain == URT/V/W_Onjuist_to_W_S,   USF/V/Woning_is_gesloopt)         // dan gaat het wel van voorraad naar sloop
-																	,case(i0_urt_rel                  == URT/V/NW_A_to_NW_onjuist     && i0_urt_rel_of_next_in_chain == URT/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  // dan gaat het wel van aanbouw naar voorraad
-																	,case(i0_urt_rel                  == URT/V/NW_V_to_NW_onjuist     && i0_urt_rel_of_next_in_chain == URT/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)     // dan gaat het wel van voorraad naar sloop
+																	 case(i0_utusf_rel                  == utusf/V/W_A_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_V,   USF/V/Woning_in_voorraad)      // dan gaat het wel van aanbouw naar voorraad
+																	,case(i0_utusf_rel                  == utusf/V/W_V_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_S,   USF/V/Woning_is_gesloopt)         // dan gaat het wel van voorraad naar sloop
+																	,case(i0_utusf_rel                  == utusf/V/NW_A_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  // dan gaat het wel van aanbouw naar voorraad
+																	,case(i0_utusf_rel                  == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)     // dan gaat het wel van voorraad naar sloop
 																	 
 																	// wat als het onderbroken is door een onjuiste mutatie?
-																	,case(i0_urt_rel                  == URT/V/W_S_to_W_onjuist       && i0_urt_rel_of_next_in_chain == URT/V/W_Onjuist_to_W_S,   USF/V/Woning_is_gesloopt)         // dan is het nog steeds gesloopt
-																	,case(i0_urt_rel                  == URT/V/W_A_to_W_onjuist       && i0_urt_rel_of_next_in_chain == URT/V/W_Onjuist_to_W_A,   USF/V/Woning_in_aanbouw)       // dan is het nog steeds in aanbouw
-																	,case(i0_urt_rel                  == URT/V/W_V_to_W_onjuist       && i0_urt_rel_of_next_in_chain == URT/V/W_Onjuist_to_W_V,   USF/V/Woning_in_voorraad)      // dan is het nog steeds in voorraad
-																	,case(i0_urt_rel                  == URT/V/W_O_to_W_onjuist       && i0_urt_rel_of_next_in_chain == URT/V/W_Onjuist_to_W_O,   USF/V/Woning_is_onttrokken)      // dan is het nog steeds onttrokking
-																	,case(i0_urt_rel                  == URT/V/W_T_to_W_onjuist       && i0_urt_rel_of_next_in_chain == URT/V/W_Onjuist_to_W_T,   USF/V/Woning_is_toegevoegd)       // dan is het nog steeds toevoeging
-																	,case(i0_urt_rel                  == URT/V/NW_S_to_NW_onjuist     && i0_urt_rel_of_next_in_chain == URT/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)     // dan is het nog steeds gesloopt
-																	,case(i0_urt_rel                  == URT/V/NW_A_to_NW_onjuist     && i0_urt_rel_of_next_in_chain == URT/V/NW_Onjuist_to_NW_A,  USF/V/NietWoning_in_aanbouw)   // dan is het nog steeds in aanbouw
-																	,case(i0_urt_rel                  == URT/V/NW_V_to_NW_onjuist     && i0_urt_rel_of_next_in_chain == URT/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  // dan is het nog steeds in voorraad
-																	,case(i0_urt_rel                  == URT/V/NW_O_to_NW_onjuist     && i0_urt_rel_of_next_in_chain == URT/V/NW_Onjuist_to_NW_O,  USF/V/NietWoning_is_onttrokken)  // dan is het nog steeds onttrokking
-																	,case(i0_urt_rel                  == URT/V/NW_T_to_NW_onjuist     && i0_urt_rel_of_next_in_chain == URT/V/NW_Onjuist_to_NW_T,  USF/V/NietWoning_is_toegevoegd)   // dan is het nog steeds toevoeging
+																	,case(i0_utusf_rel                  == utusf/V/W_S_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_S,   USF/V/Woning_is_gesloopt)         // dan is het nog steeds gesloopt
+																	,case(i0_utusf_rel                  == utusf/V/W_A_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_A,   USF/V/Woning_in_aanbouw)       // dan is het nog steeds in aanbouw
+																	,case(i0_utusf_rel                  == utusf/V/W_V_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_V,   USF/V/Woning_in_voorraad)      // dan is het nog steeds in voorraad
+																	,case(i0_utusf_rel                  == utusf/V/W_O_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_O,   USF/V/Woning_is_onttrokken)      // dan is het nog steeds onttrokking
+																	,case(i0_utusf_rel                  == utusf/V/W_T_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_T,   USF/V/Woning_is_toegevoegd)       // dan is het nog steeds toevoeging
+																	,case(i0_utusf_rel                  == utusf/V/NW_S_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)     // dan is het nog steeds gesloopt
+																	,case(i0_utusf_rel                  == utusf/V/NW_A_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_A,  USF/V/NietWoning_in_aanbouw)   // dan is het nog steeds in aanbouw
+																	,case(i0_utusf_rel                  == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  // dan is het nog steeds in voorraad
+																	,case(i0_utusf_rel                  == utusf/V/NW_O_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_O,  USF/V/NietWoning_is_onttrokken)  // dan is het nog steeds onttrokking
+																	,case(i0_utusf_rel                  == utusf/V/NW_T_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_T,  USF/V/NietWoning_is_toegevoegd)   // dan is het nog steeds toevoeging
 																	
 																	,i0_usf_rel_of_next_in_chain
 																	);
 																	
-		attribute<string>      i1_rt_key                        := string(i1_usf_rel) + '_' + string(i1_usf_rel_of_next_in_chain);
-		attribute<RT>          i1_rt_rel                        := rlookup(i1_rt_key, RT/key);
-		attribute<URT>         i1_urt_rel                       := RT/URT_rel[i1_rt_rel];
-		attribute<URT>         i1_urt_rel_of_prev_in_chain      := i1_urt_rel[pv_begin_eind_rel];
-		attribute<URT>         i1_urt_rel_of_next_in_chain      := i1_urt_rel[pv_eind_begin_rel];
+		attribute<string>      i1_tusf_key                        := string(i1_usf_rel) + '_' + string(i1_usf_rel_of_next_in_chain);
+		attribute<tusf>        i1_tusf_rel                        := rlookup(i1_tusf_key, tusf/key);
+		attribute<utusf>       i1_utusf_rel                       := tusf/utusf_rel[i1_tusf_rel];
+		attribute<utusf>       i1_utusf_rel_of_prev_in_chain      := i1_utusf_rel[pv_begin_eind_rel];
+		attribute<utusf>       i1_utusf_rel_of_next_in_chain      := i1_utusf_rel[pv_eind_begin_rel];
 		
-		attribute<URT>         i2_urt_rel                       := switch(
-																	  case(i1_urt_rel                  == URT/V/NW_Onttrekking        && i1_urt_rel_of_next_in_chain == URT/V/NW_Lagged_P_Sloop, URT/V/NW_Sloop)      // NW_Onttrekking gevolgd door NW_LaggedSloop --> is beide sloop
-																	, case(i1_urt_rel                  == URT/V/W_Onttrekking         && i1_urt_rel_of_next_in_chain == URT/V/W_Lagged_P_Sloop,  URT/V/W_Sloop)       // W_Onttrekking gevolgd door W_LaggedSloop --> is beide sloop
-																	, case(i1_urt_rel                  == URT/V/NW_Lagged_V_Nieuwbouw && i1_urt_rel_of_next_in_chain == URT/V/NW_Toevoeging,     URT/V/NW_Nieuwbouw)  // NW_LaggedNieuwbouw gevolgd door NW_Toevoeging --> is beide nieuwbouw
-																	, case(i1_urt_rel                  == URT/V/W_Lagged_V_Nieuwbouw  && i1_urt_rel_of_next_in_chain == URT/V/W_Toevoeging,      URT/V/W_Nieuwbouw)   // W_LaggedNieuwbouw gevolgd door W_Toevoeging --> is beide nieuwbouw
-																	, i1_urt_rel
+		attribute<utusf>       i2_utusf_rel                       := switch(
+																	  case(i1_utusf_rel                  == utusf/V/NW_Onttrekking        && i1_utusf_rel_of_next_in_chain == utusf/V/NW_Lagged_P_Sloop, utusf/V/NW_Sloop)      // NW_Onttrekking gevolgd door NW_LaggedSloop --> is beide sloop
+																	, case(i1_utusf_rel                  == utusf/V/W_Onttrekking         && i1_utusf_rel_of_next_in_chain == utusf/V/W_Lagged_P_Sloop,  utusf/V/W_Sloop)       // W_Onttrekking gevolgd door W_LaggedSloop --> is beide sloop
+																	, case(i1_utusf_rel                  == utusf/V/NW_Lagged_V_Nieuwbouw && i1_utusf_rel_of_next_in_chain == utusf/V/NW_Toevoeging,     utusf/V/NW_Nieuwbouw)  // NW_LaggedNieuwbouw gevolgd door NW_Toevoeging --> is beide nieuwbouw
+																	, case(i1_utusf_rel                  == utusf/V/W_Lagged_V_Nieuwbouw  && i1_utusf_rel_of_next_in_chain == utusf/V/W_Toevoeging,      utusf/V/W_Nieuwbouw)   // W_LaggedNieuwbouw gevolgd door W_Toevoeging --> is beide nieuwbouw
+																	, i1_utusf_rel
 																	);
 																	
-		attribute<URT>         i3_urt_rel                       := switch(
-																	  case(i1_urt_rel_of_prev_in_chain == URT/V/NW_Onttrekking        && i1_urt_rel                  == URT/V/NW_Lagged_P_Sloop, URT/V/NW_Sloop)      // NW_Onttrekking gevolgd door NW_LaggedSloop --> is beide sloop
-																	, case(i1_urt_rel_of_prev_in_chain == URT/V/W_Onttrekking         && i1_urt_rel                  == URT/V/W_Lagged_P_Sloop,  URT/V/W_Sloop)       // W_Onttrekking gevolgd door W_LaggedSloop --> is beide sloop
-																	, case(i1_urt_rel_of_prev_in_chain == URT/V/NW_Lagged_V_Nieuwbouw && i1_urt_rel                  == URT/V/NW_Toevoeging,     URT/V/NW_Nieuwbouw)  // NW_LaggedNieuwbouw gevolgd door NW_Toevoeging --> is beide nieuwbouw
-																	, case(i1_urt_rel_of_prev_in_chain == URT/V/W_Lagged_V_Nieuwbouw  && i1_urt_rel                  == URT/V/W_Toevoeging,      URT/V/W_Nieuwbouw)   // W_LaggedNieuwbouw gevolgd door W_Toevoeging --> is beide nieuwbouw
-																	, i2_urt_rel
+		attribute<utusf>       i3_utusf_rel                       := switch(
+																	  case(i1_utusf_rel_of_prev_in_chain == utusf/V/NW_Onttrekking        && i1_utusf_rel                  == utusf/V/NW_Lagged_P_Sloop, utusf/V/NW_Sloop)      // NW_Onttrekking gevolgd door NW_LaggedSloop --> is beide sloop
+																	, case(i1_utusf_rel_of_prev_in_chain == utusf/V/W_Onttrekking         && i1_utusf_rel                  == utusf/V/W_Lagged_P_Sloop,  utusf/V/W_Sloop)       // W_Onttrekking gevolgd door W_LaggedSloop --> is beide sloop
+																	, case(i1_utusf_rel_of_prev_in_chain == utusf/V/NW_Lagged_V_Nieuwbouw && i1_utusf_rel                  == utusf/V/NW_Toevoeging,     utusf/V/NW_Nieuwbouw)  // NW_LaggedNieuwbouw gevolgd door NW_Toevoeging --> is beide nieuwbouw
+																	, case(i1_utusf_rel_of_prev_in_chain == utusf/V/W_Lagged_V_Nieuwbouw  && i1_utusf_rel                  == utusf/V/W_Toevoeging,      utusf/V/W_Nieuwbouw)   // W_LaggedNieuwbouw gevolgd door W_Toevoeging --> is beide nieuwbouw
+																	, i2_utusf_rel
 																	);
 																	
+		attribute<USF>         last_usf_rel                       := i1_usf_rel;
+		attribute<utusf>       last_utusf_rel                     := i3_utusf_rel;
 																	
 																	
-																	
-		// container Begindatum2UnixTimeStamp := Templates/Date2UnixTimeStamp_T(., string(begindatum));
-		// container Einddatum2UnixTimeStamp  := Templates/Date2UnixTimeStamp_T(., string(einddatum));
+		attribute<string>      pv_utusf_begindatum_key          := pv_key +'_'+ string(last_utusf_rel) +'_'+ string(begindatum);
+		attribute<string>      pv_utusf_einddatum_key           := pv_key +'_'+ string(last_utusf_rel) +'_'+ string(einddatum);
+		attribute<.>           pv_utusf_eind_begin_rel          := rlookup(pv_utusf_einddatum_key, pv_utusf_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
 
-		attribute<string>      pv_urt_begindatum_key          := pv_key +'_'+ string(i3_urt_rel) +'_'+ string(begindatum);
-		attribute<string>      pv_urt_einddatum_key           := pv_key +'_'+ string(i3_urt_rel) +'_'+ string(einddatum);
-		attribute<.>           pv_urt_eind_begin_rel          := rlookup(pv_urt_einddatum_key, pv_urt_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
-
-
-		//We need to identify records that are part of a chain of mutations. So that we use the service_area()-operator to find the first record of a mutation chain per pv_id. 
-		unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(Condensed_BAG_Table_obv_USF/pv_urt_eind_begin_rel))
-		{
-			attribute<Condensed_BAG_Table_obv_USF>    F1                                                := org_rel;
-			attribute<Condensed_BAG_Table_obv_USF>    F2                                                := Condensed_BAG_Table_obv_USF/pv_urt_eind_begin_rel[org_rel];
-			attribute<.>                              TraceBack           (Condensed_BAG_Table_obv_USF) := invert(org_rel);
-			attribute<Condensed_BAG_Table_obv_USF>    ServiceArea         (Condensed_BAG_Table_obv_USF) := service_area(F1, F2, TraceBack);
-			attribute<bool>                           IsOnlyOrLastInChain (Condensed_BAG_Table_obv_USF) := id(Condensed_BAG_Table_obv_USF) == ServiceArea;
-		}
-		
-		//We only need to keep the record if it is the only one in a chain or if it is the last in a chain. All intermediate records hold no value for us. Additionally we need to update the begindatum of the first one of the chain.
-		unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
-		{
-			attribute<rdc>         geometry                       := org_rel -> geometry;
-			attribute<int32>       begindatum                     := min(Condensed_BAG_Table_obv_USF/begindatum, per_Condensed_BAG_Table_obv_USF);
-			attribute<int32>       einddatum                      := org_rel -> einddatum;
-			
-			attribute<string>      old_pv_urt_begindatum_key      := Condensed_BAG_Table_obv_USF/pv_urt_begindatum_key[org_rel];
-			attribute<string>      old_pv_urt_einddatum_key       := Condensed_BAG_Table_obv_USF/pv_urt_einddatum_key[org_rel];
-			
-			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
-			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
-			attribute<USF>         usf_rel                        := Condensed_BAG_Table_obv_USF/i1_usf_rel[org_rel];
-			attribute<URT>         urt_rel                        := Condensed_BAG_Table_obv_USF/i3_urt_rel[org_rel];
-			
-			attribute<.>           per_Condensed_BAG_Table_obv_USF (Condensed_BAG_Table_obv_USF) := invert(org_rel)[SelectOnlyObjectWithChainRel/ServiceArea];
-		}
+		container Condense_based_on_utusf := Condense_T(Condensed_BAG_Table_obv_USF, Condensed_BAG_Table_obv_USF/pv_utusf_eind_begin_rel);
 	}
 	
-	unit<uint32> Condensed_BAG_Table_obv_URT_path := Condensed_BAG_Table_obv_USF/SelectChainEndPoints;
-	unit<uint32> Condensed_BAG_Table_obv_URT      := Condensed_BAG_Table_obv_URT_path, using = "AdditionalClassifications" 
+	unit<uint32> Condensed_BAG_Table_obv_utusf_path := Condensed_BAG_Table_obv_USF/Condense_based_on_utusf/SelectChainEndPoints;
+	unit<uint32> Condensed_BAG_Table_obv_utusf      := Condensed_BAG_Table_obv_utusf_path, using = "AdditionalClassifications" 
 	{
-		// attribute<rdc>         geometry                         := Condensed_BAG_Table_obv_URT_path/geometry;
-		attribute<int32>       begindatum                       := Condensed_BAG_Table_obv_URT_path/begindatum;
-		attribute<int32>       einddatum                        := Condensed_BAG_Table_obv_URT_path/einddatum;
-		// attribute<int32>       aantal_dagen_actief              := int32(sub_or_null(Einddatum2UnixTimeStamp/result,Begindatum2UnixTimeStamp/result));
+		attribute<rdc>         geometry                         := Condensed_BAG_Table_obv_utusf_path/geometry;
+		attribute<int32>       begindatum                       := Condensed_BAG_Table_obv_utusf_path/begindatum;
+		attribute<int32>       einddatum                        := Condensed_BAG_Table_obv_utusf_path/einddatum;
 	
-		attribute<uint64>      pand_bag_nr                      := Condensed_BAG_Table_obv_URT_path/pand_bag_nr;
-		attribute<uint64>      vbo_bag_nr                       := Condensed_BAG_Table_obv_URT_path/vbo_bag_nr;
+		attribute<uint64>      pand_bag_nr                      := Condensed_BAG_Table_obv_utusf_path/pand_bag_nr;
+		attribute<uint64>      vbo_bag_nr                       := Condensed_BAG_Table_obv_utusf_path/vbo_bag_nr;
 		
 		//keys
 		attribute<string>      pv_begindatum_key                := string(pand_bag_nr) +'_'+ string(vbo_bag_nr) +'_'+ string(begindatum);
@@ -266,45 +209,90 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 
 		// initiele classificatie
 		attribute<USF>         i0_usf_rel_of_prev_in_chain      := not(IsDefined(i0_usf_rel[pv_begin_eind_rel])) ? i0_usf_rel : i0_usf_rel[pv_begin_eind_rel];
-		attribute<USF>         i0_usf_rel                       := Condensed_BAG_Table_obv_URT_path/usf_rel;
+		attribute<USF>         i0_usf_rel                       := Condensed_BAG_Table_obv_utusf_path/usf_rel;
 		attribute<USF>         i0_usf_rel_of_next_in_chain      := not(IsDefined(i0_usf_rel[pv_eind_begin_rel])) && einddatum == /Brondata/BAG/VolledigeBAG/MaxDatum ? i0_usf_rel : i0_usf_rel[pv_eind_begin_rel];
 
-		attribute<URT>         i0_urt_rel_of_prev_in_chain      := i0_urt_rel[pv_begin_eind_rel];
-		attribute<URT>         i0_urt_rel                       := Condensed_BAG_Table_obv_URT_path/urt_rel;
-		attribute<URT>         i0_urt_rel_of_next_in_chain      := i0_urt_rel[pv_eind_begin_rel];
+		attribute<UTUSF>       i0_utusf_rel_of_prev_in_chain      := i0_utusf_rel[pv_begin_eind_rel];
+		attribute<UTUSF>       i0_utusf_rel                       := Condensed_BAG_Table_obv_utusf_path/utusf_rel;
+		attribute<UTUSF>       i0_utusf_rel_of_next_in_chain      := i0_utusf_rel[pv_eind_begin_rel];
 		
+		// correct voor onjuist tussenperiode
+		attribute<UTUSF>       i1_utusf_rel_of_prev_in_chain      := i1_utusf_rel[pv_begin_eind_rel];
+		attribute<utusf>       i1_utusf_rel                       := switch(
+																	  case(i0_utusf_rel                  == utusf/V/NW_S_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_S, utusf/V/NW_S_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/NW_A_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_A, utusf/V/NW_A_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/NW_V_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_V, utusf/V/NW_V_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/NW_O_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_O, utusf/V/NW_O_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/NW_T_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_T, utusf/V/NW_T_Onveranderd)
 		
+																	, case(i0_utusf_rel                  == utusf/V/W_S_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_W_S, utusf/V/W_S_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/W_A_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_W_A, utusf/V/W_A_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/W_V_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_W_V, utusf/V/W_V_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/W_O_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_W_O, utusf/V/W_O_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/W_T_to_NW_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_W_T, utusf/V/W_T_Onveranderd)
+
+																	, case(i0_utusf_rel                  == utusf/V/NW_S_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_NW_S, utusf/V/NW_S_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/NW_A_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_NW_A, utusf/V/NW_A_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/NW_V_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_NW_V, utusf/V/NW_V_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/NW_O_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_NW_O, utusf/V/NW_O_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/NW_T_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_NW_T, utusf/V/NW_T_Onveranderd)
 		
-		// container Begindatum2UnixTimeStamp := Templates/Date2UnixTimeStamp_T(., string(begindatum));
-		// container Einddatum2UnixTimeStamp  := Templates/Date2UnixTimeStamp_T(., string(einddatum));
+																	, case(i0_utusf_rel                  == utusf/V/W_S_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_S, utusf/V/W_S_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/W_A_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_A, utusf/V/W_A_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/W_V_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_V, utusf/V/W_V_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/W_O_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_O, utusf/V/W_O_Onveranderd)
+																	, case(i0_utusf_rel                  == utusf/V/W_T_to_W_Onjuist  && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_T, utusf/V/W_T_Onveranderd)
+																	, i0_utusf_rel
+																	);
+		attribute<UTUSF>       i1_utusf_rel_of_next_in_chain      := i1_utusf_rel[pv_eind_begin_rel];
+		
+		attribute<UTUSF>       i2_utusf_rel                       := i1_utusf_rel_of_prev_in_chain == i1_utusf_rel_of_next_in_chain ? i1_utusf_rel_of_next_in_chain : i1_utusf_rel;
+		
+		attribute<USF>         last_usf_rel                       := i0_usf_rel;
+		attribute<utusf>       last_utusf_rel                     := i2_utusf_rel;
+		
+		attribute<string>      pv_key                             := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
+		
+		attribute<string>      pv_utusf_begindatum_key            := pv_key +'_'+ string(last_utusf_rel) +'_'+ string(begindatum);
+		attribute<string>      pv_utusf_einddatum_key             := pv_key +'_'+ string(last_utusf_rel) +'_'+ string(einddatum);
+		attribute<.>           pv_utusf_eind_begin_rel            := rlookup(pv_utusf_einddatum_key, pv_utusf_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+		
+		container Condense_based_on_utusf2 := Condense_T(Condensed_BAG_Table_obv_utusf, Condensed_BAG_Table_obv_utusf/pv_utusf_eind_begin_rel);
 	}
 	
-	unit<uint32> Jaren := range(uint32, 2012,2023)
+	unit<uint32> Condensed_BAG_Table_obv_utusf2_path := Condensed_BAG_Table_obv_utusf/Condense_based_on_utusf2/SelectChainEndPoints;
+	unit<uint32> Condensed_BAG_Table_obv_utusf2      := Condensed_BAG_Table_obv_utusf2_path, using = "AdditionalClassifications" 
 	{
-		attribute<string> name := 'Y'+string(id(.));
+		attribute<rdc>         geometry                         := Condensed_BAG_Table_obv_utusf2_path/geometry;
+		attribute<rdc>         pand_geometry (poly)             := Condensed_BAG_Table_obv_utusf2_path/pand_geometry;
+		attribute<int32>       begindatum                       := Condensed_BAG_Table_obv_utusf2_path/begindatum;
+		attribute<int32>       einddatum                        := Condensed_BAG_Table_obv_utusf2_path/einddatum;
+	
+		attribute<uint64>      pand_bag_nr                      := Condensed_BAG_Table_obv_utusf2_path/pand_bag_nr;
+		attribute<uint64>      vbo_bag_nr                       := Condensed_BAG_Table_obv_utusf2_path/vbo_bag_nr;
+		
+		attribute<string>      pv_begindatum_key                := string(pand_bag_nr) +'_'+ string(vbo_bag_nr) +'_'+ string(begindatum);
+		
+		attribute<USF>         last_usf_rel                     := Condensed_BAG_Table_obv_utusf2_path/usf_rel;
+		attribute<utusf>       last_utusf_rel                   := Condensed_BAG_Table_obv_utusf2_path/utusf_rel;
 	}
+	
 	container PerJaar := 
 		for_each_ne(
-			Jaren/name
-			, 'PerJaar_T('+quote(string(id(Jaren)))+')'
+			AdditionalClassifications/Jaren/name
+			, 'PerJaar_T('+quote(string(id(AdditionalClassifications/Jaren)))+')'
 		);
-		
 	
-	// container PerURT := 
-		// for_each_nedv(
-			// URT/name
-			// , 'PerActorType/' + URT/name + '/sum'
-			// , Jaren
-			// , float32
-		// );
-
-	container Results_per_jaar :=  //PerJaar/Y2012/select/URT_Counts/NA
+	container Results_per_jaar :=  
 		for_each_nedv(
-			Jaren/name
-			, 'union_data(AdditionalClassifications/URT,'+replace(AsItemList('PerJaar/@YR@/select/URT_Counts/'+AdditionalClassifications/URT/name),'@YR@', Jaren/Name)+')'
-			, AdditionalClassifications/URT
+			AdditionalClassifications/Jaren/name
+			, 'union_data(AdditionalClassifications/utusf,'+replace(AsItemList('PerJaar/@YR@/select/utusf_Counts/'+AdditionalClassifications/utusf/name),'@YR@', AdditionalClassifications/Jaren/Name)+')'
+			, AdditionalClassifications/utusf
 			, uint32
 		);
+	
+	
+	
 	
 	Template PerJaar_T
 	{
@@ -314,283 +302,69 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		parameter<int32> begin_date := int32(Jaar_value + '0101');
 		parameter<int32> eind_date := int32(Jaar_value + '0101') + 10000i;
 	
-		unit<uint32> Select := select_with_org_rel(Condensed_BAG_Table_obv_URT/begindatum < eind_date && Condensed_BAG_Table_obv_URT/einddatum > begin_date), using = "AdditionalClassifications" 
+		unit<uint32> Select := select_with_org_rel(Condensed_BAG_Table_obv_utusf/begindatum < eind_date && Condensed_BAG_Table_obv_utusf/einddatum > begin_date), using = "AdditionalClassifications" 
 		{
-			attribute<rdc>         geometry                       := org_rel -> Condensed_BAG_Table_obv_URT/geometry;
-			attribute<int32>       begindatum                     := org_rel -> Condensed_BAG_Table_obv_URT/begindatum;
-			attribute<int32>       einddatum                      := org_rel -> Condensed_BAG_Table_obv_URT/einddatum;
+			attribute<rdc>         geometry                       := org_rel -> Condensed_BAG_Table_obv_utusf/geometry;
+			attribute<int32>       begindatum                     := org_rel -> Condensed_BAG_Table_obv_utusf/begindatum;
+			attribute<int32>       einddatum                      := org_rel -> Condensed_BAG_Table_obv_utusf/einddatum;
 			
-			attribute<int32>       begindatum_trunc               := org_rel -> Condensed_BAG_Table_obv_URT/begindatum;
-			attribute<int32>       einddatum_trunc                := org_rel -> Condensed_BAG_Table_obv_URT/einddatum;
+			attribute<int32>       begindatum_trunc               := org_rel -> Condensed_BAG_Table_obv_utusf/begindatum;
+			attribute<int32>       einddatum_trunc                := org_rel -> Condensed_BAG_Table_obv_utusf/einddatum;
 			
-			attribute<uint64>      pand_bag_nr                    := org_rel -> Condensed_BAG_Table_obv_URT/pand_bag_nr;
-			attribute<uint64>      vbo_bag_nr                     := org_rel -> Condensed_BAG_Table_obv_URT/vbo_bag_nr;
+			attribute<uint64>      pand_bag_nr                    := org_rel -> Condensed_BAG_Table_obv_utusf/pand_bag_nr;
+			attribute<uint64>      vbo_bag_nr                     := org_rel -> Condensed_BAG_Table_obv_utusf/vbo_bag_nr;
 			
-			attribute<USF>         usf_rel                        := org_rel -> Condensed_BAG_Table_obv_URT/i0_usf_rel;
-			attribute<URT>         urt_rel                        := org_rel -> Condensed_BAG_Table_obv_URT/i0_urt_rel;
+			attribute<USF>         usf_rel                        := org_rel -> Condensed_BAG_Table_obv_utusf/last_usf_rel;
+			attribute<utusf>         utusf_rel                        := org_rel -> Condensed_BAG_Table_obv_utusf/last_utusf_rel;
 			
-			container URT_Counts :=
+			container utusf_Counts :=
 				for_each_nedv(
-					URT/name
-					, 'sum(urt_rel == URT/V/'+URT/name+' ? 1 : 0)'
+					utusf/name
+					, 'sum(utusf_rel == utusf/V/'+utusf/name+' ? 1 : 0)'
 					, void
 					, uint32
 				);
 		}
 	}
 
-
-
-
-
-
-
-
-
-	container AdditionalClassifications
+	Template Condense_T
 	{
-		//RedevelopmentTypes
-		unit<uint8> RT := combine_uint8(USF, USF) 
+		unit<uint32> src;
+		attribute<src> end_to_start_rel (src);
+		///
+		
+		//We need to identify records that are part of a chain of mutations. So that we use the service_area()-operator to find the first record of a mutation chain per pv_id. 
+		unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(end_to_start_rel))
 		{
-			attribute<USF>        from_USF        := first_rel;
-			attribute<USF>        to_USF          := second_rel;
-			attribute<string>     key             := string(from_USF) + '_' + string(to_USF);
-			attribute<URT>        URT_rel         := rlookup(name, URT/name);
+			attribute<src>          F1                        := org_rel;
+			attribute<src>          F2                        := end_to_start_rel[org_rel];
+			attribute<.>            TraceBack           (src) := invert(org_rel);
+			attribute<src>          ServiceArea         (src) := service_area(F1, F2, TraceBack);
+			attribute<bool>         IsOnlyOrLastInChain (src) := id(src) == ServiceArea;
+		}
+		
+		//We only need to keep the record if it is the only one in a chain or if it is the last in a chain. All intermediate records hold no value for us. Additionally we need to update the startdate of the first one of the chain.
+		unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
+		{
+			attribute<rdc>         geometry                       := org_rel -> geometry;
+			attribute<rdc>         pand_geometry (poly)           := org_rel -> pand_geometry;
+			attribute<int32>       begindatum                     := min(src/begindatum, per_src_Tabel);
+			attribute<int32>       einddatum                      := org_rel -> einddatum;
+
+			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
+			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
+			attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
+			attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
+			attribute<uint16>      vbo_functie_code               := org_rel -> vbo_functie_code;
 			
-			attribute<string>     name            :=  	switch(
-															 case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_S_Onveranderd')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_is_toegevoegd , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_Onjuist       , 'NW_S_to_NW_Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_Onjuist           , 'NW_S_to_W_Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_is_toegevoegd     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_SkippedSloop')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_in_aanbouw    , 'NW_A_Onveranderd') // dit is een tijdelijke stap, dus blijft niet zo
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_in_voorraad   , 'NW_Nieuwbouw')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_SkippedOnttrekking')  //v gevomrd/p nb -> v ontr /p vrd
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_is_toegevoegd , 'NW_Lagged_V_Nieuwbouw')   //v gevomrd/p nb -> v gevmd/p vrd
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_Onjuist       , 'NW_A_to_NW_Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_Onjuist           , 'NW_A_to_W_Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_is_toegevoegd     , 'Onjuist') // v vrom/p nb -> v vorm/p v, dit lagged p nieuwbouw icm transformatie, zeer onwaarschijnlijk.
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_Sloop')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_in_voorraad   , 'NW_V_Onveranderd')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_Onttrekking')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_is_toegevoegd , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_Onjuist       , 'NW_V_to_NW_Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_Onjuist           , 'NW_V_to_W_Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_in_voorraad       , 'NWW_Transformatie')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_is_toegevoegd     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_Lagged_P_Sloop') //pand sloop komt later dan vbo ontrekking
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_O_Onveranderd')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_is_toegevoegd , 'NW_Correctie')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_Onjuist       , 'NW_O_to_NW_Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_Onjuist           , 'NW_O_to_W_Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_is_toegevoegd     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_SkippedSloop')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist') // pand was voorraad, daarna pand terug in aanbouw. vbo blijft gevormd
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/NietWoning_in_voorraad   , 'NW_Toevoeging')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_Correctie')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/NietWoning_is_toegevoegd , 'NW_T_Onveranderd')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/NietWoning_Onjuist       , 'NW_T_to_NW_Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/Woning_Onjuist           , 'NW_T_to_W_Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_is_toegevoegd  && to_USF == USF/V/Woning_is_toegevoegd     , 'Onjuist')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_Onjuist_to_NW_S')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_in_aanbouw    , 'NW_Onjuist_to_NW_A')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_in_voorraad   , 'NW_Onjuist_to_NW_V')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_Onjuist_to_NW_O')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_is_toegevoegd , 'NW_Onjuist_to_NW_T')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_Onjuist       , 'NW_Onjuist_Onveranderd')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_Onjuist           , 'NW_Onjuist_to_W_Onjuist')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_is_gesloopt       , 'NW_Onjuist_to_W_S')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_in_aanbouw        , 'NW_Onjuist_to_W_A')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_in_voorraad       , 'NW_Onjuist_to_W_V')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_is_onttrokken     , 'NW_Onjuist_to_W_O')
-															,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_is_toegevoegd     , 'NW_Onjuist_to_W_T')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_is_gesloopt   , 'W_Onjuist_to_NW_S')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_in_aanbouw    , 'W_Onjuist_to_NW_A')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_in_voorraad   , 'W_Onjuist_to_NW_V')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_is_onttrokken , 'W_Onjuist_to_NW_O')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_is_toegevoegd , 'W_Onjuist_to_NW_T')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_Onjuist       , 'W_Onjuist_to_NW_Onjuist')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_Onjuist           , 'W_Onjuist_Onveranderd')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_is_gesloopt       , 'W_Onjuist_to_W_S')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_in_aanbouw        , 'W_Onjuist_to_W_A')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_in_voorraad       , 'W_Onjuist_to_W_V')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_is_onttrokken     , 'W_Onjuist_to_W_O')
-															,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_is_toegevoegd     , 'W_Onjuist_to_W_T')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_is_toegevoegd , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_Onjuist       , 'W_S_to_NW_Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_Onjuist           , 'W_S_to_W_Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_is_gesloopt       , 'W_S_Onveranderd')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_is_toegevoegd     , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_is_toegevoegd , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_Onjuist       , 'W_A_to_NW_Onjuist')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_Onjuist           , 'W_A_to_W_Onjuist')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_is_gesloopt       , 'W_SkippedSloop')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_in_aanbouw        , 'W_A_Onveranderd')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_in_voorraad       , 'W_Nieuwbouw')
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_is_onttrokken     , 'W_SkippedOnttrekking') 
-															,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_is_toegevoegd     , 'W_Lagged_V_Nieuwbouw') //v gevomrd/p nb -> v gevormd/p vrd volgende stap moet dan zijn v vrd/p vrd
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_in_voorraad   , 'WNW_Transformatie')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_is_toegevoegd , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_Onjuist       , 'W_V_to_NW_Onjuist')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_Onjuist           , 'W_V_to_W_Onjuist')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_is_gesloopt       , 'W_Sloop')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_in_voorraad       , 'W_V_Onveranderd')
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_is_onttrokken     , 'W_Onttrekking') // v vrd/ p vrd -> v ontr/ pvrd
-															,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_is_toegevoegd     , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_is_toegevoegd , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_Onjuist       , 'W_O_to_NW_Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_Onjuist           , 'W_O_to_W_Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_is_gesloopt       , 'W_Lagged_P_Sloop')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_is_onttrokken     , 'W_O_Onveranderd')
-															,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_is_toegevoegd     , 'W_Correctie')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/NietWoning_is_toegevoegd , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/NietWoning_Onjuist       , 'W_T_to_NW_Onjuist')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/Woning_Onjuist           , 'W_T_to_W_Onjuist')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/Woning_is_gesloopt       , 'W_SkippedSloop')       // v gevormd/ p vrd -> v ontr/ p ontr
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/Woning_in_voorraad       , 'W_Toevoeging')
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/Woning_is_onttrokken     , 'W_Correctie') // v gevormd/ p vrd -> v ontr/ p vrd
-															,case(from_USF == USF/V/Woning_is_toegevoegd      && to_USF == USF/V/Woning_is_toegevoegd     , 'W_T_Onveranderd')
-															, ''
-														);
-			attribute<string>     label            :=  	name + ' ' + key;
-		
-		
-		}
-		
-		//Unique RedevelopmentTypes
-		unit<uint8> URT := unique_uint8(RT/name)
-		{
-			attribute<string>     name            := values;
-			attribute<string>     label           := values;
-			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-		}
-	
-		//Status_x_Functie -> vbo_status_rel x pand_status_rel x functie_rel
-		unit<uint8> SF := combine_uint8(VoorraadK, VoorraadK, FunctieK) 
-		{
-			attribute<VoorraadK>  vbo_status_rel  := first_rel;
-			attribute<VoorraadK>  pand_status_rel := second_rel;
-			attribute<FunctieK>   functie_rel     := third_rel;
-			attribute<string>     key             := string(vbo_status_rel) + '_' + string(pand_status_rel) + '_' + string(functie_rel);
-			attribute<USF>        USF_rel         := rlookup(name, USF/name);
+			attribute<USF>         usf_rel                        := src/usf_rel[org_rel];
+			attribute<utusf>       utusf_rel                        := src/last_utusf_rel[org_rel];
 			
-			attribute<string>     name            :=  	switch(
-															 case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/wonen     , 'Woning_in_aanbouw')
-															,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_in_aanbouw')
-															,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/wonen     , 'Woning_is_toegevoegd')
-															,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_is_toegevoegd')
-															,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/wonen     , 'Woning_Onjuist')
-															,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_Onjuist')
-															,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/wonen     , 'Woning_in_voorraad') // te vroeg opgevoerde vbo?
-															,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_in_voorraad') // te vroeg opgevoerde vbo?
-															,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/wonen     , 'Woning_in_voorraad')
-															,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_in_voorraad')
-															,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/wonen     , 'Woning_in_voorraad') // precursor voor sloop?
-															,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_in_voorraad') // precursor voor sloop?
-															,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/wonen     , 'Woning_Onjuist')
-															,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_Onjuist')
-															,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/wonen     , 'Woning_is_onttrokken')
-															,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_is_onttrokken')
-															,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/wonen     , 'Woning_is_gesloopt')
-															,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_is_gesloopt')
-															, ''
-														);
-			attribute<string>     label            :=  	name + ' ' + key;
-		}
-		
-		//Unique Status_x_Functie
-		unit<uint8> USF := unique_uint8(SF/name)
-		{
-			attribute<string>     name            := values;
-			attribute<string>     label           := values;
-			attribute<string>     key             := SF/key[invert(SF/USF_rel)];
-			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-		}
-		
-		
-		
-		unit<uint8> vbo_status := typeringen/bag/vbo_status
-		{
-			attribute<VoorraadK> Voorraad_rel := IsInAanbouw ? VoorraadK/V/in_aanbouw : IsVoorraad ? VoorraadK/V/in_voorraad : VoorraadK/V/ingetrokken;
-		}
-		
-		unit<uint8> pand_status := typeringen/bag/pand_status
-		{
-			attribute<VoorraadK> Voorraad_rel := IsInAanbouw ? VoorraadK/V/in_aanbouw : IsVoorraad ? VoorraadK/V/in_voorraad : VoorraadK/V/ingetrokken;
-		}
-		
-		unit<uint8> vbo_gebruiksdoel_ext := typeringen/bag/vbo_gebruiksdoel_ext
-		{
-			attribute<FunctieK> functie_rel := IsWonen ? FunctieK/V/wonen : FunctieK/V/niet_wonen;
-		}
-		unit<uint8> FunctieK : nrofrows = 2
-		{
-			attribute<string> name : ['wonen', 'niet_wonen'];
-			attribute<string> label := name;
-			
-			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-		}
-		
-		unit<uint8> VoorraadK : nrofrows = 3
-		{
-			attribute<string> name : ['in_aanbouw', 'in_voorraad', 'ingetrokken'];
-			attribute<string> label := name;
-			
-			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+			attribute<.>           per_src_Tabel (src) := invert(org_rel)[SelectOnlyObjectWithChainRel/ServiceArea];
 		}
 	}
+
+	#include<AdditionalClassifications.dms>
 }
 
 

@@ -12,6 +12,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 	unit<uint32> Historische_Join := join_equal_values(vbo_uq_pand_nr_rel, pand_uq_pand_nr_rel)
 	{
 		attribute<rdc>         geometry                       := vbos/vbo/geometry[nr_1_rel];
+		attribute<rdc>         pand_geometry (poly)           := panden/pand/geometry[nr_2_rel];
 		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[nr_2_rel];
 		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[nr_1_rel];
 		
@@ -36,6 +37,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 		unit<uint32> SelectNonOverlappingPeriods      := select_with_org_rel(selectie_1 && selectie_2 && selectie_3)
 		{
 			attribute<rdc>         geometry                       := org_rel -> geometry;
+			attribute<rdc>         pand_geometry (poly)           := org_rel -> pand_geometry;
 			attribute<int32>       pand_begindatum                := org_rel -> pand_begindatum;
 			attribute<int32>       pand_einddatum                 := org_rel -> pand_einddatum;
 			attribute<int32>       vbo_begindatum                 := org_rel -> vbo_begindatum;
@@ -50,43 +52,47 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>       begindatum                     := max_elem(pand_begindatum, vbo_begindatum);
 			attribute<int32>       einddatum                      := min_elem(pand_einddatum, vbo_einddatum);
 			
-			attribute<string>      pand_vbo_key                   := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
-			attribute<string>      pand_vbo_status_key            := string(pand_status_rel) + '_' + string(vbo_status_rel);
-			attribute<string>      pand_vbo_id_status_key         := pand_vbo_key +'_'+ pand_vbo_status_key;
+			attribute<string>      pv_key                         := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
+			attribute<string>      status_key                     := string(pand_status_rel) + '_' + string(vbo_status_rel);
+			// attribute<string>      pv_is_key                      := pv_key +'_'+ pand_vbo_status_key;
 			
-			attribute<string>      pv_isd_begindatum_key          := pand_vbo_key +'_'+ string(begindatum) +'_'+ pand_vbo_status_key +'_'+ string(vbo_functie_code);
-			attribute<string>      pv_isd_einddatum_key           := pand_vbo_key +'_'+ string(einddatum)  +'_'+ pand_vbo_status_key +'_'+ string(vbo_functie_code);
-			attribute<.>           pv_isd_eind_begin_rel          := rlookup(pv_isd_einddatum_key, pv_isd_begindatum_key);
+			attribute<string>      pv_sf_begindatum_key          := pv_key +'_'+ string(begindatum) +'_'+ status_key +'_'+ string(vbo_functie_code);
+			attribute<string>      pv_sf_einddatum_key           := pv_key +'_'+ string(einddatum)  +'_'+ status_key +'_'+ string(vbo_functie_code);
+			attribute<.>           pv_sf_eind_begin_rel          := rlookup(pv_sf_einddatum_key, pv_sf_begindatum_key);
 		}
 		
+		container Condense_based_on_SF := Analyse/Redev_obv_hele_bag/Condense_T(SelectNonOverlappingPeriods, SelectNonOverlappingPeriods/pv_sf_eind_begin_rel);
+		
 		//We need to identify records that are part of a chain of mutations. So that we use the service_area()-operator to find the first record of a mutation chain per pv_id. 
-		unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(SelectNonOverlappingPeriods/pv_isd_eind_begin_rel))
-		{
-			attribute<SelectNonOverlappingPeriods> F1                                                := org_rel;
-			attribute<SelectNonOverlappingPeriods> F2                                                := org_rel -> pv_isd_eind_begin_rel;
-			attribute<.>                           TraceBack           (SelectNonOverlappingPeriods) := invert(org_rel);
-			attribute<SelectNonOverlappingPeriods> ServiceArea         (SelectNonOverlappingPeriods) := service_area(F1, F2, TraceBack);
-			attribute<bool>                        IsOnlyOrLastInChain (SelectNonOverlappingPeriods) := id(SelectNonOverlappingPeriods) == ServiceArea;
-		}
+		// unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(SelectNonOverlappingPeriods/pv_isd_eind_begin_rel))
+		// {
+			// attribute<SelectNonOverlappingPeriods> F1                                                := org_rel;
+			// attribute<SelectNonOverlappingPeriods> F2                                                := org_rel -> pv_isd_eind_begin_rel;
+			// attribute<.>                           TraceBack           (SelectNonOverlappingPeriods) := invert(org_rel);
+			// attribute<SelectNonOverlappingPeriods> ServiceArea         (SelectNonOverlappingPeriods) := service_area(F1, F2, TraceBack);
+			// attribute<bool>                        IsOnlyOrLastInChain (SelectNonOverlappingPeriods) := id(SelectNonOverlappingPeriods) == ServiceArea;
+		// }
 
 		//We only need to keep the record if it is the only one in a chain or if it is the last in a chain. All intermediate records hold no value for us. Additionally we need to update the begindatum of the first one of the chain.
-		unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
-		{
-			attribute<rdc>         geometry                       := org_rel -> geometry;
-			attribute<int32>       begindatum                     := min(SelectNonOverlappingPeriods/begindatum, per_SelectNonOverlappingPeriods);
-			attribute<int32>       einddatum                      := org_rel -> einddatum;
+		// unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
+		// {
+			// attribute<rdc>         geometry                       := org_rel -> geometry;
+			// attribute<int32>       begindatum                     := min(SelectNonOverlappingPeriods/begindatum, per_SelectNonOverlappingPeriods);
+			// attribute<int32>       einddatum                      := org_rel -> einddatum;
 			
-			attribute<string>      old_pv_isd_begindatum_key      := org_rel -> pv_isd_begindatum_key;
-			attribute<string>      old_pv_isd_einddatum_key       := org_rel -> pv_isd_einddatum_key;
+			// attribute<string>      old_pv_isd_begindatum_key      := org_rel -> pv_isd_begindatum_key;
+			// attribute<string>      old_pv_isd_einddatum_key       := org_rel -> pv_isd_einddatum_key;
 			
-			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
-			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
-			attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
-			attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
-			attribute<uint16>      vbo_functie_code               := org_rel -> vbo_functie_code;
+			// attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
+			// attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
+			// attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
+			// attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
+			// attribute<uint16>      vbo_functie_code               := org_rel -> vbo_functie_code;
 			
-			attribute<.>           per_SelectNonOverlappingPeriods (SelectNonOverlappingPeriods) := invert(org_rel)[SelectOnlyObjectWithChainRel/ServiceArea];
-		}
+			// attribute<.>           per_SelectNonOverlappingPeriods (SelectNonOverlappingPeriods) := invert(org_rel)[SelectOnlyObjectWithChainRel/ServiceArea];
+		// }
+		
+		
 	}
 	
 	container panden

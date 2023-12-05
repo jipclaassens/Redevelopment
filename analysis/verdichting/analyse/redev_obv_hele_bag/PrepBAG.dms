@@ -1,0 +1,339 @@
+container PrepBAG
+{
+	unit<uint32> BAG_Tabel_path := /Brondata/BAG/VolledigeBAG/Historische_Join/Condense_based_on_SF/SelectChainEndPoints;
+
+	unit<uint32> BAG_Tabel := BAG_Tabel_path, using = "AdditionalClassifications" 
+	{
+		attribute<rdc>                  geometry                 := BAG_Tabel_path/geometry;
+		attribute<uint64>               pand_bag_nr              := BAG_Tabel_path/pand_bag_nr;
+		attribute<uint64>               vbo_bag_nr               := BAG_Tabel_path/vbo_bag_nr;
+		attribute<int32>                begindatum               := BAG_Tabel_path/begindatum;
+		attribute<int32>                einddatum                := BAG_Tabel_path/einddatum;
+		attribute<pand_status>          pand_status_rel          := BAG_Tabel_path/pand_status_rel;
+		attribute<uint16>               vbo_functie_code         := BAG_Tabel_path/vbo_functie_code;
+		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel         := rlookup(impl/gebruiksdoel, vbo_gebruiksdoel_ext/name);
+		
+		attribute<FunctieK>             functie_rel              := vbo_gebruiksdoel_ext/functie_rel[gebruiksdoel_rel];
+		attribute<VoorraadK>            vbo_voorraad_rel         := vbo_status/Voorraad_rel[vbo_status_rel];
+		attribute<VoorraadK>            pand_voorraad_rel        := pand_status/Voorraad_rel[pand_status_rel];
+		
+		attribute<bool>                 VBO_IsVoorraad           := vbo_voorraad_rel == AdditionalClassifications/VoorraadK/V/in_voorraad;
+		attribute<bool>                 Pand_IsVoorraad          := pand_voorraad_rel == AdditionalClassifications/VoorraadK/V/in_voorraad;
+		attribute<bool>                 IsWonen                  := functie_rel == AdditionalClassifications/FunctieK/v/wonen;
+		attribute<string>               label                    := pv_isf_begindatum_key;
+		
+		attribute<bool>                 IsLogische_VBO_overgang      := Overgangen_Vbo/Overgang_Logisch[vbo_overgang_rel];
+		attribute<bool>                 IsOnLogische_VBO_overgang    := Overgangen_Vbo/Overgang_Onlogisch[vbo_overgang_rel];
+		attribute<bool>                 IsOnveranderde_VBO_overgang  := not(IsDefined(vbo_overgang_rel)) ? TRUE : Overgangen_Vbo/Overgang_Onveranderd[vbo_overgang_rel];
+		attribute<vbo_status>           vbo_status_rel           := BAG_Tabel_path/vbo_status_rel;
+		attribute<vbo_status>           next_vbo_status_rel      := vbo_status_rel[pv_eind_begin_rel];
+
+		attribute<string>               vbo_overgang_key         := string(vbo_status_rel) + '_' + string(next_vbo_status_rel); 
+		attribute<Overgangen_Vbo>       vbo_overgang_rel         := rlookup(vbo_overgang_key, Overgangen_Vbo/key); 
+
+		//status relaties
+		attribute<string>                sf_key                  := string(vbo_voorraad_rel) + '_' + string(pand_voorraad_rel) + '_' + string(functie_rel);
+		attribute<SF>                    sf_rel                  := rlookup(sf_key, SF/key);
+		attribute<USF>                   usf_rel                 := SF/USF_rel[sf_rel];
+		
+		//overgang identificatie
+		attribute<string>                pv_key                  := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
+		attribute<string>                pv_begindatum_key       := pv_key +'_'+ string(begindatum);
+		attribute<string>                pv_einddatum_key        := pv_key +'_'+ string(einddatum);
+		attribute<string>                pv_isf_begindatum_key   := pv_key +'_'+ string(begindatum) +'_'+ string(usf_rel);
+		attribute<string>                pv_isf_einddatum_key    := pv_key +'_'+ string(einddatum)  +'_'+ string(usf_rel);
+		
+		attribute<.>                     pv_eind_begin_rel       := rlookup(pv_einddatum_key, pv_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id)
+		attribute<.>                     pv_isf_eind_begin_rel   := rlookup(pv_isf_einddatum_key, pv_isf_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+		attribute<.>                     pv_isf_begin_eind_rel   := rlookup(pv_isf_begindatum_key, pv_isf_einddatum_key); //gives the index number of the prev record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+
+		attribute<bool>                  IsOnlyInChain           := Impl/FindFirstLastInChain/IsOnlyInChain;
+		attribute<bool>                  IsFirstInChain          := Impl/FindFirstLastInChain/IsFirstInChain;
+		attribute<bool>                  IsLastInChain           := Impl/FindFirstLastInChain/IsLastInChain;
+
+		container Condense_based_on_USF := Condense_T(BAG_Tabel, BAG_Tabel/pv_isf_eind_begin_rel, BAG_Tabel/pv_isf_begin_eind_rel);
+
+		container Impl
+		{	
+			container FindFirstLastInChain
+			{
+				unit<uint32> src := BAG_Tabel;
+				
+				attribute<string>    pv_begindatum_key   (src) := src/pv_key +'_'+ string(src/begindatum);
+				attribute<string>    pv_einddatum_key    (src) := src/pv_key +'_'+ string(src/einddatum);
+				attribute<src>       pv_eind_begin_rel   (src) := rlookup(pv_einddatum_key, pv_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+				attribute<src>       pv_begin_eind_rel   (src) := rlookup(pv_begindatum_key, pv_einddatum_key); //gives the index number of the prev record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+				 
+				attribute<uint32>    count_pv_key        (src) := pcount(uq_pv_key_rel)[uq_pv_key_rel];
+				attribute<uq_pv_key> uq_pv_key_rel       (src) := rlookup(src/pv_key, uq_pv_key/values);
+				unit<uint32>         uq_pv_key                 := unique(src/pv_key);
+				
+				attribute<bool>      IsOnlyInChain       (src) := count_pv_key == 1;
+				attribute<bool>      IsFirstInChain      (src) := id(src) == GetFirstInChain/FirstInChain_rel && !IsOnlyInChain;
+				attribute<bool>      IsLastInChain       (src) := id(src) == GetLastInChain/LastInChain_rel && !IsOnlyInChain;
+				
+				unit<uint32> GetFirstInChain     := select_with_org_rel(IsDefined(pv_begin_eind_rel))
+				{
+					attribute<src>          F1                        := org_rel;
+					attribute<src>          F2                        := pv_begin_eind_rel[org_rel];
+					attribute<.>            TraceBack           (src) := invert(org_rel);
+					attribute<src>          FirstInChain_rel    (src) := service_area(F1, F2, TraceBack);
+				}
+				unit<uint32> GetLastInChain     := select_with_org_rel(IsDefined(pv_eind_begin_rel))
+				{
+					attribute<src>          F1                        := org_rel;
+					attribute<src>          F2                        := pv_eind_begin_rel[org_rel];
+					attribute<.>            TraceBack           (src) := invert(org_rel);
+					attribute<src>          LastInChain_rel     (src) := service_area(F1, F2, TraceBack); //fka ServiceArea
+				}
+			}
+		
+			container gebruiksdoelen :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'bitand(vbo_functie_code,vbo_gebruiksdoel/V/'+vbo_gebruiksdoel/name+'->functie_code) > 0w' 
+					, BAG_Tabel
+					, bool
+				);
+			
+			container gebruiksdoelen_cbs
+			{
+				attribute<bool>   utiliteit         (...) := ='('+AsList('gebruiksdoelen/'+vbo_gebruiksdoel/Utiliteiten/name, ' || ')+') && !woon';
+				attribute<uint32> Count_Utiliteiten (...) := =AsList('gebruiksdoelen/'+vbo_gebruiksdoel/Utiliteiten/name+'[uint32]', ' + ');
+				
+				attribute<bool>   bijeenkomst       (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/bijeenkomst;
+				attribute<bool>   cel               (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/cel;
+				attribute<bool>   gezondheidszorg   (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/gezondheidszorg;
+				attribute<bool>   industrie         (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/industrie;
+				attribute<bool>   kantoor           (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/kantoor;
+				attribute<bool>   logies            (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/logies;
+				attribute<bool>   onderwijs         (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/onderwijs;
+				attribute<bool>   overige_gebruiks  (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/overige_gebruiks;
+				attribute<bool>   sport             (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/sport;
+				attribute<bool>   winkel            (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/winkel;
+				attribute<bool>   woon              (...) := gebruiksdoelen/woon;
+				attribute<bool>   utiliteit_combi   (...) := !woon && Count_Utiliteiten > 1;
+			}
+			
+			attribute<string> gebruiksdoel (..) := switch(
+													 case(gebruiksdoelen_cbs/woon, 'woon')
+													, case(gebruiksdoelen_cbs/bijeenkomst, 'bijeenkomst')
+													, case(gebruiksdoelen_cbs/cel, 'cel')
+													, case(gebruiksdoelen_cbs/gezondheidszorg, 'gezondheidszorg')
+													, case(gebruiksdoelen_cbs/industrie, 'industrie')
+													, case(gebruiksdoelen_cbs/kantoor, 'kantoor')
+													, case(gebruiksdoelen_cbs/logies, 'logies')
+													, case(gebruiksdoelen_cbs/onderwijs, 'onderwijs')
+													, case(gebruiksdoelen_cbs/overige_gebruiks, 'overige_gebruiks')
+													, case(gebruiksdoelen_cbs/sport, 'sport')
+													, case(gebruiksdoelen_cbs/winkel, 'winkel')
+													, 'utiliteit_combi'
+													);
+		}
+	}
+
+	unit<uint32> Condensed_BAG_Table_obv_USF_path := BAG_Tabel/Condense_based_on_USF/SelectChainEndPoints;
+	unit<uint32> Condensed_BAG_Table_obv_USF := Condensed_BAG_Table_obv_USF_path, using = "AdditionalClassifications" 
+	{
+		attribute<rdc>         geometry                         := Condensed_BAG_Table_obv_USF_path/geometry;
+		attribute<int32>       begindatum                       := Condensed_BAG_Table_obv_USF_path/begindatum;
+		attribute<int32>       einddatum                        := Condensed_BAG_Table_obv_USF_path/einddatum;
+		// attribute<int32>       aantal_dagen_actief              := int32(sub_or_null(Einddatum2UnixTimeStamp/result,Begindatum2UnixTimeStamp/result));
+
+		attribute<FunctieK>    functie_rel                      := Condensed_BAG_Table_obv_USF_path/functie_rel;
+		attribute<VoorraadK>   vbo_voorraad_rel                 := Condensed_BAG_Table_obv_USF_path/vbo_voorraad_rel;
+		attribute<VoorraadK>   pand_voorraad_rel                := Condensed_BAG_Table_obv_USF_path/pand_voorraad_rel;
+
+		attribute<uint64>      pand_bag_nr                      := Condensed_BAG_Table_obv_USF_path/pand_bag_nr;
+		attribute<uint64>      vbo_bag_nr                       := Condensed_BAG_Table_obv_USF_path/vbo_bag_nr;
+		
+		attribute<bool>        IsOnlyInChain                    := Condensed_BAG_Table_obv_USF_path/IsOnlyInChain;
+		attribute<bool>        IsFirstInChain                   := Condensed_BAG_Table_obv_USF_path/IsFirstInChain;
+		attribute<bool>        IsLastInChain                    := Condensed_BAG_Table_obv_USF_path/IsLastInChain;
+		
+		//keys
+		attribute<string>      pv_key                         := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
+		attribute<string>      pv_begindatum_key              := pv_key +'_'+ string(begindatum);
+		attribute<string>      pv_einddatum_key               := pv_key +'_'+ string(einddatum);
+		attribute<.>           pv_begin_eind_rel              := rlookup(pv_begindatum_key, pv_einddatum_key); //gives the index number of the prev record in the chain. ?? If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+		attribute<.>           pv_eind_begin_rel              := rlookup(pv_einddatum_key, pv_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+
+		// initiele classificatie
+		attribute<USF>         i0_usf_rel_of_prev_in_chain      := not(IsDefined(i0_usf_rel[pv_begin_eind_rel])) ? i0_usf_rel : i0_usf_rel[pv_begin_eind_rel];
+		attribute<USF>         i0_usf_rel                       := Condensed_BAG_Table_obv_USF_path/usf_rel;
+		attribute<USF>         i0_usf_rel_of_next_in_chain      := not(IsDefined(i0_usf_rel[pv_eind_begin_rel])) && einddatum == /Brondata/BAG/VolledigeBAG/MaxDatum ? i0_usf_rel : i0_usf_rel[pv_eind_begin_rel];
+		
+		// genereer nieuwe usf_key om utusf te bepalen.
+		attribute<string>      i0_tusf_key                      := string(i0_usf_rel) + '_' + string(i0_usf_rel_of_next_in_chain); //fka i0_rt_key
+		attribute<tusf>        i0_tusf_rel                      := rlookup(i0_tusf_key, tusf/key); // fka i0_rt_rel
+		
+		attribute<utusf>       i0_utusf_rel_of_prev_in_chain    := i0_utusf_rel[pv_begin_eind_rel]; // fka i0_urt_rel_of_prev_in_chain
+		attribute<utusf>       i0_utusf_rel                     := tusf/utusf_rel[i0_tusf_rel]; // fka i0_urt_rel
+		attribute<utusf>       i0_utusf_rel_of_next_in_chain    := i0_utusf_rel[pv_eind_begin_rel]; // fka i0_urt_rel_of_next_in_chain
+		
+		attribute<string>      i0_tutusf_key                    := string(i0_utusf_rel) + '_' + string(i0_utusf_rel_of_next_in_chain); 
+		attribute<tutusf>      i0_tutusf_rel                    := rlookup(i0_tutusf_key, tutusf/key);
+		
+		// deze worden geherclassificeerd, zodat utusf in iter 2 juist wordt.
+		attribute<USF>         i1_usf_rel                       := switch(
+																	// wat als een valide mutatie in de keten is onderbroken door een onjuiste mutatie?
+																	 case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_A_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_V,    USF/V/Woning_in_aanbouw)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_V_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_S,    USF/V/Woning_in_voorraad) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_A_to_NW_Onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_aanbouw)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_in_voorraad) 
+																	
+																	// ,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_in_voorraad)  
+																	
+																	// wat als het onderbroken is door een onjuiste mutatie?
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_S_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_S,    USF/V/Woning_is_gesloopt)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_A_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_A,    USF/V/Woning_in_aanbouw)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_V_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_V,    USF/V/Woning_in_voorraad)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_O_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_O,    USF/V/Woning_is_onttrokken) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/W_T_to_W_onjuist       && i0_utusf_rel                  == utusf/V/W_Onjuist_to_W_T,    USF/V/Woning_wordt_toegevoegd) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_S_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_A_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_A,  USF/V/NietWoning_in_aanbouw)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_O_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_O,  USF/V/NietWoning_is_onttrokken) 
+																	,case(i0_utusf_rel_of_prev_in_chain == utusf/V/NW_T_to_NW_onjuist     && i0_utusf_rel                  == utusf/V/NW_Onjuist_to_NW_T,  USF/V/NietWoning_wordt_toegevoegd) 
+																	
+																	,i0_usf_rel
+																	);
+																	
+		// deze worden geherclassificeerd, zodat utusf in iter 2 juist wordt.
+		attribute<USF>         i1_usf_rel_of_next_in_chain      := switch(
+																	// wat als een valide mutatie in de keten is onderbroken door een onjuiste mutatie?
+																	 case(i0_utusf_rel                  == utusf/V/W_A_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_V,   USF/V/Woning_in_voorraad)      // dan gaat het wel van aanbouw naar voorraad
+																	,case(i0_utusf_rel                  == utusf/V/W_V_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_S,   USF/V/Woning_is_gesloopt)         // dan gaat het wel van voorraad naar sloop
+																	,case(i0_utusf_rel                  == utusf/V/NW_A_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  // dan gaat het wel van aanbouw naar voorraad
+																	,case(i0_utusf_rel                  == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)     // dan gaat het wel van voorraad naar sloop
+																	 
+																	// wat als het onderbroken is door een onjuiste mutatie?
+																	,case(i0_utusf_rel                  == utusf/V/W_S_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_S,   USF/V/Woning_is_gesloopt)         // dan is het nog steeds gesloopt
+																	,case(i0_utusf_rel                  == utusf/V/W_A_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_A,   USF/V/Woning_in_aanbouw)       // dan is het nog steeds in aanbouw
+																	,case(i0_utusf_rel                  == utusf/V/W_V_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_V,   USF/V/Woning_in_voorraad)      // dan is het nog steeds in voorraad
+																	,case(i0_utusf_rel                  == utusf/V/W_O_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_O,   USF/V/Woning_is_onttrokken)      // dan is het nog steeds onttrokking
+																	,case(i0_utusf_rel                  == utusf/V/W_T_to_W_onjuist       && i0_utusf_rel_of_next_in_chain == utusf/V/W_Onjuist_to_W_T,   USF/V/Woning_wordt_toegevoegd)       // dan is het nog steeds toevoeging
+																	,case(i0_utusf_rel                  == utusf/V/NW_S_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_S,  USF/V/NietWoning_is_gesloopt)     // dan is het nog steeds gesloopt
+																	,case(i0_utusf_rel                  == utusf/V/NW_A_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_A,  USF/V/NietWoning_in_aanbouw)   // dan is het nog steeds in aanbouw
+																	,case(i0_utusf_rel                  == utusf/V/NW_V_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_V,  USF/V/NietWoning_in_voorraad)  // dan is het nog steeds in voorraad
+																	,case(i0_utusf_rel                  == utusf/V/NW_O_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_O,  USF/V/NietWoning_is_onttrokken)  // dan is het nog steeds onttrokking
+																	,case(i0_utusf_rel                  == utusf/V/NW_T_to_NW_onjuist     && i0_utusf_rel_of_next_in_chain == utusf/V/NW_Onjuist_to_NW_T,  USF/V/NietWoning_wordt_toegevoegd)   // dan is het nog steeds toevoeging
+																	
+																	,i0_usf_rel_of_next_in_chain
+																	);
+		// genereer nieuwe usf_key om utusf te bepalen.
+		attribute<string>      i1_tusf_key                        := string(i1_usf_rel) + '_' + string(i1_usf_rel_of_next_in_chain);
+		attribute<tusf>        i1_tusf_rel                        := rlookup(i1_tusf_key, tusf/key);
+		
+		attribute<utusf>       i1_utusf_rel_of_prev_in_chain      := i1_utusf_rel[pv_begin_eind_rel];
+		attribute<utusf>       i1_utusf_rel                       := tusf/utusf_rel[i1_tusf_rel];
+		attribute<utusf>       i1_utusf_rel_of_next_in_chain      := i1_utusf_rel[pv_eind_begin_rel];
+		
+		attribute<string>      i1_tutusf_key                      := string(i1_utusf_rel) + '_' + string(i1_utusf_rel_of_next_in_chain); 
+		attribute<tutusf>      i1_tutusf_rel                      := rlookup(i1_tutusf_key, tutusf/key);
+		
+		// apply clean up criteria
+		attribute<utusf>       i2_utusf_rel                       := IsDefined(tutusf/new_from_UTUSF[i1_tutusf_rel]) ? tutusf/new_from_UTUSF[i1_tutusf_rel] : i1_utusf_rel;
+		attribute<utusf>       i3_utusf_rel                       := IsDefined(tutusf/new_to_UTUSF[i1_tutusf_rel]) ? tutusf/new_to_UTUSF[i1_tutusf_rel] : i2_utusf_rel;
+
+		////////////////////////////////////////////
+		attribute<USF>         last_usf_rel                       := i1_usf_rel;
+		attribute<utusf>       last_utusf_rel                     := i3_utusf_rel;
+
+		attribute<string>      pv_utusf_begindatum_key          := pv_key +'_'+ string(last_utusf_rel) +'_'+ string(begindatum);
+		attribute<string>      pv_utusf_einddatum_key           := pv_key +'_'+ string(last_utusf_rel) +'_'+ string(einddatum);
+		attribute<.>           pv_utusf_eind_begin_rel          := rlookup(pv_utusf_einddatum_key, pv_utusf_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+
+		container Condense_based_on_utusf := Condense_T(Condensed_BAG_Table_obv_USF, Condensed_BAG_Table_obv_USF/pv_utusf_eind_begin_rel);
+	}
+
+	unit<uint32> Condensed_BAG_Table_obv_utusf_path := Condensed_BAG_Table_obv_USF/Condense_based_on_utusf/SelectChainEndPoints;
+	unit<uint32> Condensed_BAG_Table_obv_utusf      := Condensed_BAG_Table_obv_utusf_path, using = "AdditionalClassifications" 
+	{
+		attribute<rdc>         geometry                         := Condensed_BAG_Table_obv_utusf_path/geometry;
+		attribute<int32>       begindatum                       := Condensed_BAG_Table_obv_utusf_path/begindatum;
+		attribute<int32>       einddatum                        := Condensed_BAG_Table_obv_utusf_path/einddatum;
+
+		attribute<uint64>      pand_bag_nr                      := Condensed_BAG_Table_obv_utusf_path/pand_bag_nr;
+		attribute<uint64>      vbo_bag_nr                       := Condensed_BAG_Table_obv_utusf_path/vbo_bag_nr;
+		
+		attribute<FunctieK>    functie_rel                      := Condensed_BAG_Table_obv_utusf_path/functie_rel;
+		attribute<VoorraadK>   vbo_voorraad_rel                 := Condensed_BAG_Table_obv_utusf_path/vbo_voorraad_rel;
+		attribute<VoorraadK>   pand_voorraad_rel                := Condensed_BAG_Table_obv_utusf_path/pand_voorraad_rel;
+		
+		//keys
+		attribute<string>      pv_begindatum_key                := string(pand_bag_nr) +'_'+ string(vbo_bag_nr) +'_'+ string(begindatum);
+		attribute<string>      pv_einddatum_key                 := string(pand_bag_nr) +'_'+ string(vbo_bag_nr) +'_'+ string(einddatum);
+		attribute<.>           pv_begin_eind_rel                := rlookup(pv_begindatum_key, pv_einddatum_key); //gives the index number of the prev record in the chain. ?? If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+		attribute<.>           pv_eind_begin_rel                := rlookup(pv_einddatum_key, pv_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+
+		// initiele classificatie
+		// usf wordt hier niet meer gebruikt, enkel als illustratie
+		attribute<USF>         i0_usf_rel_of_prev_in_chain      := not(IsDefined(i0_usf_rel[pv_begin_eind_rel])) ? i0_usf_rel : i0_usf_rel[pv_begin_eind_rel];
+		attribute<USF>         i0_usf_rel                       := Condensed_BAG_Table_obv_utusf_path/usf_rel;
+		attribute<USF>         i0_usf_rel_of_next_in_chain      := not(IsDefined(i0_usf_rel[pv_eind_begin_rel])) && einddatum == /Brondata/BAG/VolledigeBAG/MaxDatum ? i0_usf_rel : i0_usf_rel[pv_eind_begin_rel];
+
+		// utusf uit vorige stap
+		attribute<UTUSF>       i0_utusf_rel_of_prev_in_chain      := i0_utusf_rel[pv_begin_eind_rel];
+		attribute<UTUSF>       i0_utusf_rel                       := Condensed_BAG_Table_obv_utusf_path/utusf_rel;
+		attribute<UTUSF>       i0_utusf_rel_of_next_in_chain      := i0_utusf_rel[pv_eind_begin_rel];
+		
+		attribute<string>      i0_tutusf_key                      := string(i0_utusf_rel) + '_' + string(i0_utusf_rel_of_next_in_chain); 
+		attribute<tutusf>      i0_tutusf_rel                      := rlookup(i0_tutusf_key, tutusf/key);
+		
+		// apply clean up criteria
+		attribute<UTUSF>       i1_utusf_rel_of_prev_in_chain      := i1_utusf_rel[pv_begin_eind_rel];
+		attribute<utusf>       i1_utusf_rel                       := IsDefined(tutusf/new_from_UTUSF[i0_tutusf_rel]) ? tutusf/new_from_UTUSF[i0_tutusf_rel] : i0_utusf_rel;
+		
+		attribute<UTUSF>       i2_utusf_rel_of_prev_in_chain      := i2_utusf_rel[pv_begin_eind_rel];
+		attribute<utusf>       i2_utusf_rel                       := IsDefined(tutusf/new_to_UTUSF[i0_tutusf_rel]) ? tutusf/new_to_UTUSF[i0_tutusf_rel] : i1_utusf_rel;
+		attribute<UTUSF>       i2_utusf_rel_of_next_in_chain      := i2_utusf_rel[pv_eind_begin_rel];
+		
+		attribute<UTUSF>       i3_utusf_rel                       := i2_utusf_rel_of_prev_in_chain == i2_utusf_rel_of_next_in_chain ? i2_utusf_rel_of_next_in_chain : i2_utusf_rel;
+		
+		attribute<USF>         last_usf_rel                       := i0_usf_rel;
+		attribute<utusf>       last_utusf_rel                     := i3_utusf_rel;
+		
+		attribute<string>      pv_key                             := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
+		
+		attribute<string>      pv_utusf_begindatum_key            := pv_key +'_'+ string(last_utusf_rel) +'_'+ string(begindatum);
+		attribute<string>      pv_utusf_einddatum_key             := pv_key +'_'+ string(last_utusf_rel) +'_'+ string(einddatum);
+		attribute<.>           pv_utusf_eind_begin_rel            := rlookup(pv_utusf_einddatum_key, pv_utusf_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id/usf_rel)
+		
+		container Condense_based_on_utusf2 := Condense_T(Condensed_BAG_Table_obv_utusf, Condensed_BAG_Table_obv_utusf/pv_utusf_eind_begin_rel);
+	}
+
+	unit<uint32> Condensed_BAG_Table_obv_utusf2_path := Condensed_BAG_Table_obv_utusf/Condense_based_on_utusf2/SelectChainEndPoints;
+	unit<uint32> Condensed_BAG_Table_obv_utusf2      := Condensed_BAG_Table_obv_utusf2_path, using = "AdditionalClassifications" 
+	{
+		attribute<rdc>         geometry                         := Condensed_BAG_Table_obv_utusf2_path/geometry;
+		attribute<rdc>         pand_geometry (poly)             := Condensed_BAG_Table_obv_utusf2_path/pand_geometry;
+		attribute<int32>       begindatum                       := Condensed_BAG_Table_obv_utusf2_path/begindatum;
+		attribute<int32>       einddatum                        := Condensed_BAG_Table_obv_utusf2_path/einddatum;
+
+		attribute<FunctieK>    functie_rel                      := Condensed_BAG_Table_obv_utusf2_path/functie_rel;
+		attribute<VoorraadK>   vbo_voorraad_rel                 := Condensed_BAG_Table_obv_utusf2_path/vbo_voorraad_rel;
+		attribute<VoorraadK>   pand_voorraad_rel                := Condensed_BAG_Table_obv_utusf2_path/pand_voorraad_rel;
+
+		attribute<bool>        VBO_IsVoorraad                   := vbo_voorraad_rel == VoorraadK/V/in_voorraad;
+		attribute<bool>        Pand_IsVoorraad                  := pand_voorraad_rel == VoorraadK/V/in_voorraad;
+		attribute<bool>        IsWonen                          := functie_rel == FunctieK/v/wonen;
+
+		attribute<uint64>      pand_bag_nr                      := Condensed_BAG_Table_obv_utusf2_path/pand_bag_nr;
+		attribute<uint64>      vbo_bag_nr                       := Condensed_BAG_Table_obv_utusf2_path/vbo_bag_nr;
+		
+		attribute<string>      pv_begindatum_key                := string(pand_bag_nr) +'_'+ string(vbo_bag_nr) +'_'+ string(begindatum);
+		
+		attribute<USF>         last_usf_rel                     := Condensed_BAG_Table_obv_utusf2_path/usf_rel;
+		attribute<utusf>       last_utusf_rel                   := Condensed_BAG_Table_obv_utusf2_path/utusf_rel;
+		
+		attribute<utusf/UqMainClass> MainUTUSFclass_rel         := utusf/UqMainClass_rel[last_utusf_rel];
+		
+		parameter<int32>       PrikMoment                       := 20220101i;
+		attribute<bool>        ActiefOp20220101                 := VBO_IsVoorraad
+																	// && Pand_IsVoorraad
+																	&& IsWonen 
+																	&& begindatum <= PrikMoment 
+																	&& einddatum > PrikMoment;
+	}
+}

@@ -132,6 +132,7 @@ container Redev: isHidden = "True", using = "eenheden"
 	unit<uint8> Woon_NietWoon : nrofrows = 2
 	{
 		attribute<string> name : ['Woon','NietWoon'];
+		attribute<string> name_short : ['W','NW'];
 		attribute<string> Label    := name, DialogType = "LabelText";
 		
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
@@ -150,13 +151,20 @@ container Redev: isHidden = "True", using = "eenheden"
 	unit<uint8> RedevSub_Types := combine_uint8(Woon_NietWoon, RedevMainTypes)
 	{
 		attribute<string> WoonNietWoon := Woon_NietWoon/name[first_rel];
+		attribute<string> WoonNietWoon_short := Woon_NietWoon/name_short[first_rel];
 		attribute<string> MainTypes    := RedevMainTypes/name[second_rel];
 		attribute<bool>   IsNegative   := MainTypes == 'Onveranderd' ? FALSE : WoonNietWoon == 'NietWoon' && MainTypes == 'Transformatie' ? TRUE : WoonNietWoon == 'NietWoon' ? FALSE : RedevMainTypes/IsNegative[second_rel];
 		attribute<bool>   IsPositive   := MainTypes == 'Onveranderd' ? FALSE : WoonNietWoon == 'NietWoon' ? FALSE : RedevMainTypes/IsPositive[second_rel];
 		attribute<string> Sub_Types    := MainTypes + '_' + WoonNietWoon;
 		attribute<string> Label        := Sub_Types, DialogType = "LabelText";
 		
-		
+		attribute<string> utusf_name   := MainTypes == 'Onveranderd' 
+											? WoonNietWoon_short + '_V_' + MainTypes 
+											: MainTypes == 'Transformatie'  && WoonNietWoon_short == 'W'
+												? 'NWW_Transformatie'
+												: MainTypes == 'Transformatie'  && WoonNietWoon_short == 'NW'
+													? 'WNW_Transformatie'
+													: WoonNietWoon_short + '_' + MainTypes;
 	}
 	unit<uint8> RedevSubMixed_Types : nrofrows = 5
 	{

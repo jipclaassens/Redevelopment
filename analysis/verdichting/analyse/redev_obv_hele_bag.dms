@@ -3,7 +3,7 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 	unit<uint32>      Perceel             := Brondata/BRK/Perceel/inAggl_zonderwegen/Read_Union_Aggl ;
 	
 	#include<PrepBAG.dms>
-	unit<uint32> Results := PrepBAG/Condensed_BAG_Table_obv_utusf2;
+	// unit<uint32> Results := PrepBAG/Condensed_BAG_Table_obv_utusf2;
 	
 	// unit<uint32> Voorraad_op_20220101 := select_with_attr_by_cond(BAG_Tabel,BAG_Tabel/ActiefOp20220101)
 	// {
@@ -15,31 +15,31 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 			// attribute<uint32> count_duplicates := pcount(uqGeom_rel);
 		// }
 	// }	
-	container PerJaar := 
-		for_each_ne(
-			AdditionalClassifications/Jaren/name
-			, 'PrepBAG_PerJaar_T('+quote(string(id(AdditionalClassifications/Jaren)))+')'
-		);
+	// container PerJaar := 
+		// for_each_ne(
+			// AdditionalClassifications/Jaren/name
+			// , 'PrepBAG_PerJaar_T('+quote(string(id(AdditionalClassifications/Jaren)))+')'
+		// );
 	
-	container Results_per_jaar :=  
-		for_each_nedv(
-			AdditionalClassifications/Jaren/name
-			, 'union_data(AdditionalClassifications/utusf/UqMainClass,'+replace(AsItemList('PerJaar/@YR@/select/Main_utusf_Counts/'+AdditionalClassifications/utusf/UqMainClass/label),'@YR@', AdditionalClassifications/Jaren/Name)+')'
-			, AdditionalClassifications/utusf/UqMainClass
-			, uint32
-		)
-	{
-		attribute<string> name (AdditionalClassifications/utusf/UqMainClass) := AdditionalClassifications/utusf/UqMainClass/label;
-	}
+	// container Results_per_jaar :=  
+		// for_each_nedv(
+			// AdditionalClassifications/Jaren/name
+			// , 'union_data(AdditionalClassifications/utusf/UqMainClass,'+replace(AsItemList('PerJaar/@YR@/select/Main_utusf_Counts/'+AdditionalClassifications/utusf/UqMainClass/label),'@YR@', AdditionalClassifications/Jaren/Name)+')'
+			// , AdditionalClassifications/utusf/UqMainClass
+			// , uint32
+		// )
+	// {
+		// attribute<string> name (AdditionalClassifications/utusf/UqMainClass) := AdditionalClassifications/utusf/UqMainClass/label;
+	// }
 		
 	
-	container PrepDomains := 
-		for_each_ne(
-			Redev/RedevSub_Types/utusf_name
-			, 'PrepDomains_T('+quote(Redev/RedevSub_Types/utusf_name)+')'
-		);
+	// container PrepDomains := 
+		// for_each_ne(
+			// Redev/RedevSub_Types/utusf_name
+			// , 'PrepDomains_T('+quote(Redev/RedevSub_Types/utusf_name)+')'
+		// );
 		
-	#include<AdditionalOperations.dms>
+	// #include<AdditionalOperations.dms>
 	
 	Template PrepDomains_T
 	{
@@ -137,23 +137,24 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 			attribute<rdc>         pand_geometry (poly)           := org_rel -> pand_geometry;
 			attribute<int32>       begindatum                     := min(src/begindatum, per_src_Tabel);
 			attribute<int32>       einddatum                      := org_rel -> einddatum;
+			attribute<jaar>        pand_bouwjaar                  := org_rel -> pand_bouwjaar;
 
-			attribute<bool>        IsOnlyInChain                  := src/IsOnlyInChain[org_rel];
-			attribute<bool>        IsFirstInChain                 := src/IsFirstInChain[org_rel];
-			attribute<bool>        IsLastInChain                 := src/IsLastInChain[org_rel];
+			// attribute<bool>        IsOnlyInChain                  := src/IsOnlyInChain[org_rel];
+			// attribute<bool>        IsFirstInChain                 := src/IsFirstInChain[org_rel];
+			// attribute<bool>        IsLastInChain                  := src/IsLastInChain[org_rel];
 
-			attribute<AdditionalClassifications/FunctieK>    functie_rel                    := src/functie_rel[org_rel];
-			attribute<AdditionalClassifications/VoorraadK>   vbo_voorraad_rel               := src/vbo_voorraad_rel[org_rel];
-			attribute<AdditionalClassifications/VoorraadK>   pand_voorraad_rel              := src/pand_voorraad_rel[org_rel];
+			// attribute<AdditionalClassifications/FunctieK>    functie_rel                    := src/functie_rel[org_rel];
+			// attribute<AdditionalClassifications/VoorraadK>   vbo_voorraad_rel               := src/vbo_voorraad_rel[org_rel];
+			// attribute<AdditionalClassifications/VoorraadK>   pand_voorraad_rel              := src/pand_voorraad_rel[org_rel];
 
 			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
 			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
 			attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
 			attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
-			attribute<uint16>      vbo_functie_code               := org_rel -> vbo_functie_code;
-			
-			attribute<USF>         usf_rel                        := src/usf_rel[org_rel];
-			attribute<utusf>       utusf_rel                        := src/last_utusf_rel[org_rel];
+			// attribute<uint16>      vbo_functie_code               := org_rel -> vbo_functie_code;
+			attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel      := org_rel -> gebruiksdoel_rel;
+			// attribute<USF>         usf_rel                        := src/usf_rel[org_rel];
+			// attribute<utusf>       utusf_rel                        := src/last_utusf_rel[org_rel];
 			
 			attribute<.>           per_src_Tabel (src) := invert(org_rel)[SelectOnlyObjectWithChainRel/OnlyOrLastInChain_rel];
 		}

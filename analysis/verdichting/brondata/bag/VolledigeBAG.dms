@@ -15,6 +15,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 		attribute<rdc>         pand_geometry (poly)           := panden/pand/geometry[nr_2_rel];
 		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[nr_2_rel];
 		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[nr_1_rel];
+		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar[nr_2_rel];
 		
 		attribute<int32>       pand_begindatum                := panden/pand/begindatum[nr_2_rel];
 		attribute<int32>       pand_einddatum                 := panden/pand/einddatum[nr_2_rel];
@@ -24,6 +25,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 		attribute<pand_status> pand_status_rel                := panden/pand/status_rel[nr_2_rel];
 		attribute<vbo_status>  vbo_status_rel                 := vbos/vbo/status_rel[nr_1_rel];
 		attribute<uint16>      vbo_functie_code               := vbos/vbo/functie_code[nr_1_rel];
+		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel         := rlookup(impl/gebruiksdoel, vbo_gebruiksdoel_ext/name);
 		
 		attribute<string>      pand_vbo_key                   := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
 		attribute<string>      pand_vbo_status_key            := string(pand_status_rel) + '_' + string(vbo_status_rel);
@@ -48,9 +50,10 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
 			attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
 			attribute<uint16>      vbo_functie_code               := org_rel -> vbo_functie_code;
-		
+			attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel      := org_rel -> gebruiksdoel_rel;
 			attribute<int32>       begindatum                     := max_elem(pand_begindatum, vbo_begindatum);
 			attribute<int32>       einddatum                      := min_elem(pand_einddatum, vbo_einddatum);
+			attribute<jaar>        pand_bouwjaar                  := org_rel -> pand_bouwjaar;
 			
 			attribute<string>      pv_key                         := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
 			attribute<string>      status_key                     := string(pand_status_rel) + '_' + string(vbo_status_rel);
@@ -63,36 +66,50 @@ container VolledigeBAG : using = "typeringen/BAG"
 		
 		container Condense_based_on_SF := Analyse/Redev_obv_hele_bag/Condense_T(SelectNonOverlappingPeriods, SelectNonOverlappingPeriods/pv_sf_eind_begin_rel);
 		
-		//We need to identify records that are part of a chain of mutations. So that we use the service_area()-operator to find the first record of a mutation chain per pv_id. 
-		// unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(SelectNonOverlappingPeriods/pv_isd_eind_begin_rel))
-		// {
-			// attribute<SelectNonOverlappingPeriods> F1                                                := org_rel;
-			// attribute<SelectNonOverlappingPeriods> F2                                                := org_rel -> pv_isd_eind_begin_rel;
-			// attribute<.>                           TraceBack           (SelectNonOverlappingPeriods) := invert(org_rel);
-			// attribute<SelectNonOverlappingPeriods> ServiceArea         (SelectNonOverlappingPeriods) := service_area(F1, F2, TraceBack);
-			// attribute<bool>                        IsOnlyOrLastInChain (SelectNonOverlappingPeriods) := id(SelectNonOverlappingPeriods) == ServiceArea;
-		// }
-
-		//We only need to keep the record if it is the only one in a chain or if it is the last in a chain. All intermediate records hold no value for us. Additionally we need to update the begindatum of the first one of the chain.
-		// unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
-		// {
-			// attribute<rdc>         geometry                       := org_rel -> geometry;
-			// attribute<int32>       begindatum                     := min(SelectNonOverlappingPeriods/begindatum, per_SelectNonOverlappingPeriods);
-			// attribute<int32>       einddatum                      := org_rel -> einddatum;
+		container impl
+		{
+			container gebruiksdoelen :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'bitand(vbo_functie_code,vbo_gebruiksdoel/V/'+vbo_gebruiksdoel/name+'->functie_code) > 0w' 
+					, Historische_Join
+					, bool
+				);
 			
-			// attribute<string>      old_pv_isd_begindatum_key      := org_rel -> pv_isd_begindatum_key;
-			// attribute<string>      old_pv_isd_einddatum_key       := org_rel -> pv_isd_einddatum_key;
+			container gebruiksdoelen_cbs
+			{
+				attribute<bool>   utiliteit         (...) := ='('+AsList('gebruiksdoelen/'+vbo_gebruiksdoel/Utiliteiten/name, ' || ')+') && !woon';
+				attribute<uint32> Count_Utiliteiten (...) := =AsList('gebruiksdoelen/'+vbo_gebruiksdoel/Utiliteiten/name+'[uint32]', ' + ');
+				
+				attribute<bool>   bijeenkomst       (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/bijeenkomst;
+				attribute<bool>   cel               (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/cel;
+				attribute<bool>   gezondheidszorg   (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/gezondheidszorg;
+				attribute<bool>   industrie         (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/industrie;
+				attribute<bool>   kantoor           (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/kantoor;
+				attribute<bool>   logies            (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/logies;
+				attribute<bool>   onderwijs         (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/onderwijs;
+				attribute<bool>   overige_gebruiks  (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/overige_gebruiks;
+				attribute<bool>   sport             (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/sport;
+				attribute<bool>   winkel            (...) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/winkel;
+				attribute<bool>   woon              (...) := gebruiksdoelen/woon;
+				attribute<bool>   utiliteit_combi   (...) := !woon && Count_Utiliteiten > 1;
+			}
 			
-			// attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
-			// attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
-			// attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
-			// attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
-			// attribute<uint16>      vbo_functie_code               := org_rel -> vbo_functie_code;
-			
-			// attribute<.>           per_SelectNonOverlappingPeriods (SelectNonOverlappingPeriods) := invert(org_rel)[SelectOnlyObjectWithChainRel/ServiceArea];
-		// }
-		
-		
+			attribute<string> gebruiksdoel (..) := switch(
+													 case(gebruiksdoelen_cbs/woon, 'woon')
+													, case(gebruiksdoelen_cbs/bijeenkomst, 'bijeenkomst')
+													, case(gebruiksdoelen_cbs/cel, 'cel')
+													, case(gebruiksdoelen_cbs/gezondheidszorg, 'gezondheidszorg')
+													, case(gebruiksdoelen_cbs/industrie, 'industrie')
+													, case(gebruiksdoelen_cbs/kantoor, 'kantoor')
+													, case(gebruiksdoelen_cbs/logies, 'logies')
+													, case(gebruiksdoelen_cbs/onderwijs, 'onderwijs')
+													, case(gebruiksdoelen_cbs/overige_gebruiks, 'overige_gebruiks')
+													, case(gebruiksdoelen_cbs/sport, 'sport')
+													, case(gebruiksdoelen_cbs/winkel, 'winkel')
+													, 'utiliteit_combi'
+													);
+		}
 	}
 	
 	container panden
@@ -118,7 +135,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			
 			attribute<int32>                        begindatum                   := impl/begindatum0 < 19600101i ? impl/TIJDSTIPREGISTRATIE : impl/begindatum0;
 			attribute<int32>                        einddatum                    := impl/einddatum0 < 19600101i ? impl/EINDREGISTRATIE : impl/einddatum0;
-			
+			attribute<jaar>                         bouwjaar                     := import/bouwjaar;
 			
 			unit<uint32> impl := .
 			{
@@ -158,7 +175,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<rdc>                        geometry; 
 			attribute<string>                     identificatie;
 			// attribute<int32>                      oppervlakte;
-			// attribute<string>                     nummeraanduiding_id;
+			attribute<string>                     nummeraanduiding_id;
 			
 			unit<uint32> gerelateerdPand
 			{

@@ -119,9 +119,12 @@ container BAG: using = "eenheden"
 	{
 		attribute<string>    label      : ['Bouw gestart','Bouwvergunning verleend','Niet gerealiseerd pand','Pand buiten gebruik','Pand gesloopt','Pand in gebruik','Pand in gebruik (niet ingemeten)','Sloopvergunning verleend','Pand ten onrechte opgevoerd','Verbouwing pand'], DialogType = "LabelText";
 		attribute<string>    name       := replace(label, ' ', '_', '-', '_', '(', '', ')', '');
-		attribute<bool>      IsInAanbouw   : [TRUE,   TRUE,  FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
-		attribute<bool>      IsVoorraad    : [FALSE,  FALSE, FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
-		attribute<bool>      IsIngetrokken : [FALSE,  FALSE, TRUE,  FALSE, TRUE,  FALSE, FALSE, TRUE,  TRUE,  FALSE];
+		attribute<bool>      IsInPlanvorming : [FALSE,  TRUE,  TRUE,  FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
+		attribute<bool>      IsInAanbouw     : [TRUE,   FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
+		attribute<bool>      IsInGebruik     : [FALSE,  FALSE, FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
+		attribute<bool>      IsVoorraad      : [FALSE,  FALSE, FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
+		attribute<bool>      IsIngetrokken   : [FALSE,  FALSE, TRUE,  FALSE, TRUE,  FALSE, FALSE, TRUE,  TRUE,  FALSE];
+		attribute<bool>      IsInSloop       : [FALSE,  FALSE, FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE,  TRUE,  FALSE];
 		
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
@@ -132,9 +135,12 @@ container BAG: using = "eenheden"
 		attribute<string>    name        := replace(label, ' ', '_', '-', '_', '(', '', ')', '');
 		attribute<string>    name_short  := AsItemName(label_short);
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-		attribute<bool>      IsInAanbouw   : [FALSE, FALSE, TRUE,  FALSE, FALSE, FALSE, FALSE, FALSE];
-		attribute<bool>      IsVoorraad    : [FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
-		attribute<bool>      IsIngetrokken : [TRUE,  FALSE, FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE];
+		attribute<bool>      IsInPlanvorming : [TRUE,  FALSE, TRUE,  FALSE, FALSE, FALSE, FALSE, FALSE];
+		attribute<bool>      IsInAanbouw     : [FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
+		attribute<bool>      IsInGebruik     : [FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
+		attribute<bool>      IsVoorraad      : [FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
+		attribute<bool>      IsIngetrokken   : [TRUE,  FALSE, FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE];
+		attribute<bool>      IsInSloop       : [FALSE, TRUE,  FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE];
 	}
 	
 	unit<uint8> nummeraanduiding_status : nrofrows = 3

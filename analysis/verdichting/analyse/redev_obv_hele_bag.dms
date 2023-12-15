@@ -1,166 +1,130 @@
 container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;typeringen/redev;typeringen/tijd;geometries"
 {
-	unit<uint32>      Perceel             := Brondata/BRK/Perceel/inAggl_zonderwegen/Read_Union_Aggl ;
+	unit<uint32>      Perceel             := /Brondata/BRK/Perceel_minus_Roads_CombinedFromCOROP;
+	unit<uint32>      RegioUnit_Gem_oud   := /Brondata/RegioIndelingen/Gemeente_oud;
 	
 	#include<PrepBAG.dms>
-	// unit<uint32> Results := PrepBAG/Condensed_BAG_Table_obv_utusf2;
 	
-	// unit<uint32> Voorraad_op_20220101 := select_with_attr_by_cond(BAG_Tabel,BAG_Tabel/ActiefOp20220101)
-	// {
-		// attribute<uq_geom> uqGeom_rel := rlookup(geometry, uq_geom/values);
-		// attribute<uint32>  duplicate_count := uq_geom/count_duplicates[uqGeom_rel];
+	container PrepDomains := 
+		for_each_ne(
+			AdditionalClassifications/MutatieTypen/name
+			, 'PrepDomains_T('+quote(AdditionalClassifications/MutatieTypen/name)+')'
+		)
+	{
+		container Onveranderd
+		{
+			unit<uint32> domain := PrepBAG/BAG_Tabel/Onveranderd_Woon/uq;
+		}
+	}
 		
-		// unit<uint32> uq_geom := unique(geometry)
-		// {
-			// attribute<uint32> count_duplicates := pcount(uqGeom_rel);
-		// }
-	// }	
-	// container PerJaar := 
-		// for_each_ne(
-			// AdditionalClassifications/Jaren/name
-			// , 'PrepBAG_PerJaar_T('+quote(string(id(AdditionalClassifications/Jaren)))+')'
-		// );
+	#include<AdditionalOperations.dms>
 	
-	// container Results_per_jaar :=  
-		// for_each_nedv(
-			// AdditionalClassifications/Jaren/name
-			// , 'union_data(AdditionalClassifications/utusf/UqMainClass,'+replace(AsItemList('PerJaar/@YR@/select/Main_utusf_Counts/'+AdditionalClassifications/utusf/UqMainClass/label),'@YR@', AdditionalClassifications/Jaren/Name)+')'
-			// , AdditionalClassifications/utusf/UqMainClass
-			// , uint32
-		// )
-	// {
-		// attribute<string> name (AdditionalClassifications/utusf/UqMainClass) := AdditionalClassifications/utusf/UqMainClass/label;
-	// }
-		
 	
-	// container PrepDomains := 
-		// for_each_ne(
-			// Redev/RedevSub_Types/utusf_name
-			// , 'PrepDomains_T('+quote(Redev/RedevSub_Types/utusf_name)+')'
-		// );
+	
+	container FinalDomains
+	{
+		unit<uint32> SN_Sites                       := AdditionalOperations/SN/Result;
+		unit<uint32> SN_Sloop_Objecten              := AdditionalOperations/SN/Result/Sloop_Objecten;
+		unit<uint32> SN_Nieuwbouw_Objecten          := AdditionalOperations/SN/Result/Nieuwbouw_Objecten;
 		
-	// #include<AdditionalOperations.dms>
+		unit<uint32> Toevoeging_Sites               := AdditionalOperations/Clustering/T/CleanUp; 
+		unit<uint32> Toevoeging_Objecten            := AdditionalOperations/Clustering/T/CleanUp/Objecten; 
+		
+		unit<uint32> Transformatie_Sites            := AdditionalOperations/Clustering/TMplus/CleanUp;
+		unit<uint32> Transformatie_Objecten         := AdditionalOperations/Clustering/TMplus/CleanUp/Objecten;
+		
+		unit<uint32> Onttrekking_Sites              := AdditionalOperations/Clustering/O/CleanUp;
+		unit<uint32> Onttrekking_Objecten           := AdditionalOperations/Clustering/O/CleanUp/Objecten;
+		
+		unit<uint32> Onveranderd_Sites              := AdditionalOperations/Clustering/Onveranderd/CleanUp;
+		unit<uint32> Onveranderd_Objecten           := AdditionalOperations/Clustering/Onveranderd/CleanUp/Objecten;
+		
+		unit<uint32> Nieuwbouw_OpOnbebouwd_Sites    := AdditionalOperations/Nieuwbouw_Panden_OpOnbebouwd/result;
+		unit<uint32> Nieuwbouw_OpOnbebouwd_Objecten := AdditionalOperations/Nieuwbouw_Panden_OpOnbebouwd/result/Objecten;
+		
+		unit<uint32> Nieuwbouw_OpBebouwd_Sites      := AdditionalOperations/Nieuwbouw_Panden_OpBebouwd/result;
+		unit<uint32> Nieuwbouw_OpBebouwd_Objecten   := AdditionalOperations/Nieuwbouw_Panden_OpBebouwd/result/Objecten;
+	}
+	
+	unit<uint8> Redev_ObjectTypes : nrofrows = 8
+	{
+		attribute<string> name : ['SN_Sloop','SN_Nieuwbouw','Toevoeging','Transformatie','Onttrekking','Onveranderd','Nieuwbouw_OpBebouwd','Nieuwbouw_OpOnbebouwd'];
+		attribute<string> label := name;
+	}
+	unit<uint8> Redev_SiteTypes : nrofrows = 7
+	{
+		attribute<string> name : ['SN','Toevoeging','Transformatie','Onttrekking','Onveranderd','Nieuwbouw_OpBebouwd','Nieuwbouw_OpOnbebouwd'];
+		attribute<string> label := name;
+	}
+	
+	// voeg urbK rel toe
+	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten')+')'
+	, StorageName = "%LocalDataProjDir%/Temp/PerObject_Export.fss"
+	{
+
+		attribute<rdc>              geometry                        := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_geometry')+')';
+		attribute<string>           site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_id')+')';
+		attribute<Redev_ObjectTypes>type_class                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_ObjectTypes/name)+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten)',',')+'), Redev_ObjectTypes/name)';
+		attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point(const('+string(id(Redev_ObjectTypes))+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten), id(FinalDomains/'+Redev_ObjectTypes/name+'_Objecten))',',')+')';
+		attribute<int32>            MutatieMaand                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/MutatieMaand')+')';
+	}
+	
+	unit<uint32> PerSite_Export := ='union_unit('+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites')+')'
+	, StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
+	{
+
+		attribute<rdc>              geometry (poly)                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/geometry')+')';
+		attribute<string>           site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/site_id')+')';
+		attribute<Redev_SiteTypes>  type_class                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_SiteTypes/name)+',FinalDomains/'+Redev_SiteTypes/name+'_Sites)',',')+'), Redev_SiteTypes/name)';
+		attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point(const('+string(id(Redev_SiteTypes))+',FinalDomains/'+Redev_SiteTypes/name+'_Sites), id(FinalDomains/'+Redev_SiteTypes/name+'_Sites))',',')+')';
+	}
+
+	unit<uint32> Read_PerObject_Export
+	: StorageName = "= propvalue(PerObject_Export, 'StorageName')"
+	, StorageReadOnly = "true"
+	{
+		attribute<rdc>              geometry;
+		attribute<string>           site_id;
+		attribute<Redev_ObjectTypes>type_class;
+		attribute<upoint>           fdom_id;
+		attribute<int32>            MutatieMaand;
+		
+		attribute<UrbanisationK>    UrbanisationK_rel                         := Analyse/DetermineUrbanisationK/Urbanisation[point_in_polygon(geometry, RegioUnit_gem_oud/geometry)];
+	}
+	
+	unit<uint32> Read_PerSite_Export
+	: StorageName = "= propvalue(PerSite_Export, 'StorageName')"
+	, StorageReadOnly = "true"
+	{
+		attribute<rdc>              geometry (poly);
+		attribute<string>           site_id;
+		attribute<Redev_SiteTypes>  type_class;
+		attribute<upoint>           fdom_id;
+	}
+
+	
+	#include<AdditionalClassifications.dms>
 	
 	Template PrepDomains_T
 	{
 		parameter<string> name;
-		///
-		unit<uint32> domain     := ='select_with_org_rel(Results/last_utusf_rel == AdditionalClassifications/utusf/v/'+name+')'
+		// /
+		unit<uint32> domain     := ='select_with_org_rel(PrepBAG/FinalMutationTable/MutatieTypen_rel == AdditionalClassifications/MutatieTypen/v/'+name+')'
 		{
 			attribute<rdc>         vbo_geometry                                := org_rel -> geometry;
+			attribute<int32>       MutatieMaand                                := org_rel -> MutatieMaand;
+			attribute<string>      label                                       := org_rel -> string(pand_bag_nr);
 			attribute<rdc>         pand_geometry  (poly)                       := org_rel -> pand_geometry;
-			unit<uint32> overlay_metPercelen               := overlay_polygon(perceel/geometry_mm, pand_geometry[rdc_mm]); //intersect nieuwbouw_perceel_metSloop met gesloopte panden
-		}
-	
-	}
-	
-	Template PrepBAG_PerJaar_T
-	{
-		parameter<string> Jaar_value;
-		///
-		
-		parameter<int32> begin_date := int32(Jaar_value + '0101');
-		parameter<int32> eind_date := int32(Jaar_value + '0101') + 10000i;
-	
-		unit<uint32> Select := select_with_org_rel(Results/begindatum < eind_date && Results/einddatum > begin_date), using = "AdditionalClassifications" 
-		{
-			attribute<rdc>         geometry                       := org_rel -> Results/geometry;
-			attribute<rdc>         pand_geometry (poly)           := org_rel -> Results/pand_geometry;
-			attribute<int32>       begindatum                     := org_rel -> Results/begindatum;
-			attribute<int32>       einddatum                      := org_rel -> Results/einddatum;
-			
-			attribute<string>      pv_begindatum_key              := string(pand_bag_nr) +'_'+ string(vbo_bag_nr) +'_'+ string(begindatum);
-		
-			attribute<int32>       begindatum_trunc               := org_rel -> Results/begindatum;
-			attribute<int32>       einddatum_trunc                := org_rel -> Results/einddatum;
-			
-			attribute<uint64>      pand_bag_nr                    := org_rel -> Results/pand_bag_nr;
-			attribute<uint64>      vbo_bag_nr                     := org_rel -> Results/vbo_bag_nr;
-			attribute<uq_vbo_nr>   uq_vbo_nr_rel := rlookup(vbo_bag_nr, uq_vbo_nr/values);
-			attribute<uint32>      vbo_nr_count                   := pcount(uq_vbo_nr_rel)[uq_vbo_nr_rel];
-			unit<uint32> uq_vbo_nr := unique(vbo_bag_nr)
+			unit<uint32>           overlay_metPercelen                         := overlay_polygon(perceel/geometry[rdc_mm], pand_geometry[rdc_mm]) //intersect nieuwbouw_perceel_metSloop met gesloopte panden
 			{
-			}
-			
-			
-			attribute<USF>         usf_rel                        := org_rel -> Results/last_usf_rel;
-			attribute<utusf>       utusf_rel                      := org_rel -> Results/last_utusf_rel;
-			attribute<utusf/UqMainClass> MainUTUSFclass_rel       := org_rel -> Results/MainUTUSFclass_rel;
-			
-			container utusf_Counts :=
-				for_each_nedv(
-					utusf/name
-					, 'sum(utusf_rel == utusf/V/'+utusf/name+' ? 1 : 0)'
-					, void
-					, uint32
-				);
+				attribute<m2> area_percelen := area(perceel/geometry[rdc], m2)[first_rel];
+				attribute<m2> area_panden   := area(pand_geometry, m2)[second_rel];
 				
-			container Main_utusf_Counts :=
-				for_each_nedv(
-					utusf/UqMainClass/label
-					, 'sum(MainUTUSFclass_rel == utusf/UqMainClass/V/'+utusf/UqMainClass/label+' && vbo_nr_count == 1 ? 1 : 0)'
-					, void
-					, uint32
-				);
-		}
+				attribute<float32> share_pand_op_perceel := area_panden / area_percelen;
+			}
+		} 
 	}
-
-	Template Condense_T
-	{
-		unit<uint32> src;
-		attribute<src> end_to_start_rel (src);
-		attribute<src> start_to_end_rel (src);
-		///
-		
-		//We need to identify records that are part of a chain of mutations. So that we use the service_area()-operator to find the first record of a mutation chain per pv_id. 
-		unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(end_to_start_rel))
-		{
-			attribute<src>          F1                          := org_rel;
-			attribute<src>          F2                          := end_to_start_rel[org_rel];
-			attribute<.>            TraceBack             (src) := invert(org_rel);
-			attribute<src>          OnlyOrLastInChain_rel (src) := service_area(F1, F2, TraceBack); //fka ServiceArea
-			attribute<bool>         IsOnlyOrLastInChain   (src) := id(src) == OnlyOrLastInChain_rel;
-		}
-		// unit<uint32> GetFirstInChain     := select_with_org_rel(IsDefined(start_to_end_rel))
-		// {
-			// attribute<src>          F1                        := org_rel;
-			// attribute<src>          F2                        := start_to_end_rel[org_rel];
-			// attribute<.>            TraceBack           (src) := invert(org_rel);
-			// attribute<src>          FirstInChain_rel    (src) := service_area(F1, F2, TraceBack);
-			// attribute<bool>         IsOnlyOrFirstInChain (src) := id(src) == FirstInChain_rel;
-		// }
-		
-		//We only need to keep the record if it is the only one in a chain or if it is the last in a chain. All intermediate records hold no value for us. Additionally we need to update the startdate of the first one of the chain.
-		unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
-		{
-			attribute<rdc>         geometry                       := org_rel -> geometry;
-			attribute<rdc>         pand_geometry (poly)           := org_rel -> pand_geometry;
-			attribute<int32>       begindatum                     := min(src/begindatum, per_src_Tabel);
-			attribute<int32>       einddatum                      := org_rel -> einddatum;
-			attribute<jaar>        pand_bouwjaar                  := org_rel -> pand_bouwjaar;
-
-			// attribute<bool>        IsOnlyInChain                  := src/IsOnlyInChain[org_rel];
-			// attribute<bool>        IsFirstInChain                 := src/IsFirstInChain[org_rel];
-			// attribute<bool>        IsLastInChain                  := src/IsLastInChain[org_rel];
-
-			// attribute<AdditionalClassifications/FunctieK>    functie_rel                    := src/functie_rel[org_rel];
-			// attribute<AdditionalClassifications/VoorraadK>   vbo_voorraad_rel               := src/vbo_voorraad_rel[org_rel];
-			// attribute<AdditionalClassifications/VoorraadK>   pand_voorraad_rel              := src/pand_voorraad_rel[org_rel];
-
-			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
-			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
-			attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
-			attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
-			// attribute<uint16>      vbo_functie_code               := org_rel -> vbo_functie_code;
-			attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel      := org_rel -> gebruiksdoel_rel;
-			// attribute<USF>         usf_rel                        := src/usf_rel[org_rel];
-			// attribute<utusf>       utusf_rel                        := src/last_utusf_rel[org_rel];
-			
-			attribute<.>           per_src_Tabel (src) := invert(org_rel)[SelectOnlyObjectWithChainRel/OnlyOrLastInChain_rel];
-		}
-	}
-
-	#include<AdditionalClassifications.dms>
+ 
 }
 
 

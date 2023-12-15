@@ -1,318 +1,29 @@
 container AdditionalClassifications
 {
-	//USF transitions fka RT
-	unit<uint32> TUTUSF := combine_uint32(UTUSF, UTUSF) 
-	, Descr = "transition between transition of unique status x function"
+	unit<uint8> MutatieTypen : nrofrows = 8
 	{
-		attribute<UTUSF>      from_UTUSF        := first_rel;
-		attribute<UTUSF>      to_UTUSF          := second_rel;
-		attribute<string>     key               := string(from_UTUSF) + '_' + string(to_UTUSF);
-		// attribute<UTUSF>      UTUSF_rel       := rlookup(name, UTUSF/name);
-		
-		attribute<UTUSF>      new_from_UTUSF    := switch(
-													// correct voor lagged sloop en nieuwbouw
-													  case(from_UTUSF == utusf/V/NW_Onttrekking        && to_UTUSF == utusf/V/NW_Lagged_P_Sloop,  utusf/V/NW_Sloop)      // NW_Onttrekking gevolgd door NW_LaggedSloop --> is beide sloop
-													, case(from_UTUSF == utusf/V/NW_SkippedOnttrekking && to_UTUSF == utusf/V/NW_Lagged_P_Sloop,  utusf/V/NW_Sloop)
-													, case(from_UTUSF == utusf/V/W_Onttrekking         && to_UTUSF == utusf/V/W_Lagged_P_Sloop,   utusf/V/W_Sloop)       // W_Onttrekking gevolgd door W_LaggedSloop --> is beide sloop
-													, case(from_UTUSF == utusf/V/W_SkippedOnttrekking  && to_UTUSF == utusf/V/W_Lagged_P_Sloop,   utusf/V/W_Sloop)
-													, case(from_UTUSF == utusf/V/NW_Lagged_V_Nieuwbouw && to_UTUSF == utusf/V/NW_Toevoeging,      utusf/V/NW_Nieuwbouw)  // NW_LaggedNieuwbouw gevolgd door NW_Toevoeging --> is beide nieuwbouw
-													, case(from_UTUSF == utusf/V/W_Lagged_V_Nieuwbouw  && to_UTUSF == utusf/V/W_Toevoeging,       utusf/V/W_Nieuwbouw)   // W_LaggedNieuwbouw gevolgd door W_Toevoeging --> is beide nieuwbouw
-													  
-													// correct voor onjuist in tussen periode.
-													, case(from_UTUSF == utusf/V/NW_S_to_NW_Onjuist    && to_UTUSF == utusf/V/NW_Onjuist_to_NW_S, utusf/V/NW_S_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_A_to_NW_Onjuist    && to_UTUSF == utusf/V/NW_Onjuist_to_NW_A, utusf/V/NW_A_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_V_to_NW_Onjuist    && to_UTUSF == utusf/V/NW_Onjuist_to_NW_V, utusf/V/NW_V_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_O_to_NW_Onjuist    && to_UTUSF == utusf/V/NW_Onjuist_to_NW_O, utusf/V/NW_O_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_T_to_NW_Onjuist    && to_UTUSF == utusf/V/NW_Onjuist_to_NW_T, utusf/V/NW_T_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_S_to_NW_Onjuist     && to_UTUSF == utusf/V/NW_Onjuist_to_W_S,  utusf/V/W_S_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_A_to_NW_Onjuist     && to_UTUSF == utusf/V/NW_Onjuist_to_W_A,  utusf/V/W_A_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_V_to_NW_Onjuist     && to_UTUSF == utusf/V/NW_Onjuist_to_W_V,  utusf/V/W_V_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_O_to_NW_Onjuist     && to_UTUSF == utusf/V/NW_Onjuist_to_W_O,  utusf/V/W_O_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_T_to_NW_Onjuist     && to_UTUSF == utusf/V/NW_Onjuist_to_W_T,  utusf/V/W_T_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_S_to_W_Onjuist     && to_UTUSF == utusf/V/W_Onjuist_to_NW_S,  utusf/V/NW_S_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_A_to_W_Onjuist     && to_UTUSF == utusf/V/W_Onjuist_to_NW_A,  utusf/V/NW_A_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_V_to_W_Onjuist     && to_UTUSF == utusf/V/W_Onjuist_to_NW_V,  utusf/V/NW_V_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_O_to_W_Onjuist     && to_UTUSF == utusf/V/W_Onjuist_to_NW_O,  utusf/V/NW_O_Onveranderd)
-													, case(from_UTUSF == utusf/V/NW_T_to_W_Onjuist     && to_UTUSF == utusf/V/W_Onjuist_to_NW_T,  utusf/V/NW_T_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_S_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_S,   utusf/V/W_S_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_A,   utusf/V/W_A_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_V_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_V,   utusf/V/W_V_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_O_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_O,   utusf/V/W_O_Onveranderd)
-													, case(from_UTUSF == utusf/V/W_T_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_T,   utusf/V/W_T_Onveranderd)
-													
-													//correct voor juist overgang, maar onderbroken door een onjuist.
-													, case(from_UTUSF == utusf/V/W_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_S,   utusf/V/W_SkippedSloop)
-													, case(from_UTUSF == utusf/V/W_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_V,   utusf/V/W_Nieuwbouw)
-													, case(from_UTUSF == utusf/V/W_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_O,   utusf/V/W_SkippedOnttrekking)
-													, case(from_UTUSF == utusf/V/W_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_T,   utusf/V/W_Lagged_V_Nieuwbouw)
-													, case(from_UTUSF == utusf/V/W_V_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_S,   utusf/V/W_Sloop)
-													, case(from_UTUSF == utusf/V/W_V_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_O,   utusf/V/W_Onttrekking)
-													, case(from_UTUSF == utusf/V/W_O_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_S,   utusf/V/W_Lagged_P_Sloop)
-													, case(from_UTUSF == utusf/V/W_O_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_T,   utusf/V/W_Correctie)
-													, case(from_UTUSF == utusf/V/W_T_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_S,   utusf/V/W_SkippedSloop)
-													, case(from_UTUSF == utusf/V/W_T_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_V,   utusf/V/W_Toevoeging)
-													, case(from_UTUSF == utusf/V/W_T_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_O,   utusf/V/W_Correctie)
-													, case(from_UTUSF == utusf/V/W_V_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_V,  utusf/V/WNW_Transformatie) 
-													, case(from_UTUSF == utusf/V/NW_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_S,   utusf/V/NW_SkippedSloop)
-													, case(from_UTUSF == utusf/V/NW_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_V,   utusf/V/NW_Nieuwbouw)
-													, case(from_UTUSF == utusf/V/NW_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_O,   utusf/V/NW_SkippedOnttrekking)
-													, case(from_UTUSF == utusf/V/NW_A_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_T,   utusf/V/NW_Lagged_V_Nieuwbouw)
-													, case(from_UTUSF == utusf/V/NW_V_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_S,   utusf/V/NW_Sloop)
-													, case(from_UTUSF == utusf/V/NW_V_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_O,   utusf/V/NW_Onttrekking)
-													, case(from_UTUSF == utusf/V/NW_O_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_S,   utusf/V/NW_Lagged_P_Sloop)
-													, case(from_UTUSF == utusf/V/NW_O_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_T,   utusf/V/NW_Correctie)
-													, case(from_UTUSF == utusf/V/NW_T_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_S,   utusf/V/NW_SkippedSloop)
-													, case(from_UTUSF == utusf/V/NW_T_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_V,   utusf/V/NW_Toevoeging)
-													, case(from_UTUSF == utusf/V/NW_T_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_NW_O,   utusf/V/NW_Correctie)
-													, case(from_UTUSF == utusf/V/NW_V_to_W_Onjuist      && to_UTUSF == utusf/V/W_Onjuist_to_W_V,    utusf/V/NWW_Transformatie)
-													, case(from_UTUSF == utusf/V/W_A_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_S,   utusf/V/W_SkippedSloop)
-													, case(from_UTUSF == utusf/V/W_A_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_V,   utusf/V/W_Nieuwbouw)
-													, case(from_UTUSF == utusf/V/W_A_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_O,   utusf/V/W_SkippedOnttrekking)
-													, case(from_UTUSF == utusf/V/W_A_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_T,   utusf/V/W_Lagged_V_Nieuwbouw)
-													, case(from_UTUSF == utusf/V/W_V_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_S,   utusf/V/W_Sloop)
-													, case(from_UTUSF == utusf/V/W_V_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_O,   utusf/V/W_Onttrekking)
-													, case(from_UTUSF == utusf/V/W_O_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_S,   utusf/V/W_Lagged_P_Sloop)
-													, case(from_UTUSF == utusf/V/W_O_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_T,   utusf/V/W_Correctie)
-													, case(from_UTUSF == utusf/V/W_T_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_S,   utusf/V/W_SkippedSloop)
-													, case(from_UTUSF == utusf/V/W_T_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_V,   utusf/V/W_Toevoeging)
-													, case(from_UTUSF == utusf/V/W_T_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_O,   utusf/V/W_Correctie)
-													, case(from_UTUSF == utusf/V/W_V_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_V,  utusf/V/WNW_Transformatie) 
-													, case(from_UTUSF == utusf/V/NW_A_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_S,   utusf/V/NW_SkippedSloop)
-													, case(from_UTUSF == utusf/V/NW_A_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_V,   utusf/V/NW_Nieuwbouw)
-													, case(from_UTUSF == utusf/V/NW_A_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_O,   utusf/V/NW_SkippedOnttrekking)
-													, case(from_UTUSF == utusf/V/NW_A_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_T,   utusf/V/NW_Lagged_V_Nieuwbouw)
-													, case(from_UTUSF == utusf/V/NW_V_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_S,   utusf/V/NW_Sloop)
-													, case(from_UTUSF == utusf/V/NW_V_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_O,   utusf/V/NW_Onttrekking)
-													, case(from_UTUSF == utusf/V/NW_O_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_S,   utusf/V/NW_Lagged_P_Sloop)
-													, case(from_UTUSF == utusf/V/NW_O_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_T,   utusf/V/NW_Correctie)
-													, case(from_UTUSF == utusf/V/NW_T_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_S,   utusf/V/NW_SkippedSloop)
-													, case(from_UTUSF == utusf/V/NW_T_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_V,   utusf/V/NW_Toevoeging)
-													, case(from_UTUSF == utusf/V/NW_T_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_NW_O,   utusf/V/NW_Correctie)
-													, case(from_UTUSF == utusf/V/NW_V_to_NW_Onjuist      && to_UTUSF == utusf/V/NW_Onjuist_to_W_V,    utusf/V/NWW_Transformatie)
-													
-													, null_b[UTUSF]
-													); 
-													
-		attribute<UTUSF>      new_to_UTUSF      := switch(
-													  case(from_UTUSF == utusf/V/NW_Onttrekking        && to_UTUSF == utusf/V/NW_Lagged_P_Sloop,  utusf/V/NW_Sloop)      // NW_Onttrekking gevolgd door NW_LaggedSloop --> is beide sloop
-													, case(from_UTUSF == utusf/V/NW_SkippedOnttrekking && to_UTUSF == utusf/V/NW_Lagged_P_Sloop,  utusf/V/NW_Sloop)
-													, case(from_UTUSF == utusf/V/W_Onttrekking         && to_UTUSF == utusf/V/W_Lagged_P_Sloop,   utusf/V/W_Sloop)       // W_Onttrekking gevolgd door W_LaggedSloop --> is beide sloop
-													, case(from_UTUSF == utusf/V/W_SkippedOnttrekking  && to_UTUSF == utusf/V/W_Lagged_P_Sloop,   utusf/V/W_Sloop)
-													, case(from_UTUSF == utusf/V/NW_Lagged_V_Nieuwbouw && to_UTUSF == utusf/V/NW_Toevoeging,      utusf/V/NW_Nieuwbouw)  // NW_LaggedNieuwbouw gevolgd door NW_Toevoeging --> is beide nieuwbouw
-													, case(from_UTUSF == utusf/V/W_Lagged_V_Nieuwbouw  && to_UTUSF == utusf/V/W_Toevoeging,       utusf/V/W_Nieuwbouw)   // W_LaggedNieuwbouw gevolgd door W_Toevoeging --> is beide nieuwbouw
-		
-													
-													, null_b[UTUSF]
-													);
-	
-	}
-	
-	//Unique USF transitions fka URT
-	unit<uint8> UTUSF := unique_uint8(TUSF/name)
-	, Descr = "unique transition between unique status x function"
-	{
-		attribute<string>     name            := values;
-		attribute<string>     label           := values;
+		attribute<string> name  : ['N', 'T', 'S', 'O', 'TMplus', 'TMmin', 'Cplus', 'Cmin'];
+		attribute<string> label := name;
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-		attribute<FunctieK>   from_functie_rel     := TUSF/from_functie_rel[invert(TUSF/UTUSF_rel)];
-		attribute<FunctieK>   to_functie_rel       := TUSF/to_functie_rel[invert(TUSF/UTUSF_rel)];
-		attribute<string>     from_functie_name    := FunctieK/name_short[from_functie_rel];
-		attribute<string>     to_functie_name    := FunctieK/name_short[to_functie_rel];
-		
-		attribute<string>     MainClass       := switch(
-													 case(strcount(name, 'Onjuist') > 0      , 'Onjuist')
-													,case(strcount(name, 'Nieuwbouw') > 0    , 'Nieuwbouw')
-													,case(strcount(name, 'Sloop') > 0        , 'Sloop')
-													,case(strcount(name, 'Toevoeging') > 0   , 'Toevoeging')
-													,case(strcount(name, 'Onttrekking') > 0  , 'Onttrekking')
-													,case(strcount(name, 'Correctie') > 0    , 'Correctie')
-													,case(strcount(name, 'Onveranderd') > 0  , 'Onveranderd')
-													,case(strcount(name, 'Transformatie') > 0, 'Transformatie')
-													,''
-												);
-												
-		attribute<string>    MainClass_function := to_functie_name + '_' + MainClass;
-		attribute<UqMainClass> UqMainClass_rel := rlookup(MainClass_function, UqMainClass/values);
-		unit<uint8> UqMainClass := unique(MainClass_function)
-		{
-			attribute<string> label := values;
-			container V := for_each_nedv(label, String(ID(.))+'[..]', void, .);
-		}
 	}
 	
-	unit<uint8> TUSF := combine_uint8(USF, USF) 
-	, Descr = "transition between unique status x function"
+	unit<uint32> Verslagmaanden := combine(Jaren, Maanden)
 	{
-		attribute<USF>        from_USF        := first_rel;
-		attribute<USF>        to_USF          := second_rel;
-		attribute<FunctieK>   from_functie_rel := USF/functie_rel[first_rel];
-		attribute<FunctieK>   to_functie_rel   := USF/functie_rel[second_rel];
-		attribute<string>     key             := string(from_USF) + '_' + string(to_USF);
-		attribute<UTUSF>      UTUSF_rel       := rlookup(name, UTUSF/name);
-		
-		attribute<string>     name            :=  	switch(
-														 case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_S_Onveranderd')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/NietWoning_Onjuist       , 'NW_S_to_NW_Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_Onjuist           , 'NW_S_to_W_Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_gesloopt    && to_USF == USF/V/Woning_wordt_toegevoegd     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_SkippedSloop')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_in_aanbouw    , 'NW_A_Onveranderd') // dit is een tijdelijke stap, dus blijft niet zo
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_in_voorraad   , 'NW_Nieuwbouw')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_SkippedOnttrekking')  //v gevomrd/p nb -> v ontr /p vrd
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'NW_Lagged_V_Nieuwbouw')   //v gevomrd/p nb -> v gevmd/p vrd
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/NietWoning_Onjuist       , 'NW_A_to_NW_Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_Onjuist           , 'NW_A_to_W_Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_aanbouw     && to_USF == USF/V/Woning_wordt_toegevoegd     , 'Onjuist') // v vrom/p nb -> v vorm/p v, dit lagged p nieuwbouw icm transformatie, zeer onwaarschijnlijk.
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_Sloop')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_in_voorraad   , 'NW_V_Onveranderd')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_Onttrekking')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/NietWoning_Onjuist       , 'NW_V_to_NW_Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_Onjuist           , 'NW_V_to_W_Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_in_voorraad       , 'NWW_Transformatie')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_in_voorraad    && to_USF == USF/V/Woning_wordt_toegevoegd     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_Lagged_P_Sloop') //pand sloop komt later dan vbo ontrekking
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_O_Onveranderd')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'NW_Correctie')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/NietWoning_Onjuist       , 'NW_O_to_NW_Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_Onjuist           , 'NW_O_to_W_Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_is_onttrokken  && to_USF == USF/V/Woning_wordt_toegevoegd     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_SkippedSloop')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist') // pand was voorraad, daarna pand terug in aanbouw. vbo blijft gevormd
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/NietWoning_in_voorraad   , 'NW_Toevoeging')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_Correctie')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'NW_T_Onveranderd')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/NietWoning_Onjuist       , 'NW_T_to_NW_Onjuist')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/Woning_Onjuist           , 'NW_T_to_W_Onjuist')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/Woning_is_gesloopt       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_wordt_toegevoegd  && to_USF == USF/V/Woning_wordt_toegevoegd     , 'Onjuist')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_is_gesloopt   , 'NW_Onjuist_to_NW_S')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_in_aanbouw    , 'NW_Onjuist_to_NW_A')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_in_voorraad   , 'NW_Onjuist_to_NW_V')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_is_onttrokken , 'NW_Onjuist_to_NW_O')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'NW_Onjuist_to_NW_T')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/NietWoning_Onjuist       , 'NW_Onjuist_Onveranderd')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_Onjuist           , 'NW_Onjuist_to_W_Onjuist')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_is_gesloopt       , 'NW_Onjuist_to_W_S')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_in_aanbouw        , 'NW_Onjuist_to_W_A')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_in_voorraad       , 'NW_Onjuist_to_W_V')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_is_onttrokken     , 'NW_Onjuist_to_W_O')
-														,case(from_USF == USF/V/NietWoning_Onjuist        && to_USF == USF/V/Woning_wordt_toegevoegd     , 'NW_Onjuist_to_W_T')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_is_gesloopt   , 'W_Onjuist_to_NW_S')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_in_aanbouw    , 'W_Onjuist_to_NW_A')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_in_voorraad   , 'W_Onjuist_to_NW_V')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_is_onttrokken , 'W_Onjuist_to_NW_O')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'W_Onjuist_to_NW_T')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/NietWoning_Onjuist       , 'W_Onjuist_to_NW_Onjuist')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_Onjuist           , 'W_Onjuist_Onveranderd')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_is_gesloopt       , 'W_Onjuist_to_W_S')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_in_aanbouw        , 'W_Onjuist_to_W_A')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_in_voorraad       , 'W_Onjuist_to_W_V')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_is_onttrokken     , 'W_Onjuist_to_W_O')
-														,case(from_USF == USF/V/Woning_Onjuist            && to_USF == USF/V/Woning_wordt_toegevoegd     , 'W_Onjuist_to_W_T')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/NietWoning_Onjuist       , 'W_S_to_NW_Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_Onjuist           , 'W_S_to_W_Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_is_gesloopt       , 'W_S_Onveranderd')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_is_onttrokken     , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_gesloopt        && to_USF == USF/V/Woning_wordt_toegevoegd     , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/NietWoning_Onjuist       , 'W_A_to_NW_Onjuist')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_Onjuist           , 'W_A_to_W_Onjuist')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_is_gesloopt       , 'W_SkippedSloop')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_in_aanbouw        , 'W_A_Onveranderd')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_in_voorraad       , 'W_Nieuwbouw')
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_is_onttrokken     , 'W_SkippedOnttrekking') 
-														,case(from_USF == USF/V/Woning_in_aanbouw         && to_USF == USF/V/Woning_wordt_toegevoegd     , 'W_Lagged_V_Nieuwbouw') //v gevomrd/p nb -> v gevormd/p vrd volgende stap moet dan zijn v vrd/p vrd
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_in_voorraad   , 'WNW_Transformatie')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/NietWoning_Onjuist       , 'W_V_to_NW_Onjuist')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_Onjuist           , 'W_V_to_W_Onjuist')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_is_gesloopt       , 'W_Sloop')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_in_voorraad       , 'W_V_Onveranderd')
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_is_onttrokken     , 'W_Onttrekking') // v vrd/ p vrd -> v ontr/ pvrd
-														,case(from_USF == USF/V/Woning_in_voorraad        && to_USF == USF/V/Woning_wordt_toegevoegd     , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/NietWoning_Onjuist       , 'W_O_to_NW_Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_Onjuist           , 'W_O_to_W_Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_is_gesloopt       , 'W_Lagged_P_Sloop')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_in_voorraad       , 'Onjuist')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_is_onttrokken     , 'W_O_Onveranderd')
-														,case(from_USF == USF/V/Woning_is_onttrokken      && to_USF == USF/V/Woning_wordt_toegevoegd     , 'W_Correctie')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/NietWoning_is_gesloopt   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/NietWoning_in_aanbouw    , 'Onjuist')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/NietWoning_in_voorraad   , 'Onjuist')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/NietWoning_is_onttrokken , 'Onjuist')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/NietWoning_wordt_toegevoegd , 'Onjuist')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/NietWoning_Onjuist       , 'W_T_to_NW_Onjuist')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/Woning_Onjuist           , 'W_T_to_W_Onjuist')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/Woning_is_gesloopt       , 'W_SkippedSloop')       // v gevormd/ p vrd -> v ontr/ p ontr
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/Woning_in_aanbouw        , 'Onjuist')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/Woning_in_voorraad       , 'W_Toevoeging')
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/Woning_is_onttrokken     , 'W_Correctie') // v gevormd/ p vrd -> v ontr/ p vrd
-														,case(from_USF == USF/V/Woning_wordt_toegevoegd      && to_USF == USF/V/Woning_wordt_toegevoegd     , 'W_T_Onveranderd')
-														, ''
-													);
-		attribute<string>     label            :=  	name + ' ' + key;
+		attribute<string> label := 'Y'+name;
+		attribute<string> name  := jaar + maand + '01';
+		attribute<string> jaar  := Jaren/name[first_rel];
+		attribute<string> maand := Maanden/name[second_rel];
+	}
 	
-	
+	unit<uint32> Maanden := range(uint32, 1, 13)
+	{
+		attribute<string> name := id(.) < 10 ? '0'+string(id(.)) : string(id(.));
+	}
+	unit<uint32> Jaren := range(uint32, 2012, 2023)
+	{
+		attribute<string> name := string(id(.));
 	}
 
-	//Unique Status_x_Functie
-	unit<uint8> USF := unique_uint8(SF/name)
-	, Descr = "unique status x function"
-	{
-		attribute<string>     name            := values;
-		attribute<string>     label           := values;
-		attribute<string>     key             := SF/key[invert(SF/USF_rel)];
-		attribute<FunctieK>   functie_rel     := SF/functie_rel[invert(SF/USF_rel)];
-		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-	}
-	
 	unit<uint8> Overgangen_Vbo := combine_uint8(vbo_status, vbo_status) 
 	{	
 		attribute<vbo_status>  van_status         := first_rel;
@@ -350,14 +61,6 @@ container AdditionalClassifications
 	{
 		attribute<string> name := union_data(., Undefined/name, pand_status/name);
 		attribute<string> label := name;
-		
-		// attribute<bool>      IsInPlanvorming : [FALSE,  TRUE,  TRUE,  FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
-		// attribute<bool>      IsInAanbouw     : [TRUE,   FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
-		// attribute<bool>      IsInGebruik     : [FALSE,  FALSE, FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
-		// attribute<bool>      IsVoorraad      : [FALSE,  FALSE, FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
-		// attribute<bool>      IsIngetrokken   : [FALSE,  FALSE, TRUE,  FALSE, TRUE,  FALSE, FALSE, TRUE,  TRUE,  FALSE];
-		// attribute<bool>      IsInSloop       : [FALSE,  FALSE, FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE,  TRUE,  FALSE];
-		
 		attribute<pand_status> pand_status_rel := rlookup(name, pand_status/name);
 		
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
@@ -412,54 +115,9 @@ container AdditionalClassifications
 		attribute<string>      key                    := string(van_status) + '_' + string(naar_status); 
 	}
 	
-	//Status_x_Functie -> vbo_status_rel x pand_status_rel x functie_rel
-	// unit<uint8> SF := combine_uint8(VoorraadK, VoorraadK, FunctieK) 
-	// , Descr = "status x function"
-	// {
-		// attribute<VoorraadK>  vbo_status_rel  := first_rel;
-		// attribute<VoorraadK>  pand_status_rel := second_rel;
-		// attribute<FunctieK>   functie_rel     := third_rel;
-		// attribute<string>     key             := string(vbo_status_rel) + '_' + string(pand_status_rel) + '_' + string(functie_rel);
-		// attribute<USF>        USF_rel         := rlookup(name, USF/name);
-		
-		// attribute<string>     name            :=  	switch(
-														 // case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/wonen     , 'Woning_in_aanbouw')
-														// ,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_in_aanbouw')
-														// ,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/wonen     , 'Woning_wordt_toegevoegd')
-														// ,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_wordt_toegevoegd')
-														// ,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/wonen     , 'Woning_Onjuist')
-														// ,case(vbo_status_rel == VoorraadK/V/in_aanbouw  && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_Onjuist')
-														// ,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/wonen     , 'Woning_in_voorraad') // te vroeg opgevoerde vbo?
-														// ,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_in_voorraad') // te vroeg opgevoerde vbo?
-														// ,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/wonen     , 'Woning_in_voorraad')
-														// ,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_in_voorraad')
-														// ,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/wonen     , 'Woning_in_voorraad') // precursor voor sloop?
-														// ,case(vbo_status_rel == VoorraadK/V/in_voorraad && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_in_voorraad') // precursor voor sloop?
-														// ,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/wonen     , 'Woning_Onjuist')
-														// ,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/in_aanbouw  && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_Onjuist')
-														// ,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/wonen     , 'Woning_is_onttrokken')
-														// ,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/in_voorraad && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_is_onttrokken')
-														// ,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/wonen     , 'Woning_is_gesloopt')
-														// ,case(vbo_status_rel == VoorraadK/V/ingetrokken && pand_status_rel == VoorraadK/V/ingetrokken && functie_rel == FunctieK/v/niet_wonen, 'NietWoning_is_gesloopt')
-														// , ''
-													// );
-		// attribute<string>     label            :=  	name + ' ' + key;
-	// }
 	
-	unit<uint8> vbo_status := typeringen/bag/vbo_status
-	{
-		// attribute<FasesK> Fase_rel := switch(
-										// case(IsInAanbouw,VoorraadK/V/in_aanbouw)
-										// , case(IsVoorraad, VoorraadK/V/in_gebruik)
-										// , case(IsSloop, VoorraadK/V/in_sloop)
-										// , null_b
-										// );
-	}
-	
-	unit<uint8> pand_status := typeringen/bag/pand_status
-	{
-		// attribute<FasesK> Fase_rel := IsInAanbouw ? VoorraadK/V/in_aanbouw : IsVoorraad ? VoorraadK/V/in_gebruik : VoorraadK/V/in_sloop;
-	}
+	unit<uint8> vbo_status := typeringen/bag/vbo_status;
+	unit<uint8> pand_status := typeringen/bag/pand_status;
 	
 	unit<uint8> vbo_gebruiksdoel_ext := typeringen/bag/vbo_gebruiksdoel_ext
 	{
@@ -474,18 +132,10 @@ container AdditionalClassifications
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	
-	// unit<uint8> FasesK : nrofrows = 3
+	// unit<uint32> Jaren := range(uint32, 2012,2023)
 	// {
-		// attribute<string> name : ['in_planvorming', 'in_aanbouw', 'in_gebruik', 'in_sloop'];
-		// attribute<string> label := name;
-		
-		// container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		// attribute<string> name := 'Y'+string(id(.));
 	// }
-	
-	unit<uint32> Jaren := range(uint32, 2012,2023)
-	{
-		attribute<string> name := 'Y'+string(id(.));
-	}
 }
 
 

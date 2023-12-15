@@ -4,7 +4,100 @@ container BRK
 	unit<uint32>      RegioUnit_Aggl      := Brondata/RegioIndelingen/gemeente/Agglomeration_uq;
 	unit<uint32>      RegioUnit_AMS       := Brondata/RegioIndelingen/Gemeente/Amsterdam;
 	
-	unit<uint32> Perceel 
+	
+	unit<uint32> Perceel_GML 
+	:	StorageName     = "='%SourceDataDir%/BRK/'+Parameters/BRK_file_date+'/gml/kadastralekaart_perceel.gml'"
+	, 	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	,	DialogData      = "rdc"
+	{
+		
+	}
+	
+	unit<uint32> Make_Perceel_FSS := Perceel_GML
+	,	StorageName     = "='%SourceDataDir%/BRK/'+Parameters/BRK_file_date+'/fss/perceel.fss'"
+	{
+		attribute<rdc>      geometry    (poly)   := Perceel_GML/geometry;
+		attribute<int64>    identificatie        := Perceel_GML/identificatie;
+		attribute<string>   beginGeldigheid      := Perceel_GML/beginGeldigheid;
+		attribute<string>   TijdstipRegistratie  := Perceel_GML/TijdstipRegistratie;
+		attribute<int32>    Volgnummer           := Perceel_GML/Volgnummer;
+		attribute<string>   Code                 := Perceel_GML/Code;
+		attribute<string>   Waarde               := Perceel_GML/Waarde;
+		attribute<string>   Sectie               := Perceel_GML/Sectie;
+		attribute<int32>    Perceelnummer        := Perceel_GML/Perceelnummer;
+		attribute<float64>  PerceelnummerRotatie := Perceel_GML/PerceelnummerRotatie;
+	}
+	
+	unit<uint32> Perceel
+	:	StorageName     = "='%SourceDataDir%/BRK/'+Parameters/BRK_file_date+'/fss/perceel.fss'"
+	, 	StorageReadOnly = "true"
+	{
+		attribute<rdc>      geometry    (poly);
+		attribute<int64>    identificatie;
+		attribute<string>   beginGeldigheid;
+		attribute<string>   TijdstipRegistratie;
+		attribute<int32>    Volgnummer;
+		attribute<string>   Code;
+		attribute<string>   Waarde;
+		attribute<string>   Sectie;
+		attribute<int32>    Perceelnummer;
+		attribute<float64>  PerceelnummerRotatie;
+		
+		attribute<RegioIndelingen/Corop> COROP_rel := point_in_polygon(centroid_or_mid(geometry), RegioIndelingen/Corop/geometry);
+		
+		// attribute<bool>     Is_SA := IsDefined(point_in_polygon(centroid_or_mid(geometry), /geometries/selection_polygon/geometry));
+		
+		// unit<uint32> select := select_with_attr_by_cond(.,Is_SA)
+		// {
+			// unit<uint32> Cutout_roads := overlay_polygon(geometry[rdc_mm], /Brondata/BRT/NL_minus_wegen_Split/geometry); //rekentijd 1.44u, eventueel omdraaien geeft ander resultaat?
+		// }
+		
+		unit<uint32> Cutout_roads := overlay_polygon(geometry[rdc_mm], /Brondata/BRT/NL_minus_wegen_Split/geometry)
+		, StorageName = "='%LocalDataProjDir%/Temp/BRK/BRK_'+Parameters/BRK_file_date+'_minus_BRT_wegen_'+Parameters/BRT_file_date+'.fss'"
+		{
+			attribute<rdc_mm> geometry (poly);
+		}
+	}
+	
+	
+	parameter<bool> Generate_AllCOROP := TRUE, ExplicitSuppliers = "=AsList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Generate',';')";
+	container Perceel_PerCOROP := 
+		for_each_ne(
+			RegioIndelingen/COROP/name
+			, 'Perceel_PerCOROP_T('+quote(RegioIndelingen/Corop/name)+')'
+		);
+	
+	unit<uint32> Perceel_minus_Roads_CombinedFromCOROP := ='union_unit('+AsItemList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Read_Cutout_roads')+')'
+	{
+		attribute<rdc_mm> geometry (poly) := ='union_data(.,'+AsItemList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Read_Cutout_roads/geometry')+')';
+	}
+	
+	Template Perceel_PerCOROP_T
+	{
+		parameter<string> RegioName;
+		parameter<RegioIndelingen/COROP>  RegioRel := rlookup(RegioName, RegioIndelingen/COROP/name);
+		///
+		
+		unit<uint32> Perceel_PerCOROP := select_with_attr_by_cond(Perceel, Perceel/COROP_rel == RegioRel);
+		unit<uint32> Roads_PerCOROP   := ='Brondata/BRT/Wegen_PerCOROP/'+RegioName+'/NL_minus_wegen_Split';
+		
+		unit<uint32> Cutout_roads := overlay_polygon(Perceel_PerCOROP/geometry[rdc_mm], Roads_PerCOROP/geometry)
+		, StorageName = "='%LocalDataProjDir%/Temp/BRK/PerCorop/'+RegioName+'/BRK_'+Parameters/BRK_file_date+'_minus_BRT_wegen_'+Parameters/BRT_file_date+'.fss'"
+		{
+			attribute<rdc_mm> geometry (poly);
+		}
+		unit<uint32> Read_Cutout_roads
+		: StorageName = "='%LocalDataProjDir%/Temp/BRK/PerCorop/'+RegioName+'/BRK_'+Parameters/BRK_file_date+'_minus_BRT_wegen_'+Parameters/BRT_file_date+'.fss'"
+		, StorageReadOnly = "true"
+		{
+			attribute<rdc_mm> geometry (poly);
+		}
+		
+		parameter<bool> Generate := TRUE, ExplicitSuppliers = "Cutout_roads/geometry";
+	}
+	
+	unit<uint32> Perceel_oud
 	:	StorageName     = "%AltSourceDataDir%/BRK/20210203/fss/perceel.fss"
 	,	StorageReadOnly = "True"
 	{
@@ -99,6 +192,7 @@ container BRK
 			{
 				attribute<geometries/rdc>    geometry_rd (poly);
 				attribute<geometries/rdc_mm> geometry_mm (poly)                := geometry_rd[geometries/rdc_mm];
+				attribute<string>            Label                             := 'Perceel_'+string(id(.));
 				attribute<geometries/rdc>    centroid                          := centroid_or_mid(geometry_rd);
 				attribute<NL_grid/domain>    NL_grid_domain_rel                := centroid[NL_grid/domain];
 				attribute<.>                 per_grid_10m (NL_grid/domain_10m) := poly2grid(geometry_rd, NL_grid/domain_10m);
@@ -116,4 +210,5 @@ container BRK
 			}
 		}
 	}
+
 }

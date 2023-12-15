@@ -57,14 +57,13 @@ container VolledigeBAG : using = "typeringen/BAG"
 			
 			attribute<string>      pv_key                         := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
 			attribute<string>      status_key                     := string(pand_status_rel) + '_' + string(vbo_status_rel);
-			// attribute<string>      pv_is_key                      := pv_key +'_'+ pand_vbo_status_key;
 			
 			attribute<string>      pv_sf_begindatum_key          := pv_key +'_'+ string(begindatum) +'_'+ status_key +'_'+ string(vbo_functie_code);
 			attribute<string>      pv_sf_einddatum_key           := pv_key +'_'+ string(einddatum)  +'_'+ status_key +'_'+ string(vbo_functie_code);
 			attribute<.>           pv_sf_eind_begin_rel          := rlookup(pv_sf_einddatum_key, pv_sf_begindatum_key);
 		}
 		
-		container Condense_based_on_SF := Analyse/Redev_obv_hele_bag/Condense_T(SelectNonOverlappingPeriods, SelectNonOverlappingPeriods/pv_sf_eind_begin_rel);
+		container Condense_based_on_SF := Condense_T(SelectNonOverlappingPeriods, SelectNonOverlappingPeriods/pv_sf_eind_begin_rel);
 		
 		container impl
 		{
@@ -336,4 +335,41 @@ container VolledigeBAG : using = "typeringen/BAG"
 			
 	}
  */ 
+ 
+ 	Template Condense_T
+	{
+		unit<uint32> src;
+		attribute<src> end_to_start_rel (src);
+		attribute<src> start_to_end_rel (src);
+		///
+		
+		//We need to identify records that are part of a chain of mutations. So that we use the service_area()-operator to find the first record of a mutation chain per pv_id. 
+		unit<uint32> SelectOnlyObjectWithChainRel     := select_with_org_rel(IsDefined(end_to_start_rel))
+		{
+			attribute<src>          F1                          := org_rel;
+			attribute<src>          F2                          := end_to_start_rel[org_rel];
+			attribute<.>            TraceBack             (src) := invert(org_rel);
+			attribute<src>          OnlyOrLastInChain_rel (src) := service_area(F1, F2, TraceBack); //fka ServiceArea
+			attribute<bool>         IsOnlyOrLastInChain   (src) := id(src) == OnlyOrLastInChain_rel;
+		}
+		
+		//We only need to keep the record if it is the only one in a chain or if it is the last in a chain. All intermediate records hold no value for us. Additionally we need to update the startdate of the first one of the chain.
+		unit<uint32> SelectChainEndPoints             := select_with_org_rel(SelectOnlyObjectWithChainRel/IsOnlyOrLastInChain)
+		{
+			attribute<rdc>         geometry                       := org_rel -> geometry;
+			attribute<rdc>         pand_geometry (poly)           := org_rel -> pand_geometry;
+			attribute<int32>       begindatum                     := min(src/begindatum, per_src_Tabel);
+			attribute<int32>       einddatum                      := org_rel -> einddatum;
+			attribute<jaar>        pand_bouwjaar                  := org_rel -> pand_bouwjaar;
+
+			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
+			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
+			attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
+			attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
+			attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel      := org_rel -> gebruiksdoel_rel;
+			
+			attribute<.>           per_src_Tabel (src) := invert(org_rel)[SelectOnlyObjectWithChainRel/OnlyOrLastInChain_rel];
+		}
+	}
+ 
  }

@@ -1,6 +1,6 @@
 container DetermineUrbanisationK
 {
-	container CountRedevPerUrbK 
+/* 	container CountRedevPerUrbK 
 		// := for_each_nedv(
 			// Redev/Redev_Types/name
 			// , 'sum(Analyse/RedevelopmentPaper/Objecten_export/InRedevSites/site_type_class == Redev/Redev_Types/v/'+Redev/Redev_Types/name+' ? 1 : 0, Analyse/RedevelopmentPaper/Objecten_export/InRedevSites/UrbanisationK_rel)'
@@ -69,7 +69,8 @@ container DetermineUrbanisationK
 		attribute<string> name (typeringen/Tijd/jaren) := typeringen/Tijd/jaren/label;
 	}
 	
-
+ */
+	unit<uint32>      RegioUnit_Gem_oud   := /Brondata/RegioIndelingen/Gemeente_oud;
 
 	attribute<UrbanisationK> Urbanisation (RegioUnit_gem_oud) := switch(
 																	case(Impl/IsUrban_orgdom, UrbanisationK/V/Urban)

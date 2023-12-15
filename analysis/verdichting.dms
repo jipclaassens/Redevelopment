@@ -15,12 +15,16 @@ container Verdichting
 		parameter<m>       highrise_threshold              := 30[m];
 		parameter<m>       verdiepinghoogte                := 2.8[m];
 		parameter<m2>      minimum_site_area               := 25[m2];
+		parameter<float32> minimum_SN_area_share           := 0.01f;
 		parameter<bool>    uq_identificatie_ontkoppeld     := true;
 		parameter<bool>    UseSimplify                     := true;
 		parameter<float64> Simplify_Value                  := 500d;
 		// parameter<bool>    AfgeleidePandTyperingOntkoppeld := TRUE;
 		// parameter<bool>    UseAfgeleidePandTypering        := false;
 		parameter<string>  BAG_dir                         := 'OVSRV06'; // 'OVSRV06' 'NORMAAL'
+		
+		parameter<string> BRT_file_date  := '20220321';
+		parameter<string> BRK_file_date  := '20231206';
 	}
 	
 	#include <eenheden.dms>
@@ -35,6 +39,41 @@ container Verdichting
 		unit<fpoint> LambertEA_base   : SpatialReference = "EPSG:3035", DialogData = "ngr_layer_lea";
 		unit<fpoint> LambertEA        := range(LambertEA_base, point(2500000f, 1300000f), point(4900000f, 4300000f));
 		unit<fpoint> WebMercator_base : SpatialReference = "EPSG:3857";
+		
+		unit<uint32> BoundingBox_NL : nrofrows = 1
+		{
+			parameter<rdc> top_left     := point(0[m], 625000[m], rdc); //XY
+			parameter<rdc> top_right    := point(300000[m], 625000[m], rdc);
+			parameter<rdc> bottom_left  := point(0[m], 300000[m], rdc);
+			parameter<rdc> bottom_right := point(300000[m], 300000[m], rdc);
+			
+			unit<uint32> point_set : nrofrows = 5
+			{
+				attribute<rdc>  point        := union_data(., top_left, top_right, bottom_right, bottom_left, top_left);
+				attribute<..>   sequence_rel := const(0, .);
+				attribute<.>    ordinal      := id(.);
+			}
+			
+			attribute<rdc> geometry (poly)      := points2sequence(point_set/point, point_set/sequence_rel, point_set/ordinal);
+			parameter<rdc> geometry_param (poly) := geometry[0[.]];
+		}
+		
+		unit<uint32> selection_polygon : nrofrows = 1
+		{
+			parameter<rdc> top_left     := point(114000[m], 490000[m], rdc); //XY
+			parameter<rdc> top_right    := point(127000[m], 490000[m], rdc);
+			parameter<rdc> bottom_left  := point(114000[m], 480000[m], rdc);
+			parameter<rdc> bottom_right := point(127000[m], 480000[m], rdc);
+			
+			unit<uint32> point_set : nrofrows = 5
+			{
+				attribute<rdc>  point        := union_data(., top_left, top_right, bottom_right, bottom_left, top_left);
+				attribute<..>   sequence_rel := const(0, .);
+				attribute<.>    ordinal      := id(.);
+			}
+			
+			attribute<rdc> geometry (poly)      := points2sequence(point_set/point, point_set/sequence_rel, point_set/ordinal);
+		}
 		
 		#include <ngr_layer.dms>
 		

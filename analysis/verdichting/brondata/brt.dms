@@ -2,6 +2,80 @@ container BRT
 { 
 	// unit<uint32>      RegioUnit_Aggl      := Brondata/RegioIndelingen/gemeenten/j2020/Agglomeration_uq;
 	
+	
+	container Wegdeel
+	:	StorageName     = "='%SourceDataDir%/RSopen/Grondgebruik/BRT/'+Parameters/BRT_file_date+'/top10nl_wegdeel.gpkg'"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	, 	DialogData      = "rdc"
+	, 	SyncMode        = "AllTables"
+	, 	Descr           = "Download from PDOK"
+	{
+		unit<uint32> top10nl_wegdeel_vlak
+		{
+			// attribute<string>                       label                := BRT_Classifications/label[visualisatiecode_rel];
+			// attribute<BRT_Classifications>          visualisatiecode_rel := rlookup(int32(visualisatiecode), BRT_Classifications/code);
+			// attribute<BRT_Classifications/label_uq> label_uq_rel         := rlookup(label, BRT_Classifications/label_uq/values);
+			
+			attribute<RegioIndelingen/COROP>     COROP_rel := point_in_polygon(centroid_or_mid(geometry), RegioIndelingen/COROP/geometry);
+			attribute<RegioIndelingen/Provincie> prov_rel  := point_in_polygon(centroid_or_mid(geometry), RegioIndelingen/Provincie/geometry);
+		}
+	}
+	
+	container Wegen_PerCOROP := 
+		for_each_ne(
+			RegioIndelingen/COROP/name
+			, 'Wegen_PerCOROP_T('+quote(RegioIndelingen/Corop/name)+')'
+		);
+	
+	Template Wegen_PerCOROP_T
+	{
+		parameter<string> RegioName;
+		parameter<RegioIndelingen/COROP>  RegioRel := rlookup(RegioName, RegioIndelingen/COROP/name);
+		///
+		
+		unit<uint32>        Roads_PerCOROP        := select_with_attr_by_cond(Wegdeel/top10nl_wegdeel_vlak, Wegdeel/top10nl_wegdeel_vlak/COROP_rel == RegioRel);
+		parameter<rdc_mm>   Unioned_Wegen  (poly) := union_polygon(bg_simplify_polygon(Roads_PerCOROP/geometry, 0.1d)[rdc_mm]);
+		
+		unit<uint32> BoundingBox : nrofrows = 1
+		{
+			parameter<rdc_mm>   top_right            := upper_bound(Unioned_Wegen);
+			parameter<rdc_mm>   bottom_left          := lower_bound(Unioned_Wegen);
+			parameter<rdc_mm>   top_left             := point(pointcol(bottom_left),pointrow(top_right), rdc_mm);
+			parameter<rdc_mm>   bottom_right         := point(pointcol(top_right),pointrow(bottom_left), rdc_mm);
+			
+			unit<uint32> point_set : nrofrows = 5
+			{
+				attribute<rdc_mm>  point        := union_data(., top_left, top_right, bottom_right, bottom_left, top_left);
+				attribute<..>      sequence_rel := const(0, .);
+				attribute<.>       ordinal      := id(.);
+			}
+			
+			attribute<rdc_mm> geometry (poly)      := points2sequence(point_set/point, point_set/sequence_rel, point_set/ordinal);
+			parameter<rdc_mm> geometry_param (poly) := geometry[0[.]];
+		}
+		
+		parameter<rdc_mm> NL_minus_wegen (poly) := BoundingBox/geometry_param - Unioned_Wegen;
+		unit<uint32>      NL_minus_wegen_Split  := split_polygon(NL_minus_wegen);
+	}
+	
+
+	parameter<rdc_mm> Make_Unioned_Wegen (poly) := union_polygon(bg_simplify_polygon(Wegdeel/top10nl_wegdeel_vlak/geometry, 0.1d)[rdc_mm]), StorageName = "='%LocalDataProjDir%/Temp/BRT/Wegen_Unioned_'+Parameters/BRT_file_date+'.fss'";
+	parameter<rdc_mm> Unioned_Wegen      (poly) : StorageName = "='%LocalDataProjDir%/Temp/BRT/Wegen_Unioned_'+Parameters/BRT_file_date+'.fss'", StorageReadOnly = "true";
+
+	parameter<rdc_mm> NL_minus_wegen     (poly) := /geometries/BoundingBox_NL/geometry_param[rdc_mm] - Unioned_Wegen;
+	unit<uint32> Make_NL_minus_wegen_Split := split_polygon(NL_minus_wegen)
+	, StorageName = "='%LocalDataProjDir%/Temp/BRT/NL_minus_Wegen_Split_'+Parameters/BRT_file_date+'.fss'"
+	{
+		attribute<rdc_mm> geometry (poly);
+	}
+	
+	unit<uint32> NL_minus_wegen_Split : StorageName = "='%LocalDataProjDir%/Temp/BRT/NL_minus_Wegen_Split_'+Parameters/BRT_file_date+'.fss'", StorageReadOnly = "true"
+	{
+		attribute<rdc_mm> geometry (poly);
+	}
+	
+	
 	unit<uint32> ReadFSS 
 	:	StorageName     = "%SourceDataDir%/BRT/20210201/fss/poly.fss"
 	,	StorageReadOnly = "True"

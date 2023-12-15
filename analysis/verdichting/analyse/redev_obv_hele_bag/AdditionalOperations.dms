@@ -1,37 +1,28 @@
 container AdditionalOperations
 {
 	//welke panden stonden er al in 2012?
-	unit<uint32>  BestaandeBouwIn2012        := PerJaar/Y2012/select
+	unit<uint32>  BestaandeBouwIn2012        := PrepBAG/BeginVoorraad
 	{
-		attribute<rdc>            pand_geometry (poly)                := PerJaar/Y2012/select/pand_geometry;
+		attribute<rdc>            pand_geometry (poly)                := PrepBAG/BeginVoorraad/pand_geometry;
 	}
 	
 	//Subset van percelen waarop sloop van woningen plaats vindt
-	unit<uint32> Sloop_W_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/W_Sloop/domain/overlay_metPercelen/first_rel))) 
+	unit<uint32> Sloop_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/S/domain/overlay_metPercelen/first_rel))) 
 	{
-		attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry_rd;
-		attribute<rdc_mm>         perceel_geometry_mm (poly)               := org_rel -> geometry_mm;
+		attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry[rdc];
 	}
 	
-	//Subset van percelen waarop sloop van niet woningen plaats vindt
-	unit<uint32> Sloop_NW_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/NW_Sloop/domain/overlay_metPercelen/first_rel))) 
-	{
-		attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry_rd;
-		attribute<rdc_mm>         perceel_geometry_mm (poly)               := org_rel -> geometry_mm;
-	}
-
 	//Subset van percelen waarop nieuwbouw woningen komen
-	unit<uint32> Nieuwbouw_Woon_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/W_Nieuwbouw/domain/overlay_metPercelen/first_rel)))
+	unit<uint32> Nieuwbouw_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/N/domain/overlay_metPercelen/first_rel)))
 	{
-		attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry_rd;
-		attribute<rdc_mm>         perceel_geometry_mm (poly)               := org_rel -> geometry_mm;
+		attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry[rdc];
 		
 		
 		// Stonden er al panden op dit perceel waar nieuwbouw woningen komen?
 		attribute<bool>           IsNieuwbouw_OpBebouwd                    := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel)); 
-		unit<uint32>              Nieuwbouw_OpBebouwd                      := overlay_polygon(BestaandeBouwIn2012/pand_geometry[rdc_mm], perceel_geometry_mm); //is er overlap tussen dit perceel met nieuwbouw en bestaand gebouwen?
+		unit<uint32>              Nieuwbouw_OpBebouwd                      := overlay_polygon(BestaandeBouwIn2012/pand_geometry[rdc_mm], perceel_geometry[rdc_mm]); //is er overlap tussen dit perceel met nieuwbouw en bestaand gebouwen?
 
-		unit<uint32>                   Nieuwbouw_src                       := PrepDomains/W_Nieuwbouw/domain //nieuwbouw panden/objecten
+		unit<uint32>                   Nieuwbouw_src                       := PrepDomains/N/domain //nieuwbouw panden/objecten
 		{
 			attribute<bool>            IsNieuwbouw_OpOnbebouwd             := IsDefined(point_in_polygon(vbo_geometry, Nieuwbouw_OpOnbebouwd_perceel/perceel_geometry));
 			attribute<bool>            IsNieuwbouw_OpBebouwd               := IsDefined(point_in_polygon(vbo_geometry, Nieuwbouw_OpBebouwd_perceel/perceel_geometry));
@@ -46,41 +37,92 @@ container AdditionalOperations
 		}
 	}
 	
-	unit<uint32> Nieuwbouw_NietWoon_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/NW_Nieuwbouw/domain/overlay_metPercelen/first_rel))) 
+	// afgevallen percelen uit SN analyse omdat ze te klein zijn? of fractie S te klein?
+	unit<uint32>  Nieuwbouw_Panden_OpOnbebouwd  := select_with_org_rel(Nieuwbouw_perceel/Nieuwbouw_src/IsNieuwbouw_OpOnbebouwd)
 	{
-		attribute<rdc>            perceel_geometry (poly)                     := org_rel -> geometry_rd;
-		attribute<rdc_mm>         perceel_geometry_mm (poly)                  := org_rel -> geometry_mm;
+		attribute<rdc>                   pand_geometry (poly)               := Nieuwbouw_perceel/Nieuwbouw_src/pand_geometry[org_rel];
+		attribute<rdc>                   vbo_geometry                       := Nieuwbouw_perceel/Nieuwbouw_src/vbo_geometry[org_rel];
+		attribute<int32>                 MutatieMaand                       := Nieuwbouw_perceel/Nieuwbouw_src/MutatieMaand[org_rel];
+		attribute<bool>                  GeenOverlapmet_SN                  := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
+		unit<uint32>                     intersect_met_SN                   := overlay_polygon(pand_geometry[rdc_mm], SN/Result/geometry_mm);
 		
-		attribute<bool>           IsNieuwbouw_OpBebouwd                       := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel));
-		unit<uint32>              Nieuwbouw_OpBebouwd                         := overlay_polygon(BestaandeBouwIn2012/pand_geometry[rdc_mm], perceel_geometry_mm);
-
-		unit<uint32>                   Nieuwbouw_src                       := PrepDomains/NW_Nieuwbouw/domain
+		unit<uint32>  Cluster   := select_with_attr_by_cond(., GeenOverlapmet_SN)
 		{
-			attribute<bool>            IsNieuwbouw_OpOnbebouwd             := IsDefined(point_in_polygon(vbo_geometry, Nieuwbouw_OpOnbebouwd_perceel/perceel_geometry));
-			attribute<bool>            IsNieuwbouw_OpBebouwd               := IsDefined(point_in_polygon(vbo_geometry, Nieuwbouw_OpBebouwd_perceel/perceel_geometry));
+			unit<uint32> Step1 := split_union_polygon(pand_geometry[rdc_mm])
+			{
+				attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry, parameters/big_inflate, 8b);
+			}
+			
+			unit<uint32> Step2 := split_polygon(Step1/inflate)
+			{
+				attribute<rdc_mm> deflate (poly)                      := bg_buffer_polygon(geometry, -parameters/big_inflate, 8b);
+				attribute<rdc>    geometry_rd (poly)                  := deflate[rdc];
+				attribute<m2>     area                                := area(geometry_rd, m2);
+			}
 		}
-		unit<uint32>                   Nieuwbouw_OpOnbebouwd_perceel       := select_with_org_rel(!./IsNieuwbouw_OpBebouwd)
-		{        
-			attribute<rdc>  perceel_geometry (poly)                     := org_rel -> perceel_geometry;
-		}
-		unit<uint32>                   Nieuwbouw_OpBebouwd_perceel         := select_with_org_rel(./IsNieuwbouw_OpBebouwd)
-		{        
-			attribute<rdc>  perceel_geometry (poly)                     := org_rel -> perceel_geometry;
+		
+		unit<uint32>  Result   := select_with_org_rel(Cluster/Step2/area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc>    geometry (poly)                  := org_rel -> geometry_rd;
+			attribute<string> Site_ID                          := 'NB_Onbeb_'+string(id(.));
+			
+			attribute<.>      Objecten_rel     (..)            := point_in_polygon(../vbo_geometry, geometry);
+			unit<uint32>      Objecten                         := select_with_org_rel(IsDefined(Objecten_rel))
+			{
+				attribute<rdc>    pand_geometry (poly) := .../pand_geometry[org_rel];
+				attribute<rdc>    vbo_geometry         := .../vbo_geometry[org_rel];
+				attribute<int32>  MutatieMaand         := .../MutatieMaand[org_rel];
+				attribute<string> Site_ID              := 'NB_Onbeb_'+string(Objecten_rel[org_rel]);
+			}
+			
 		}
 	}
-	container SN := AdditionalOperationsT_SN('W');
-		
-	Template AdditionalOperationsT_SN
+	unit<uint32>  Nieuwbouw_Panden_OpBebouwd    := select_with_org_rel(Nieuwbouw_perceel/Nieuwbouw_src/IsNieuwbouw_OpBebouwd)
 	{
-		parameter<string> Was;
-		///
-		// parameter<string> Generate := 'Ready', ExplicitSuppliers = "NB_metSloop_TouchSloopPerc/Step3/geometry_rd;NB_metSloop_TouchSloopPerc/Step3/Modus_Sloopjaar";
+		attribute<rdc>                   pand_geometry (poly)               := Nieuwbouw_perceel/Nieuwbouw_src/pand_geometry[org_rel];
+		attribute<rdc>                   vbo_geometry                       := Nieuwbouw_perceel/Nieuwbouw_src/vbo_geometry[org_rel];
+		attribute<int32>                 MutatieMaand                       := Nieuwbouw_perceel/Nieuwbouw_src/MutatieMaand[org_rel];
+		attribute<bool>                  GeenOverlapmet_SN                  := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
+		unit<uint32>                     intersect_met_SN                   := overlay_polygon(pand_geometry[rdc_mm], SN/Result/geometry_mm);
 		
-		unit<uint32> Sloop_domain := ='PrepDomains/'+Was+'_Sloop/domain'
+		unit<uint32>  Cluster   := select_with_attr_by_cond(., GeenOverlapmet_SN)
+		{
+			unit<uint32> Step1 := split_union_polygon(pand_geometry[rdc_mm])
+			{
+				attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry, parameters/big_inflate, 8b);
+			}
+			
+			unit<uint32> Step2 := split_polygon(Step1/inflate)
+			{
+				attribute<rdc_mm> deflate (poly)                      := bg_buffer_polygon(geometry, -parameters/big_inflate, 8b);
+				attribute<rdc>    geometry_rd (poly)                  := deflate[rdc];
+				attribute<m2>     area                                := area(geometry_rd, m2);
+			}
+		}
+		
+		unit<uint32>  Result   := select_with_org_rel(Cluster/Step2/area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc>    geometry (poly)                  := org_rel -> geometry_rd;
+			attribute<string> Site_ID                          := 'NB_Beb_'+string(id(.));
+			
+			attribute<.>      Objecten_rel     (..)            := point_in_polygon(../vbo_geometry, geometry);
+			unit<uint32>      Objecten                         := select_with_org_rel(IsDefined(Objecten_rel))
+			{
+				attribute<rdc>    pand_geometry (poly) := .../pand_geometry[org_rel];
+				attribute<rdc>    vbo_geometry         := .../vbo_geometry[org_rel];
+				attribute<int32>  MutatieMaand         := .../MutatieMaand[org_rel];
+				attribute<string> Site_ID              := 'NB_Beb_'+string(Objecten_rel[org_rel]);
+			}
+		}
+	}
+	
+	container SN 
+	{
+		unit<uint32> Sloop_domain := PrepDomains/S/domain
 		{ 
-			attribute<rdc_mm>            pand_geometry_mm (poly)                 := pand_geometry[rdc_mm];
-			// attribute<rdc>            geometry                             := centroid_or_mid(geometry_mm);
-			attribute<NB_metSloop_TouchSloopPerc/Step3> Aggregated_rel      := point_in_polygon(vbo_geometry[rdc_mm], NB_metSloop_TouchSloopPerc/Step3/inflate);
+			attribute<rdc_mm>                           pand_geometry_mm (poly)            := pand_geometry[rdc_mm];
+			attribute<rdc>                              vbo_geometry                       := PrepDomains/S/domain/vbo_geometry;
+			// attribute<NB_metSloop_TouchSloopPerc/Step3> Aggregated_rel      := point_in_polygon(vbo_geometry[rdc_mm], NB_metSloop_TouchSloopPerc/Step3/inflate);
 			
 			unit<uint32> Step1 := split_union_polygon(pand_geometry_mm)
 			{
@@ -93,24 +135,24 @@ container AdditionalOperations
 			}
 		}
 		
-		unit<uint32> Nieuwbouw_domain  := ='PrepDomains/'+Was+'_Nieuwbouw/domain'
-		{ 
-			attribute<rdc_mm>            pand_geometry_mm (poly)                 := pand_geometry[rdc_mm];
+		// unit<uint32> Nieuwbouw_domain  := PrepDomains/N/domain
+		// { 
+			// attribute<rdc_mm>            pand_geometry_mm (poly)                 := pand_geometry[rdc_mm];
 			
-			unit<uint32> Step1 := split_union_polygon(pand_geometry_mm)
-			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende panden en voeg die samen
-			}
+			// unit<uint32> Step1 := split_union_polygon(pand_geometry_mm)
+			// {
+				// attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende panden en voeg die samen
+			// }
 			
-			unit<uint32> Step2 := split_union_polygon(Step1/inflate)
-			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  //deflate 
-			}
-		}
+			// unit<uint32> Step2 := split_union_polygon(Step1/inflate)
+			// {
+				// attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  //deflate 
+			// }
+		// }
 		
-		unit<uint32> NieuwbouwPerceel_Tile := Nieuwbouw_Woon_perceel
+		unit<uint32> NieuwbouwPerceel_Tile := Nieuwbouw_perceel
 		{
-			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(perceel_geometry_mm,  parameters/supersmall_inflate, 8b);   
+			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(perceel_geometry[rdc_mm],  parameters/supersmall_inflate, 8b);   
 		
 			unit<uint32> Step1 := split_union_polygon(inflate)
 			{
@@ -123,9 +165,9 @@ container AdditionalOperations
 			}
 		}
 		
-		unit<uint32> SloopPerceel_Tile := ='Sloop_'+Was+'_perceel'
+		unit<uint32> SloopPerceel_Tile := Sloop_perceel
 		{
-			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(perceel_geometry_mm,  parameters/supersmall_inflate, 8b);   
+			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(perceel_geometry[rdc_mm],  parameters/supersmall_inflate, 8b);   
 			
 			unit<uint32> Step1 := split_union_polygon(inflate)
 			{
@@ -170,91 +212,127 @@ container AdditionalOperations
 			}
 			
 			unit<uint32> Step3 := split_union_polygon(Step2/inflate)
-			, StorageName = "='%LocalDataProjDir%/Temp/SN_'+Was+'_Woon.fss'"
+			, StorageName = "%LocalDataProjDir%/Temp/SN.fss"
 			{
 				attribute<rdc_mm>        geometry (poly)                    : DisableStorage = "true";
 				attribute<rdc>           geometry_rd (poly)                 := geometry[rdc];
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b), DisableStorage = "true";
-				// attribute<Periods>       Modus_Sloopjaar                    := modus(Sloop_domain/RelevantJaar, Sloop_domain/Aggregated_rel);
+				// attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b), DisableStorage = "true";
 			}
 			
 			unit<uint32> Read_Step3 
-			: StorageName = "='%LocalDataProjDir%/Temp/SN_'+Was+'_Woon.fss'"
+			: StorageName = "%LocalDataProjDir%/Temp/SN.fss"
 			, StorageReadOnly = "true"
+			, Dialogdata = "geometry_rd"
+			, DialogType = "map"
 			{
 				attribute<rdc>           geometry_rd (poly);
-				// attribute<Periods>       Modus_Sloopjaar;
 				attribute<m2>            area                               := area(geometry_rd, m2);
+				
+				attribute<.> uq_N_pand_perceel_rel (uq_N_pand) := point_in_polygon(centroid_or_mid(uq_N_pand/pand_geometry), geometry_rd);
+				attribute<.> uq_S_pand_perceel_rel (uq_S_pand) := point_in_polygon(centroid_or_mid(uq_S_pand/pand_geometry), geometry_rd);
+				
+				attribute<m2> uq_N_pand_area_op_perceel := sum(uq_N_pand/pand_area,uq_N_pand_perceel_rel);
+				attribute<m2> uq_S_pand_area_op_perceel := sum(uq_S_pand/pand_area,uq_S_pand_perceel_rel);
+				
+				attribute<float32> share_N_pand_op_perceel := uq_N_pand_area_op_perceel / area;
+				attribute<float32> share_S_pand_op_perceel := uq_S_pand_area_op_perceel / area;
+				
+				unit<uint32> uq_N_pand := unique(PrepDomains/n/domain/label)
+				{
+					attribute<rdc> pand_geometry (poly)                 := PrepDomains/n/domain/pand_geometry[invert(uq_N_pand_rel)];
+					attribute<m2>  pand_area                            := area(pand_geometry, m2);
+					attribute<.>   uq_N_pand_rel (PrepDomains/n/domain) := rlookup(PrepDomains/n/domain/label, values);
+				}
+				
+				unit<uint32> uq_S_pand := unique(PrepDomains/S/domain/label)
+				{
+					attribute<rdc> pand_geometry (poly)                 := PrepDomains/S/domain/pand_geometry[invert(uq_S_pand_rel)];
+					attribute<m2>  pand_area                            := area(pand_geometry, m2);
+					attribute<.>   uq_S_pand_rel (PrepDomains/S/domain) := rlookup(PrepDomains/S/domain/label, values);
+				}
 			}
 			
-			unit<uint32> CleanUp := select_with_org_rel(Read_Step3/area >= Parameters/minimum_site_area)
+			unit<uint32> CleanUp := select_with_org_rel(Read_Step3/area >= Parameters/minimum_site_area && Read_Step3/share_N_pand_op_perceel > Parameters/minimum_SN_area_share && Read_Step3/share_S_pand_op_perceel > Parameters/minimum_SN_area_share)
 			{
 				attribute<upoint>        fdom_id                            := point(const(0,.), id(.));
 				attribute<rdc>           geometry  (poly)                   := org_rel -> geometry_rd;
-				attribute<rdc>           geometry_rd (poly)                 := geometry;
+				// attribute<rdc>           geometry_rd (poly)                 := geometry;
 				attribute<rdc_mm>        geometry_mm (poly)                 := geometry[rdc_mm];
-				// attribute<Periods>       Modus_Sloopjaar                    := org_rel -> Modus_Sloopjaar;
 
 				attribute<ha>            area                               := area(geometry, ha);
-				// attribute<jaar>          O_mod_sloopjaar                    := rjoin(Modus_Sloopjaar, id(Periods), Periods/year);
 				
-				unit<uint32>             Sloop                              := ='PrepDomains/'+Was+'_Sloop/domain';
-				unit<uint32>             Nieuwbouw                          := ='PrepDomains/'+Was+'_Nieuwbouw/domain';
-				
+				unit<uint32>             Sloop                              := PrepDomains/S/domain;
+				unit<uint32>             Nieuwbouw                          := PrepDomains/N/domain;
+				attribute<string>        Site_ID                            := 'SN_'+string(id(.));
 				attribute<.>             Sloop_rel     (Sloop)              := point_in_polygon(Sloop/vbo_geometry, geometry);
 				attribute<.>             Nieuwbouw_rel (Nieuwbouw)          := point_in_polygon(Nieuwbouw/vbo_geometry, geometry);
 				
-				// attribute<uint16>        max_pand_hoogte0                   := max(Nieuwbouw/pand_hoogte                   , Nieuwbouw_rel);
-				// attribute<uint16>        max_pand_hoogte                    := max_pand_hoogte0 == 0w ? 0w/0w : max_pand_hoogte0;
-				
-				// attribute<uint16>        Nr_Panden_boven100m                := sum(Nieuwbouw/pand_hoogte >= 10000w                                  ? 1w : 0w         , Nieuwbouw_rel);
-				// attribute<uint16>        Nr_Panden_60_100m                  := sum(Nieuwbouw/pand_hoogte >= 6000w && Nieuwbouw/pand_hoogte < 10000w ? 1w : 0w         , Nieuwbouw_rel);
-				// attribute<uint16>        Nr_Panden_40_60m                   := sum(Nieuwbouw/pand_hoogte >= 4000w && Nieuwbouw/pand_hoogte < 6000w  ? 1w : 0w         , Nieuwbouw_rel);
-				// attribute<uint16>        Nr_Panden_25_40m                   := sum(Nieuwbouw/pand_hoogte >= 2500w && Nieuwbouw/pand_hoogte < 4000w  ? 1w : 0w         , Nieuwbouw_rel);
-				// attribute<uint16>        Nr_Panden_onder25m                 := sum(Nieuwbouw/pand_hoogte <  2500w                                   ? 1w : 0w         , Nieuwbouw_rel);
-				// attribute<uint16>        Nr_Panden_hoogte_onbekend          := sum(!IsDefined(Nieuwbouw/pand_hoogte)                                ? 1w : 0w         , Nieuwbouw_rel);
-				
-				// attribute<bool>          IsBeschermdStadsgezicht            := any(Sloop/IsBeschermdStadsgezicht             , Sloop_rel);
-				// attribute<jaar>          O_mod_bouwjaar                     := modus(Sloop/bouwjaar                          , Sloop_rel);
-				// attribute<jaar>          N_mod_bouwjaar                     := modus(Nieuwbouw/bouwjaar                      , Nieuwbouw_rel);
-				// attribute<m2>            O_sum_buildingfootprint            := sum(Sloop/buildingfootprint                   , Sloop_rel);
-				// attribute<m2>            N_sum_buildingfootprint            := sum(Nieuwbouw/buildingfootprint               , Nieuwbouw_rel);
-				// attribute<m2>            O_vbo_opp_woon                     := sum(Sloop/O_vbo_opp_woon                      , Sloop_rel);
-				// attribute<m2>            N_vbo_opp_woon                     := sum(Nieuwbouw/N_vbo_opp_woon                  , Nieuwbouw_rel);
-				// attribute<m2>            O_vbo_opp_niet_woon                := sum(Sloop/O_vbo_opp_niet_woon                 , Sloop_rel);
-				// attribute<m2>            N_vbo_opp_niet_woon                := sum(Nieuwbouw/N_vbo_opp_niet_woon             , Nieuwbouw_rel);
-				// attribute<RegioUnit_wijk>Wijk_rel                           := point_in_polygon(centroid_or_mid(geometry) , RegioUnit_wijk/Geometry);
-				// attribute<int32>         Wijk_P_woningcorporatie            := RegioUnit_wijk/p_wcorpw[Wijk_rel];
-
-				// attribute<m2>            N_vbo_opp_vrijstaand               := mean(Nieuwbouw/N_avg_vbo_opp_vrijstaand           , Nieuwbouw_rel);
-				// attribute<m2>            N_vbo_opp_twee_onder_1_kap         := mean(Nieuwbouw/N_avg_vbo_opp_twee_onder_1_kap     , Nieuwbouw_rel);
-				// attribute<m2>            N_vbo_opp_rijtjeswoning            := mean(Nieuwbouw/N_avg_vbo_opp_rijtjeswoning        , Nieuwbouw_rel);
-				// attribute<m2>            N_vbo_opp_appartement              := mean(Nieuwbouw/N_avg_vbo_opp_appartement          , Nieuwbouw_rel);
-
-				// attribute<uint32>        O_count_vbo_woon                   := sum(Sloop/O_count_vbo_woon, Sloop_rel);
-				// attribute<uint32>        N_count_vbo_woon                   := sum(Nieuwbouw/N_count_vbo_woon, Nieuwbouw_rel);
-				// attribute<uint32>        O_count_vbo_niet_woon              := sum(Sloop/O_count_vbo_niet_woon, Sloop_rel);
-				// attribute<uint32>        N_count_vbo_niet_woon              := sum(Nieuwbouw/N_count_vbo_niet_woon, Nieuwbouw_rel);
-				
-				// attribute<uint32>        N_count_niet_woonpand              := sum(Nieuwbouw/WP5_rel == WP5/v/geen_woonpand ? 1 : 0, Nieuwbouw_rel);
-				
-				// attribute<uint32>        N_count_appartement                := sum(Nieuwbouw/WP5_rel == WP5/v/appartement ? 1 : 0, Nieuwbouw_rel);
-				// attribute<uint32>        N_count_rijtjeswoning              := sum(Nieuwbouw/WP5_rel == WP5/v/rijtjeswoning ? 1 : 0, Nieuwbouw_rel);
-				// attribute<uint32>        N_count_twee_onder_1_kap           := sum(Nieuwbouw/WP5_rel == WP5/v/twee_onder_1_kap ? 1 : 0, Nieuwbouw_rel);
-				// attribute<uint32>        N_count_vrijstaand                 := sum(Nieuwbouw/WP5_rel == WP5/v/vrijstaand ? 1 : 0, Nieuwbouw_rel);
-
-				// attribute<uint32>        N_count_vbo_pand_vrijstaand        := sum(Nieuwbouw/N_count_vbo_pand_vrijstaand, Nieuwbouw_rel);
-				// attribute<uint32>        N_count_vbo_pand_twee_onder_1_kap  := sum(Nieuwbouw/N_count_vbo_pand_twee_onder_1_kap, Nieuwbouw_rel);
-				// attribute<uint32>        N_count_vbo_pand_rijtjeswoning     := sum(Nieuwbouw/N_count_vbo_pand_rijtjeswoning, Nieuwbouw_rel);
-				// attribute<uint32>        N_count_vbo_pand_appartement       := sum(Nieuwbouw/N_count_vbo_pand_appartement, Nieuwbouw_rel);
+				unit<uint32> Sloop_Objecten     := select_with_org_rel(IsDefined(Sloop_rel))
+				{
+					attribute<rdc>    pand_geometry (poly) := Sloop/pand_geometry[org_rel];
+					attribute<rdc>    vbo_geometry         := Sloop/vbo_geometry[org_rel];
+					attribute<int32>  MutatieMaand         := Sloop/MutatieMaand[org_rel];
+					attribute<string> Site_ID          := 'SN_Sloop_'+string(Sloop_rel[org_rel]);
+				}
+				unit<uint32> Nieuwbouw_Objecten := select_with_org_rel(IsDefined(Nieuwbouw_rel))
+				{
+					attribute<rdc>    pand_geometry (poly) := Nieuwbouw/pand_geometry[org_rel];
+					attribute<rdc>    vbo_geometry         := Nieuwbouw/vbo_geometry[org_rel];
+					attribute<int32>  MutatieMaand         := Nieuwbouw/MutatieMaand[org_rel];
+					attribute<string> Site_ID           := 'SN_Nieuwbouw_'+string(Nieuwbouw_rel[org_rel]);
+				}
 			}
 		}
 		
 		unit<uint32> Result := NB_metSloop_TouchSloopPerc/CleanUp;
 	}
+	
+	unit<uint32> TeClusterenTypes : nrofrows = 4
+	{
+		attribute<string> name : ['T','O','TMplus', 'Onveranderd'];
+	}
 
-
-
-
-
+	container Clustering :=
+		for_each_ne(
+			TeClusterenTypes/name
+			, 'Clustering_T('+quote(TeClusterenTypes/name)+')'
+		);
+	
+	Template Clustering_T
+	{
+		parameter<string> RedevType;
+		///
+		unit<uint32> domain := ='PrepDomains/'+RedevType+'/domain';
+		
+		unit<uint32> Step1 := split_union_polygon(domain/pand_geometry[rdc_mm])
+		{
+			attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry, parameters/small_inflate, 8b);
+		}
+		
+		unit<uint32> Step2 := split_union_polygon(Step1/inflate)
+		{
+			attribute<rdc_mm> deflate     (poly) := bg_buffer_polygon(geometry, -parameters/small_inflate, 8b); //, DisableStorage = "true";
+			attribute<rdc>    geometry_rd (poly) := deflate[rdc];
+			attribute<m2>     area               := area(geometry_rd, m2);
+		}
+		
+		unit<uint32> CleanUp := select_with_org_rel(Step2/area >= Parameters/minimum_site_area)
+		{
+			attribute<rdc>               geometry (poly)                    := org_rel -> Step2/geometry_rd;
+			attribute<string>            Site_ID                            := RedevType+'_'+string(id(.));
+			attribute<.>                 Objecten_rel     (domain)          := point_in_polygon(domain/vbo_geometry, geometry);
+			unit<uint32>                 Objecten                           := select_with_org_rel(IsDefined(Objecten_rel))
+			{
+				attribute<rdc>    pand_geometry (poly) := domain/pand_geometry[org_rel];
+				attribute<rdc>    vbo_geometry         := domain/vbo_geometry[org_rel];
+				attribute<int32>  MutatieMaand         := domain/MutatieMaand[org_rel];
+				attribute<string> Site_ID              := RedevType+'_'+string(Objecten_rel[org_rel]);
+			}
+			
+			
+			// attribute<rdc>               geometry_rd (poly)                 := geometry;
+			// attribute<m2>                area                               := area(geometry, m2);
+			// attribute<rdc>               centroid                           := centroid_or_mid(geometry);
+		}
+	}
 }

@@ -10,7 +10,7 @@ container Analyse : using = "eenheden;typeringen;geometries"
 	// unit<uint32>    RegioUnit_NL      := /Brondata/RegioIndelingen/nederland;
 
 	#include<redev_obv_hele_bag.dms>
-	// #include<DetermineUrbanisationK.dms>
+	#include<DetermineUrbanisationK.dms>
 	// #include <RedevelopmentOptionValue.dms>
 	#include <sloop_nieuwbouw_snapshots_kwartalen.dms>
 	// #include <UAI.dms>

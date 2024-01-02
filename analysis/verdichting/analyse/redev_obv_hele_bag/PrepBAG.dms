@@ -8,6 +8,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<string>               label                         := pv_begindatum_key;
 		attribute<uint64>               pand_bag_nr                   := BAG_Tabel_path/pand_bag_nr;
 		attribute<uint64>               vbo_bag_nr                    := BAG_Tabel_path/vbo_bag_nr;
+		attribute<int32>                vbo_oppervlakte               := BAG_Tabel_path/vbo_oppervlakte;
 		attribute<int32>                begindatum                    := BAG_Tabel_path/begindatum;
 		attribute<jaar>                 begin_jaar                    := (begindatum / 10000i)[jaar];
 		attribute<int32>                einddatum                     := BAG_Tabel_path/einddatum;
@@ -22,6 +23,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		unit<uint32> Onveranderd_Woon := select_with_org_rel(IsOnveranderd_Woon_Voorraad)
 		{
 			attribute<uint64>              vbo_bag_nr           := ../vbo_bag_nr[org_rel];
+			attribute<int32>               vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
 			attribute<rdc>                 geometry             := ../geometry[org_rel];
 			attribute<rdc>                 pand_geometry (poly) := ../pand_geometry[org_rel];
 			attribute<uq>                  uq_rel               := rlookup(vbo_bag_nr, uq/values);
@@ -32,6 +34,7 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<rdc>                 vbo_geometry         := first(../geometry, uq_rel);
 				attribute<rdc>                 pand_geometry (poly) := ../pand_geometry[invert(uq_rel)];
 				attribute<int32>               MutatieMaand         := const(null_i,.);
+				attribute<int32>               vbo_oppervlakte      := last(../vbo_oppervlakte, uq_rel);
 
 			}
 		}
@@ -154,7 +157,9 @@ container PrepBAG : using = "AdditionalClassifications"
 		parameter<int32>  datum;
 		unit<uint32>      src;
 		///
-	
+		// parameter<string> prevdatum := rjoin(string(datum), Verslagmaanden/name, verslagmaanden/prev_name);
+		// unit<uint32> PrevSelectieMoment := ='Mutaties_Per_VerslagMaand/Y'+prevdatum+'/SelectieMoment';
+		
 		unit<uint32> SelectieMoment := select_with_org_rel(src/begindatum >= datum && src/begindatum < (datum + 100i) && src/functie_rel == FunctieK/v/wonen)
 		{
 			attribute<rdc>                     geometry              := src/geometry[org_rel];
@@ -163,88 +168,329 @@ container PrepBAG : using = "AdditionalClassifications"
 			attribute<uint64>                  pand_bag_nr           := src/pand_bag_nr[org_rel];
 			attribute<string>                  pv_begindatum_key     := src/pv_begindatum_key[org_rel];
 			attribute<bool>                    WasObjectVoorraadBijStartBAG := src/WasObjectVoorraadBijStartBAG[org_rel];
-			
+			attribute<int32>                   vbo_oppervlakte       := src/vbo_oppervlakte[org_rel];
 			attribute<int32>                   MutatieMaand          := const(datum / 100i, .);
-			attribute<bool>                    IsUnclassifiied       := not(IDEN_N || IDEN_T || IDEN_S || IDEN_O || IDEN_Cmin || IDEN_Cplus);
-			attribute<bool>                    IDEN_N                := src/IDEN_N[org_rel];
-			attribute<bool>                    IDEN_T                := src/IDEN_T[org_rel];
-			attribute<bool>                    IDEN_S                := src/IDEN_S[org_rel];
-			attribute<bool>                    IDEN_O                := src/IDEN_O[org_rel];
-			attribute<bool>                    IDEN_Cplus            := src/IDEN_Cplus[org_rel];
-			attribute<bool>                    IDEN_Cmin             := src/IDEN_Cmin[org_rel];
-			attribute<bool>                    IDEN_TMplus           := src/IDEN_TMplus[org_rel];
-			attribute<bool>                    IDEN_TMmin            := src/IDEN_TMmin[org_rel];
-		
 			attribute<vbo_status>              prev_vbo_status_rel   := src/prev_vbo_status_rel[org_rel];
 			attribute<vbo_status>              vbo_status_rel        := src/vbo_status_rel[org_rel];
 			attribute<pand_status_w_Undefined> prev_pand_status_rel  := src/prev_pand_status_rel[org_rel];
 			attribute<pand_status>             pand_status_rel       := src/pand_status_rel[org_rel];
-		
-			// saldeer meerdere transacties binnen een verslagmaand
-			attribute<uint32>                  count_classified_duplicates := sum(not(IsUnclassifiied)[uint32], uq_vbo_nr_rel)[uq_vbo_nr_rel];
+			
 			attribute<uq_vbo_nr>               uq_vbo_nr_rel         := rlookup(vbo_bag_nr, uq_vbo_nr/values);
 			unit<uint32>                       uq_vbo_nr             := unique(vbo_bag_nr);
 			
-			attribute<int32>                   count_N               := sum(IDEN_N[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
-			attribute<int32>                   count_T               := sum(IDEN_T[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
-			attribute<int32>                   count_S               := sum(IDEN_S[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
-			attribute<int32>                   count_O               := sum(IDEN_O[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+			unit<uint32> InitialClassification := SelectieMoment
+			{
+				attribute<bool>                    IDEN_N                := src/IDEN_N[org_rel];
+				attribute<bool>                    IDEN_T                := src/IDEN_T[org_rel];
+				attribute<bool>                    IDEN_S                := src/IDEN_S[org_rel];
+				attribute<bool>                    IDEN_O                := src/IDEN_O[org_rel];
+				attribute<bool>                    IDEN_Cplus            := src/IDEN_Cplus[org_rel];
+				attribute<bool>                    IDEN_Cmin             := src/IDEN_Cmin[org_rel];
+				attribute<bool>                    IDEN_TMplus           := src/IDEN_TMplus[org_rel];
+				attribute<bool>                    IDEN_TMmin            := src/IDEN_TMmin[org_rel];
+			}
 			
-			attribute<int32>                   count_plus            := sum(IDEN_N[int32] + IDEN_T[int32] + IDEN_Cplus[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
-			attribute<int32>                   count_min             := sum(IDEN_S[int32] + IDEN_O[int32] + IDEN_Cmin[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
-			attribute<int32>                   saldo                 := count_plus - count_min;
+			unit<uint32> Saldering_1e_Instantie := SelectieMoment
+			{
+				// saldeer meerdere transacties binnen een verslagmaand
+				attribute<int32>                   count_N               := sum(InitialClassification/IDEN_N[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_T               := sum(InitialClassification/IDEN_T[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_S               := sum(InitialClassification/IDEN_S[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_O               := sum(InitialClassification/IDEN_O[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_Cplus           := sum(InitialClassification/IDEN_Cplus[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_Cmin            := sum(InitialClassification/IDEN_Cmin[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_TMplus          := sum(InitialClassification/IDEN_TMplus[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_TMmin           := sum(InitialClassification/IDEN_TMmin[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				
+				attribute<int32>                   count_plus            := count_N + count_T + count_Cplus + count_TMplus;
+				attribute<int32>                   count_min             := count_S + count_O + count_Cmin + count_TMmin;
+				attribute<int32>                   saldo                 := count_plus - count_min;
+				
+				attribute<bool>                    IDEN_N                := switch(
+																					 case(InitialClassification/IDEN_N && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																					,InitialClassification/IDEN_N
+																				);
+				attribute<bool>                    IDEN_T                := switch(
+																					 case(InitialClassification/IDEN_T && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																					,InitialClassification/IDEN_T
+																				);
+				attribute<bool>                    IDEN_S                := switch(
+																					 case(InitialClassification/IDEN_S && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																					,InitialClassification/IDEN_S
+																				);
+				attribute<bool>                    IDEN_O                := switch(
+																					 case(InitialClassification/IDEN_O && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																					,InitialClassification/IDEN_O
+																				);
+				attribute<bool>                    IDEN_TMplus           := switch(
+																					 case(InitialClassification/IDEN_TMplus && saldo == 0i, FALSE)                                       //saldering 'mutatie in 1e instantie'
+																					,InitialClassification/IDEN_TMplus
+																				);
+				attribute<bool>                    IDEN_TMmin           := switch(
+																					 case(InitialClassification/IDEN_TMmin && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
+																					,InitialClassification/IDEN_TMmin
+																				);
+				attribute<bool>                    IDEN_Cplus            := switch(
+																					 case(InitialClassification/IDEN_Cplus && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
+																					,InitialClassification/IDEN_Cplus
+																				);
+				attribute<bool>                    IDEN_Cmin             := switch(
+																					 case(InitialClassification/IDEN_Cmin && saldo == 0i, FALSE)                                         //saldering 'mutatie in 1e instantie'
+																					,InitialClassification/IDEN_Cmin
+																				);
+			}
+			
+			unit<uint32> Correctie_1e_Instantie := SelectieMoment
+			{
+				attribute<bool>                    IDEN_N                := Saldering_1e_Instantie/IDEN_N;
+				attribute<bool>                    IDEN_T                := switch(
+																					case(Saldering_1e_Instantie/count_N > 0i 
+																						&& Saldering_1e_Instantie/saldo > 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - a1
+																					,Saldering_1e_Instantie/IDEN_T
+																				);
+				attribute<bool>                    IDEN_S                := Saldering_1e_Instantie/IDEN_S;
+				attribute<bool>                    IDEN_O                := switch(
+																					case(Saldering_1e_Instantie/count_S > 0i 
+																						&& Saldering_1e_Instantie/saldo < 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - b1
+																					,Saldering_1e_Instantie/IDEN_O
+																				);
+				attribute<bool>                    IDEN_TMplus           := Saldering_1e_Instantie/IDEN_TMplus;
+				attribute<bool>                    IDEN_TMmin            := Saldering_1e_Instantie/IDEN_TMmin;
+				attribute<bool>                    IDEN_Cplus            := switch(
+																					case(Saldering_1e_Instantie/count_N > 0i 
+																						&& Saldering_1e_Instantie/saldo > 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - a1
+																					,case(Saldering_1e_Instantie/count_T > 0i 
+																						&& Saldering_1e_Instantie/saldo > 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - a2
+																					,Saldering_1e_Instantie/IDEN_Cplus
+																				);
+				attribute<bool>                    IDEN_Cmin             := switch(
+																					case(Saldering_1e_Instantie/count_S > 0i 
+																						&& Saldering_1e_Instantie/saldo < 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - b1
+																					,case(Saldering_1e_Instantie/count_O > 0i 
+																						&& Saldering_1e_Instantie/saldo < 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - b2
+																					,Saldering_1e_Instantie/IDEN_Cmin
+																				);
+			}
+			
+			unit<uint32> Correctie_2e_Instantie := SelectieMoment
+			{
+				attribute<bool>                    IDEN_N                := switch(
+																					case(WasObjectVoorraadBijStartBAG 
+																						&& Correctie_1e_Instantie/IDEN_N 
+																						&& Saldering_1e_Instantie/saldo > 0i, FALSE)                                       //correctie 'mutatie in 2e instantie' - a1
+																					,case(Saldering_1e_Instantie/count_N > 0i 
+																						&& Saldering_1e_Instantie/saldo > 0i 
+																						&& (Prev/IDEN_N_Prev/AnyTrue || Prev/IDEN_T_Prev/AnyTrue), FALSE)                 //correctie 'mutatie in 2e instantie' - a2  
+																					,Correctie_1e_Instantie/IDEN_N
+																				);
+				attribute<bool>                    IDEN_T                := switch(
+																					case(WasObjectVoorraadBijStartBAG 
+																						&& Correctie_1e_Instantie/IDEN_T 
+																						&& Saldering_1e_Instantie/saldo > 0i, FALSE)                                       //correctie 'mutatie in 2e instantie' - a1
+																					,case(Saldering_1e_Instantie/count_T > 0i 
+																						&& Saldering_1e_Instantie/saldo > 0i 
+																						&& (Prev/IDEN_N_Prev/AnyTrue || Prev/IDEN_T_Prev/AnyTrue), FALSE)                 //correctie 'mutatie in 2e instantie' - a2  
+																					,Correctie_1e_Instantie/IDEN_T
+																				);
+				attribute<bool>                    IDEN_S                := switch(
+																					case(Saldering_1e_Instantie/count_S > 0i 
+																						&& Saldering_1e_Instantie/saldo < 0i 
+																						&& (Prev/IDEN_S_Prev/AnyTrue || Prev/IDEN_O_Prev/AnyTrue), FALSE)                 //correctie 'mutatie in 2e instantie' - b  
+																					,Correctie_1e_Instantie/IDEN_S
+																				);
+				attribute<bool>                    IDEN_O                := switch(
+																					case(Saldering_1e_Instantie/count_O > 0i 
+																						&& Saldering_1e_Instantie/saldo < 0i 
+																						&& (Prev/IDEN_S_Prev/AnyTrue || Prev/IDEN_O_Prev/AnyTrue), FALSE)                 //correctie 'mutatie in 2e instantie' - b  
+																					,Correctie_1e_Instantie/IDEN_O
+																				);
+				attribute<bool>                    IDEN_TMplus           := Correctie_1e_Instantie/IDEN_TMplus;
+				attribute<bool>                    IDEN_TMmin            := Correctie_1e_Instantie/IDEN_TMmin;
+				attribute<bool>                    IDEN_Cplus            := switch(
+																					case(WasObjectVoorraadBijStartBAG 
+																						&& (Correctie_1e_Instantie/IDEN_N || Correctie_1e_Instantie/IDEN_T) 
+																						&& Saldering_1e_Instantie/saldo > 0i, TRUE)                                        //correctie 'mutatie in 2e instantie' - a1
+																					,case((Saldering_1e_Instantie/count_N > 0i || Saldering_1e_Instantie/count_T > 0i) 
+																						&& Saldering_1e_Instantie/saldo > 0i 
+																						&& (Prev/IDEN_N_Prev/AnyTrue || Prev/IDEN_T_Prev/AnyTrue), TRUE)                  //correctie 'mutatie in 2e instantie' - a2  
+																					,Correctie_1e_Instantie/IDEN_Cplus
+																				);
+				attribute<bool>                    IDEN_Cmin             := switch(
+																					case((Saldering_1e_Instantie/count_S > 0i || Saldering_1e_Instantie/count_O > 0i) 
+																						&& Saldering_1e_Instantie/saldo < 0i 
+																						&& (Prev/IDEN_S_Prev/AnyTrue || Prev/IDEN_O_Prev/AnyTrue), TRUE)                  //correctie 'mutatie in 2e instantie' - b  
+																					,Correctie_1e_Instantie/IDEN_Cmin
+																				);
+																				
+			}
 		
-			attribute<bool>                    IDEN_N_corr                := switch(
-																				 case(IDEN_N && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
-																				,case(WasObjectVoorraadBijStartBAG && IDEN_N && saldo > 0i, FALSE)             //correctie 'mutatie in 2e instantie'
-																				,IDEN_N
-																			);
-			attribute<bool>                    IDEN_T_corr                := switch(
-																				 case(IDEN_T && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
-																				,case(count_N > 0i && saldo > 0i, FALSE)                                       //saldering 'mutatie in 1e instantie'
-																				,case(WasObjectVoorraadBijStartBAG && IDEN_T && saldo > 0i, FALSE)             //correctie 'mutatie in 2e instantie'
-																				,IDEN_T
-																			);
-			attribute<bool>                    IDEN_S_corr                := switch(
-																				 case(IDEN_S && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
-																				,IDEN_S
-																			);
-			attribute<bool>                    IDEN_O_corr                := switch(
-																				 case(IDEN_O && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
-																				,case(count_S > 0i && saldo < 0i, FALSE)                                       //saldering 'mutatie in 1e instantie'
-																				,IDEN_O
-																			);
-			attribute<bool>                    IDEN_TMplus_corr           := switch(
-																				 case(IDEN_TMplus && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
-																				,IDEN_TMplus
-																			);
-			attribute<bool>                    IDEN_TMmin_corr           := switch(
-																				 case(IDEN_TMmin && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
-																				,IDEN_TMmin
-																			);
-			attribute<bool>                    IDEN_Cplus_corr            := switch(
-																				 case(IDEN_Cplus && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
-																				,case(WasObjectVoorraadBijStartBAG && (IDEN_N || IDEN_T) && saldo > 0i, TRUE)  //correctie 'mutatie in 2e instantie'
-																				,case(count_N > 0i && saldo > 0i, FALSE)                                       //saldering 'mutatie in 1e instantie'
-																				,case(count_T > 0i && saldo > 0i, FALSE)                                       //saldering 'mutatie in 1e instantie' 
-																				,IDEN_Cplus
-																			);
-			attribute<bool>                    IDEN_Cmin_corr             := switch(
-																				 case(IDEN_Cmin && saldo == 0i, FALSE)                                         //saldering 'mutatie in 1e instantie'
-																				,case(count_S > 0i && saldo < 0i, FALSE)                                       //saldering 'mutatie in 1e instantie' 
-																				,case(count_O > 0i && saldo < 0i, FALSE)                                       //saldering 'mutatie in 1e instantie'
-																				,IDEN_Cmin
-																			);
+			container Prev 
+			{
+				unit<uint32> PrevVerslagmaanden := select_with_attr_by_cond(Verslagmaanden, int32(Verslagmaanden/name) < datum);
+				
+				container IDEN_N_Prev :=
+					for_each_nedv(
+						PrevVerslagmaanden/label
+						, 'rjoin(vbo_bag_nr, Mutaties_Per_VerslagMaand/'+PrevVerslagmaanden/label+'/SelectieMoment/vbo_bag_nr, Mutaties_Per_VerslagMaand/'+PrevVerslagmaanden/label+'/SelectieMoment/Saldering_na_2e_Instantie/IDEN_N)'
+						, SelectieMoment
+						, bool
+					)
+				{
+					attribute<bool> AnyTrue (SelectieMoment) := = #PrevVerslagmaanden == 0 ? 'const(FALSE,SelectieMoment)' : 'or('+AsItemList(PrevVerslagmaanden/label)+')';
+				}
+				container IDEN_T_Prev :=
+					for_each_nedv(
+						PrevVerslagmaanden/label
+						, 'rjoin(vbo_bag_nr, Mutaties_Per_VerslagMaand/'+PrevVerslagmaanden/label+'/SelectieMoment/vbo_bag_nr, Mutaties_Per_VerslagMaand/'+PrevVerslagmaanden/label+'/SelectieMoment/Saldering_na_2e_Instantie/IDEN_T)'
+						, SelectieMoment
+						, bool
+					)
+				{
+					attribute<bool> AnyTrue (SelectieMoment) := = #PrevVerslagmaanden == 0 ? 'const(FALSE,SelectieMoment)' : 'or('+AsItemList(PrevVerslagmaanden/label)+')';
+				}
+				container IDEN_S_Prev :=
+					for_each_nedv(
+						PrevVerslagmaanden/label
+						, 'rjoin(vbo_bag_nr, Mutaties_Per_VerslagMaand/'+PrevVerslagmaanden/label+'/SelectieMoment/vbo_bag_nr, Mutaties_Per_VerslagMaand/'+PrevVerslagmaanden/label+'/SelectieMoment/Saldering_na_2e_Instantie/IDEN_S)'
+						, SelectieMoment
+						, bool
+					)
+				{
+					attribute<bool> AnyTrue (SelectieMoment) := = #PrevVerslagmaanden == 0 ? 'const(FALSE,SelectieMoment)' : 'or('+AsItemList(PrevVerslagmaanden/label)+')';
+				}
+				container IDEN_O_Prev :=
+					for_each_nedv(
+						PrevVerslagmaanden/label
+						, 'rjoin(vbo_bag_nr, Mutaties_Per_VerslagMaand/'+PrevVerslagmaanden/label+'/SelectieMoment/vbo_bag_nr, Mutaties_Per_VerslagMaand/'+PrevVerslagmaanden/label+'/SelectieMoment/Saldering_na_2e_Instantie/IDEN_O)'
+						, SelectieMoment
+						, bool
+					)
+				{
+					attribute<bool> AnyTrue (SelectieMoment) := = #PrevVerslagmaanden == 0 ? 'const(FALSE,SelectieMoment)' : 'or('+AsItemList(PrevVerslagmaanden/label)+')';
+				}
+			}
+			
+			// attribute<bool>                    IDEN_N_corr                := switch(
+																				 // case(IDEN_N && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																				// ,case(WasObjectVoorraadBijStartBAG && IDEN_N && saldo > 0i, FALSE)             //correctie 'mutatie in 2e instantie' - a1
+																				// ,case(count_N > 0i 
+																					// && saldo > 0i 
+																					// && (Prev/IDEN_N_Prev/AnyTrue || Prev/IDEN_T_Prev/AnyTrue), FALSE)          //correctie 'mutatie in 2e instantie' - a2  
+																				// ,IDEN_N
+																			// );
+			// attribute<bool>                    IDEN_T_corr                := switch(
+																				 // case(IDEN_T && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																				// ,case(count_N > 0i && saldo > 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - a1
+																				// ,case(WasObjectVoorraadBijStartBAG && IDEN_T && saldo > 0i, FALSE)             //correctie 'mutatie in 2e instantie' - a1
+																				// ,case(count_T > 0i 
+																					// && saldo > 0i 
+																					// && (Prev/IDEN_N_Prev/AnyTrue || Prev/IDEN_T_Prev/AnyTrue), FALSE)          //correctie 'mutatie in 2e instantie' - a2  
+																				// ,IDEN_T
+																			// );
+			// attribute<bool>                    IDEN_S_corr                := switch(
+																				 // case(IDEN_S && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																				// ,case(count_S > 0i 
+																					// && saldo < 0i 
+																					// && (Prev/IDEN_S_Prev/AnyTrue || Prev/IDEN_O_Prev/AnyTrue), FALSE)          //correctie 'mutatie in 2e instantie' - b  
+																				// ,IDEN_S
+																			// );
+			// attribute<bool>                    IDEN_O_corr                := switch(
+																				 // case(IDEN_O && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																				// ,case(count_O > 0i 
+																					// && saldo < 0i 
+																					// && (Prev/IDEN_S_Prev/AnyTrue || Prev/IDEN_O_Prev/AnyTrue), FALSE)          //correctie 'mutatie in 2e instantie' - b  
+																				// ,case(count_S > 0i && saldo < 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - b1
+																				// ,IDEN_O
+																			// );
+			// attribute<bool>                    IDEN_TMplus_corr           := switch(
+																				 // case(IDEN_TMplus && saldo == 0i, FALSE)                                       //saldering 'mutatie in 1e instantie'
+																				// ,IDEN_TMplus
+																			// );
+			// attribute<bool>                    IDEN_TMmin_corr           := switch(
+																				 // case(IDEN_TMmin && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
+																				// ,IDEN_TMmin
+																			// );
+			// attribute<bool>                    IDEN_Cplus_corr            := switch(
+																				 // case(IDEN_Cplus && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
+																				// ,case(WasObjectVoorraadBijStartBAG && (IDEN_N || IDEN_T) && saldo > 0i, TRUE)  //correctie 'mutatie in 2e instantie' - a1
+																				// ,case((count_N > 0i || count_T > 0i) 
+																					// && saldo > 0i 
+																					// && (Prev/IDEN_N_Prev/AnyTrue || Prev/IDEN_T_Prev/AnyTrue), TRUE)           //correctie 'mutatie in 2e instantie' - a2  
+																				// ,case(count_N > 0i && saldo > 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - a1
+																				// ,case(count_T > 0i && saldo > 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - a2
+																				// ,IDEN_Cplus
+																			// );
+			// attribute<bool>                    IDEN_Cmin_corr             := switch(
+																				 // case(IDEN_Cmin && saldo == 0i, FALSE)                                         //saldering 'mutatie in 1e instantie'
+																				// ,case((count_S > 0i || count_O > 0i) 
+																					// && saldo < 0i 
+																					// && (Prev/IDEN_S_Prev/AnyTrue || Prev/IDEN_O_Prev/AnyTrue), TRUE)           //correctie 'mutatie in 2e instantie' - b  
+																				// ,case(count_S > 0i && saldo < 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - b1
+																				// ,case(count_O > 0i && saldo < 0i, FALSE)                                       //correctie 'mutatie in 1e instantie' - b2
+																				// ,IDEN_Cmin
+																			// );
+																			
+																			
+			unit<uint32> Saldering_na_2e_Instantie := SelectieMoment
+			{
+				// saldeer meerdere transacties binnen een verslagmaand
+				attribute<int32>                   count_N               := sum(Correctie_2e_Instantie/IDEN_N[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_T               := sum(Correctie_2e_Instantie/IDEN_T[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_S               := sum(Correctie_2e_Instantie/IDEN_S[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_O               := sum(Correctie_2e_Instantie/IDEN_O[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_Cplus           := sum(Correctie_2e_Instantie/IDEN_Cplus[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_Cmin            := sum(Correctie_2e_Instantie/IDEN_Cmin[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_TMplus          := sum(Correctie_2e_Instantie/IDEN_TMplus[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<int32>                   count_TMmin           := sum(Correctie_2e_Instantie/IDEN_TMmin[int32],uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				
+				attribute<int32>                   count_plus            := count_N + count_T + count_Cplus + count_TMplus;
+				attribute<int32>                   count_min             := count_S + count_O + count_Cmin + count_TMmin;
+				attribute<int32>                   saldo                 := count_plus - count_min;
+				
+				attribute<bool>                    IDEN_N                := switch(
+																					 case(Correctie_2e_Instantie/IDEN_N && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																					,Correctie_2e_Instantie/IDEN_N
+																				);
+				attribute<bool>                    IDEN_T                := switch(
+																					 case(Correctie_2e_Instantie/IDEN_T && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																					,Correctie_2e_Instantie/IDEN_T
+																				);
+				attribute<bool>                    IDEN_S                := switch(
+																					 case(Correctie_2e_Instantie/IDEN_S && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																					,Correctie_2e_Instantie/IDEN_S
+																				);
+				attribute<bool>                    IDEN_O                := switch(
+																					 case(Correctie_2e_Instantie/IDEN_O && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
+																					,Correctie_2e_Instantie/IDEN_O
+																				);
+				attribute<bool>                    IDEN_TMplus           := switch(
+																					 case(Correctie_2e_Instantie/IDEN_TMplus && saldo == 0i, FALSE)                                       //saldering 'mutatie in 1e instantie'
+																					,Correctie_2e_Instantie/IDEN_TMplus
+																				);
+				attribute<bool>                    IDEN_TMmin           := switch(
+																					 case(Correctie_2e_Instantie/IDEN_TMmin && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
+																					,Correctie_2e_Instantie/IDEN_TMmin
+																				);
+				attribute<bool>                    IDEN_Cplus            := switch(
+																					 case(Correctie_2e_Instantie/IDEN_Cplus && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
+																					,Correctie_2e_Instantie/IDEN_Cplus
+																				);
+				attribute<bool>                    IDEN_Cmin             := switch(
+																					 case(Correctie_2e_Instantie/IDEN_Cmin && saldo == 0i, FALSE)                                         //saldering 'mutatie in 1e instantie'
+																					,Correctie_2e_Instantie/IDEN_Cmin
+																				);
+			}
+																			
 																			
 			attribute<MutatieTypen>            MutatieTypen_rel            := switch(
-																				 case(IDEN_N_corr, MutatieTypen/V/N)
-																				,case(IDEN_T_corr, MutatieTypen/V/T)
-																				,case(IDEN_S_corr, MutatieTypen/V/S)
-																				,case(IDEN_TMplus_corr, MutatieTypen/V/TMplus)
-																				,case(IDEN_TMmin_corr, MutatieTypen/V/TMmin)
-																				,case(IDEN_O_corr, MutatieTypen/V/O)
-																				,case(IDEN_Cplus_corr, MutatieTypen/V/Cplus)
-																				,case(IDEN_Cmin_corr, MutatieTypen/V/Cmin)
+																				 case(Saldering_na_2e_Instantie/IDEN_N, MutatieTypen/V/N)
+																				,case(Saldering_na_2e_Instantie/IDEN_T, MutatieTypen/V/T)
+																				,case(Saldering_na_2e_Instantie/IDEN_S, MutatieTypen/V/S)
+																				,case(Saldering_na_2e_Instantie/IDEN_O, MutatieTypen/V/O)
+																				,case(Saldering_na_2e_Instantie/IDEN_TMplus, MutatieTypen/V/TMplus)
+																				,case(Saldering_na_2e_Instantie/IDEN_TMmin, MutatieTypen/V/TMmin)
+																				,case(Saldering_na_2e_Instantie/IDEN_Cplus, MutatieTypen/V/Cplus)
+																				,case(Saldering_na_2e_Instantie/IDEN_Cmin, MutatieTypen/V/Cmin)
 																				,null_b
 																			);
 																			
@@ -253,7 +499,7 @@ container PrepBAG : using = "AdditionalClassifications"
 			container Totalen_PerMutatieType := 
 				for_each_nedv(
 					MutatieTypen/name
-					, 'sum(IDEN_'+MutatieTypen/name+'_corr[int32])'
+					, 'sum(Saldering_na_2e_Instantie/IDEN_'+MutatieTypen/name+'[int32])'
 					, void
 					, int32
 				)
@@ -280,8 +526,14 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
 		attribute<uint64>                  vbo_bag_nr            := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_bag_nr')+')';
 		attribute<uint64>                  pand_bag_nr           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
+		attribute<int32>                   vbo_oppervlakte       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_oppervlakte')+')';
 		attribute<int32>                   MutatieMaand          := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
-		attribute<MutatieTypen>            MutatieTypen_rel      := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
+		attribute<MutatieTypen>            MutatieTypen_rel_src  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
+		attribute<MutatieTypen>            MutatieTypen_rel      := switch(
+																		 case(MutatieTypen_rel_src == MutatieTypen/v/Cplus, MutatieTypen/V/T)
+																		,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)
+																		,null_b
+																	);
 	}
 	
 	unit<uint32> BeginVoorraad      := select_with_org_rel(BAG_Tabel/ActiefOp_StartBAG)

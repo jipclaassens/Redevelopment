@@ -13,6 +13,9 @@ container AdditionalClassifications
 		attribute<string> name  := jaar + maand + '01';
 		attribute<string> jaar  := Jaren/name[first_rel];
 		attribute<string> maand := Maanden/name[second_rel];
+		
+		attribute<bool>   IsFirst   := first(label) == label;
+		attribute<string> prev_name := MakeDefined(name[sub_or_null(id(.), 1)], 'Start');
 	}
 	
 	unit<uint32> Maanden := range(uint32, 1, 13)

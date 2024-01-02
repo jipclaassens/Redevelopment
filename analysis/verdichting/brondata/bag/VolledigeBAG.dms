@@ -15,6 +15,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 		attribute<rdc>         pand_geometry (poly)           := panden/pand/geometry[nr_2_rel];
 		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[nr_2_rel];
 		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[nr_1_rel];
+		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte[nr_1_rel];
 		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar[nr_2_rel];
 		
 		attribute<int32>       pand_begindatum                := panden/pand/begindatum[nr_2_rel];
@@ -44,6 +45,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>       pand_einddatum                 := org_rel -> pand_einddatum;
 			attribute<int32>       vbo_begindatum                 := org_rel -> vbo_begindatum;
 			attribute<int32>       vbo_einddatum                  := org_rel -> vbo_einddatum;
+			attribute<int32>       vbo_oppervlakte                := org_rel -> vbo_oppervlakte;
 			
 			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
 			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
@@ -173,7 +175,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 		{
 			attribute<rdc>                        geometry; 
 			attribute<string>                     identificatie;
-			// attribute<int32>                      oppervlakte;
+			attribute<int32>                      oppervlakte;
 			attribute<string>                     nummeraanduiding_id;
 			
 			unit<uint32> gerelateerdPand
@@ -198,7 +200,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<rdc>                        geometry                  := import/geometry;
 			attribute<uint64>                     vbo_bag_nr                := uint64(identificatie);
 			attribute<uint64>                     pand_bag_nr               := rjoin(vbo_bag_nr, uint64(import/gerelateerdPand/identificatie), uint64(import/gerelateerdPand/pand_id));
-			// attribute<int32>                      oppervlakte               := import/oppervlakte;
+			attribute<int32>                      oppervlakte               := import/oppervlakte;
 			attribute<vbo_status>                 status_rel                := import/meta/status_rel;
 			// attribute<uint32>                     pand_rel                  := rlookup(pand_bag_nr, pand_domein/pand_bag_nr);
 			attribute<int32>                      begindatum                := import/meta/BEGINDATUM == 0i ? MaxDatum : import/meta/BEGINDATUM;
@@ -364,6 +366,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 
 			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
 			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;
+			attribute<int32>       vbo_oppervlakte                := org_rel -> vbo_oppervlakte;
 			attribute<pand_status> pand_status_rel                := org_rel -> pand_status_rel;
 			attribute<vbo_status>  vbo_status_rel                 := org_rel -> vbo_status_rel;
 			attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel      := org_rel -> gebruiksdoel_rel;

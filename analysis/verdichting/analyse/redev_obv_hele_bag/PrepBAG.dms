@@ -14,6 +14,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<int32>                einddatum                     := BAG_Tabel_path/einddatum;
 		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel              := BAG_Tabel_path/gebruiksdoel_rel;
 		attribute<jaar>                 pand_bouwjaar                 := BAG_Tabel_path/pand_bouwjaar;
+		// attribute<WP4>                  pand_type                     := BAG_Tabel_path/pand_type;
 		attribute<FunctieK>             prev_functie_rel              := MakeDefined(vbo_gebruiksdoel_ext/functie_rel[gebruiksdoel_rel[pv_begin_eind_rel]],functie_rel);
 		attribute<FunctieK>             functie_rel                   := vbo_gebruiksdoel_ext/functie_rel[gebruiksdoel_rel];
 
@@ -26,6 +27,8 @@ container PrepBAG : using = "AdditionalClassifications"
 			attribute<int32>               vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
 			attribute<rdc>                 geometry             := ../geometry[org_rel];
 			attribute<rdc>                 pand_geometry (poly) := ../pand_geometry[org_rel];
+			attribute<jaar>                pand_bouwjaar        := ../pand_bouwjaar[org_rel];
+			attribute<WP4>                 pand_type            := ../pand_type[org_rel];
 			attribute<uq>                  uq_rel               := rlookup(vbo_bag_nr, uq/values);
 			 
 			unit<uint32> uq := unique(vbo_bag_nr)
@@ -35,7 +38,8 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<rdc>                 pand_geometry (poly) := ../pand_geometry[invert(uq_rel)];
 				attribute<int32>               MutatieMaand         := const(null_i,.);
 				attribute<int32>               vbo_oppervlakte      := last(../vbo_oppervlakte, uq_rel);
-
+				attribute<jaar>                pand_bouwjaar        := last(../pand_bouwjaar, uq_rel);
+				attribute<WP4>                 pand_type            := last(../pand_type, uq_rel);
 			}
 		}
 		
@@ -166,6 +170,7 @@ container PrepBAG : using = "AdditionalClassifications"
 			attribute<rdc>                     pand_geometry (poly)  := src/pand_geometry[org_rel];
 			attribute<uint64>                  vbo_bag_nr            := src/vbo_bag_nr[org_rel];
 			attribute<uint64>                  pand_bag_nr           := src/pand_bag_nr[org_rel];
+			attribute<jaar>                    pand_bouwjaar         := src/pand_bouwjaar[org_rel];
 			attribute<string>                  pv_begindatum_key     := src/pv_begindatum_key[org_rel];
 			attribute<bool>                    WasObjectVoorraadBijStartBAG := src/WasObjectVoorraadBijStartBAG[org_rel];
 			attribute<int32>                   vbo_oppervlakte       := src/vbo_oppervlakte[org_rel];
@@ -525,6 +530,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<rdc>                     geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
 		attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
 		attribute<uint64>                  vbo_bag_nr            := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_bag_nr')+')';
+		attribute<jaar>                    pand_bouwjaar         := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bouwjaar')+')';
 		attribute<uint64>                  pand_bag_nr           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
 		attribute<int32>                   vbo_oppervlakte       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_oppervlakte')+')';
 		attribute<int32>                   MutatieMaand          := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
@@ -532,7 +538,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<MutatieTypen>            MutatieTypen_rel      := switch(
 																		 case(MutatieTypen_rel_src == MutatieTypen/v/Cplus, MutatieTypen/V/T)
 																		,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)
-																		,null_b
+																		,MutatieTypen_rel_src
 																	);
 	}
 	

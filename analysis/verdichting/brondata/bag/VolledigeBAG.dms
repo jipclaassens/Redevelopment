@@ -16,7 +16,8 @@ container VolledigeBAG : using = "typeringen/BAG"
 		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[nr_2_rel];
 		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[nr_1_rel];
 		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte[nr_1_rel];
-		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar[nr_2_rel];
+		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar_trunc[nr_2_rel];
+		// attribute<WP4>         pand_type                      := panden/pand/WP4_rel[nr_2_rel];
 		
 		attribute<int32>       pand_begindatum                := panden/pand/begindatum[nr_2_rel];
 		attribute<int32>       pand_einddatum                 := panden/pand/einddatum[nr_2_rel];
@@ -56,6 +57,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>       begindatum                     := max_elem(pand_begindatum, vbo_begindatum);
 			attribute<int32>       einddatum                      := min_elem(pand_einddatum, vbo_einddatum);
 			attribute<jaar>        pand_bouwjaar                  := org_rel -> pand_bouwjaar;
+			attribute<WP4>         pand_type                      := org_rel -> pand_type;
 			
 			attribute<string>      pv_key                         := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
 			attribute<string>      status_key                     := string(pand_status_rel) + '_' + string(vbo_status_rel);
@@ -137,6 +139,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>                        begindatum                   := impl/begindatum0 < 19600101i ? impl/TIJDSTIPREGISTRATIE : impl/begindatum0;
 			attribute<int32>                        einddatum                    := impl/einddatum0 < 19600101i ? impl/EINDREGISTRATIE : impl/einddatum0;
 			attribute<jaar>                         bouwjaar                     := import/bouwjaar;
+			attribute<jaar>                         bouwjaar_trunc               := =replace(parameters/bouwjaar_truncation_expr, '@YYYY@', '2025');
 			
 			unit<uint32> impl := .
 			{
@@ -363,6 +366,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>       begindatum                     := min(src/begindatum, per_src_Tabel);
 			attribute<int32>       einddatum                      := org_rel -> einddatum;
 			attribute<jaar>        pand_bouwjaar                  := org_rel -> pand_bouwjaar;
+			// attribute<WP4>         pand_type                      := org_rel -> pand_type;
 
 			attribute<uint64>      pand_bag_nr                    := org_rel -> pand_bag_nr;
 			attribute<uint64>      vbo_bag_nr                     := org_rel -> vbo_bag_nr;

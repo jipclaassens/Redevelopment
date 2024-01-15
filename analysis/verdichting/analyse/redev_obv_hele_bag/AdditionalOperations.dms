@@ -44,6 +44,7 @@ container AdditionalOperations
 		attribute<rdc>                   vbo_geometry                       := Nieuwbouw_perceel/Nieuwbouw_src/vbo_geometry[org_rel];
 		attribute<int32>                 MutatieMaand                       := Nieuwbouw_perceel/Nieuwbouw_src/MutatieMaand[org_rel];
 		attribute<int32>                 vbo_oppervlakte                    := Nieuwbouw_perceel/Nieuwbouw_src/vbo_oppervlakte[org_rel];
+		attribute<jaar>                  pand_bouwjaar                      := Nieuwbouw_perceel/Nieuwbouw_src/pand_bouwjaar[org_rel];
 		attribute<bool>                  GeenOverlapmet_SN                  := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
 		unit<uint32>                     intersect_met_SN                   := overlay_polygon(pand_geometry[rdc_mm], SN/Result/geometry_mm);
 		
@@ -66,13 +67,21 @@ container AdditionalOperations
 		{
 			attribute<rdc>    geometry (poly)                  := org_rel -> geometry_rd;
 			attribute<string> Site_ID                          := 'NB_Onbeb_'+string(id(.));
+			attribute<jaar>   Avg_bouwjaar                     := mean(../pand_bouwjaar, Objecten_rel);
+			attribute<jaar>   SD_bouwjaar                      := sd(../pand_bouwjaar, Objecten_rel);
+			attribute<int32>  MutatieMaand                     := min(../MutatieMaand, Objecten_rel) > 21000000i || min(../MutatieMaand, Objecten_rel) < 0i
+																				? null_i 
+																				: min(../MutatieMaand, Objecten_rel);
+			attribute<m2>     area                             := area(geometry, m2);
 			
 			attribute<.>      Objecten_rel     (..)            := point_in_polygon(../vbo_geometry, geometry);
+			
 			unit<uint32>      Objecten                         := select_with_org_rel(IsDefined(Objecten_rel))
 			{
 				attribute<rdc>    pand_geometry (poly) := .../pand_geometry[org_rel];
 				attribute<rdc>    vbo_geometry         := .../vbo_geometry[org_rel];
 				attribute<int32>  vbo_oppervlakte      := .../vbo_oppervlakte[org_rel];
+				attribute<jaar>   pand_bouwjaar        := .../pand_bouwjaar[org_rel];
 				attribute<int32>  MutatieMaand         := .../MutatieMaand[org_rel];
 				attribute<string> Site_ID              := 'NB_Onbeb_'+string(Objecten_rel[org_rel]);
 			}
@@ -83,6 +92,7 @@ container AdditionalOperations
 	{
 		attribute<rdc>                   pand_geometry (poly)               := Nieuwbouw_perceel/Nieuwbouw_src/pand_geometry[org_rel];
 		attribute<rdc>                   vbo_geometry                       := Nieuwbouw_perceel/Nieuwbouw_src/vbo_geometry[org_rel];
+		attribute<jaar>                  pand_bouwjaar                      := Nieuwbouw_perceel/Nieuwbouw_src/pand_bouwjaar[org_rel];
 		attribute<int32>                 MutatieMaand                       := Nieuwbouw_perceel/Nieuwbouw_src/MutatieMaand[org_rel];
 		attribute<int32>                 vbo_oppervlakte                    := Nieuwbouw_perceel/Nieuwbouw_src/vbo_oppervlakte[org_rel];
 		attribute<bool>                  GeenOverlapmet_SN                  := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
@@ -107,7 +117,13 @@ container AdditionalOperations
 		{
 			attribute<rdc>    geometry (poly)                  := org_rel -> geometry_rd;
 			attribute<string> Site_ID                          := 'NB_Beb_'+string(id(.));
+			attribute<jaar>   Avg_bouwjaar                     := mean(../pand_bouwjaar, Objecten_rel);
+			attribute<jaar>   SD_bouwjaar                      := sd(../pand_bouwjaar, Objecten_rel);
+			attribute<int32>  MutatieMaand                     := min(../MutatieMaand, Objecten_rel) > 21000000i || min(../MutatieMaand, Objecten_rel) < 0i
+																				? null_i 
+																				: min(../MutatieMaand, Objecten_rel);
 			
+			attribute<m2>     area                             := area(geometry, m2);
 			attribute<.>      Objecten_rel     (..)            := point_in_polygon(../vbo_geometry, geometry);
 			unit<uint32>      Objecten                         := select_with_org_rel(IsDefined(Objecten_rel))
 			{
@@ -115,6 +131,7 @@ container AdditionalOperations
 				attribute<rdc>    vbo_geometry         := .../vbo_geometry[org_rel];
 				attribute<int32>  MutatieMaand         := .../MutatieMaand[org_rel];
 				attribute<int32>  vbo_oppervlakte      := .../vbo_oppervlakte[org_rel];
+				attribute<jaar>   pand_bouwjaar        := .../pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := 'NB_Beb_'+string(Objecten_rel[org_rel]);
 			}
 		}
@@ -220,7 +237,7 @@ container AdditionalOperations
 			{
 				attribute<rdc_mm>        geometry (poly)                    : DisableStorage = "true";
 				attribute<rdc>           geometry_rd (poly)                 := geometry[rdc];
-				// attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b), DisableStorage = "true";
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b), DisableStorage = "true";
 			}
 			
 			unit<uint32> Read_Step3 
@@ -257,13 +274,25 @@ container AdditionalOperations
 			}
 			
 			unit<uint32> CleanUp := select_with_org_rel(Read_Step3/area >= Parameters/minimum_site_area && Read_Step3/share_N_pand_op_perceel > Parameters/minimum_SN_area_share && Read_Step3/share_S_pand_op_perceel > Parameters/minimum_SN_area_share)
+			// unit<uint32> CleanUp := select_with_org_rel(Step3/area >= Parameters/minimum_site_area && Step3/share_N_pand_op_perceel > Parameters/minimum_SN_area_share && Step3/share_S_pand_op_perceel > Parameters/minimum_SN_area_share)
 			{
 				attribute<upoint>        fdom_id                            := point(const(0,.), id(.));
 				attribute<rdc>           geometry  (poly)                   := org_rel -> geometry_rd;
-				// attribute<rdc>           geometry_rd (poly)                 := geometry;
 				attribute<rdc_mm>        geometry_mm (poly)                 := geometry[rdc_mm];
 
-				attribute<ha>            area                               := area(geometry, ha);
+				attribute<m2>            area                               := area(geometry, m2);
+				attribute<jaar>          Avg_bouwjaar                       := mean(Sloop/pand_bouwjaar, Sloop_rel);
+				attribute<jaar>          SD_bouwjaar                        := sd(Sloop/pand_bouwjaar, Sloop_rel);
+				attribute<int32>         First_Nieuwbouw_MutatieMaand       := min(IsDefined(Nieuwbouw/MutatieMaand) ? Nieuwbouw/MutatieMaand : 99999999i, Nieuwbouw_rel);
+				attribute<int32>         First_Sloop_MutatieMaand           := min(IsDefined(Sloop/MutatieMaand)     ? Sloop/MutatieMaand     : 99999999i, Sloop_rel);
+				attribute<int32>         Last_Nieuwbouw_MutatieMaand        := max(IsDefined(Nieuwbouw/MutatieMaand) ? Nieuwbouw/MutatieMaand : 9999i, Nieuwbouw_rel);
+				attribute<int32>         Last_Sloop_MutatieMaand            := max(IsDefined(Sloop/MutatieMaand)     ? Sloop/MutatieMaand     : 9999i, Sloop_rel);
+				
+				attribute<int32>         MutatieMaand                       := First_Sloop_MutatieMaand > 21000000i 
+																					? Last_Nieuwbouw_MutatieMaand < 0i 
+																						? null_i 
+																						: Last_Nieuwbouw_MutatieMaand
+																					: First_Sloop_MutatieMaand;
 				
 				unit<uint32>             Sloop                              := PrepDomains/S/domain;
 				unit<uint32>             Nieuwbouw                          := PrepDomains/N/domain;
@@ -277,8 +306,8 @@ container AdditionalOperations
 					attribute<rdc>    vbo_geometry         := Sloop/vbo_geometry[org_rel];
 					attribute<int32>  MutatieMaand         := Sloop/MutatieMaand[org_rel];
 					attribute<int32>  vbo_oppervlakte      := Sloop/vbo_oppervlakte[org_rel];
+					attribute<jaar>   pand_bouwjaar        := Sloop/pand_bouwjaar[org_rel];
 					attribute<string> Site_ID              := ../Site_ID[../sloop_rel][org_rel];
-					// attribute<string> Site_ID              := 'SN_Sloop_'+string(Sloop_rel[org_rel]);
 				}
 				unit<uint32> Nieuwbouw_Objecten := select_with_org_rel(IsDefined(Nieuwbouw_rel))
 				{
@@ -286,8 +315,8 @@ container AdditionalOperations
 					attribute<rdc>    vbo_geometry         := Nieuwbouw/vbo_geometry[org_rel];
 					attribute<int32>  MutatieMaand         := Nieuwbouw/MutatieMaand[org_rel];
 					attribute<int32>  vbo_oppervlakte      := Nieuwbouw/vbo_oppervlakte[org_rel];
+					attribute<jaar>   pand_bouwjaar        := Nieuwbouw/pand_bouwjaar[org_rel];
 					attribute<string> Site_ID              := ../Site_ID[../Nieuwbouw_rel][org_rel];
-					// attribute<string> Site_ID              := 'SN_Nieuwbouw_'+string(Nieuwbouw_rel[org_rel]);
 				}
 			}
 		}
@@ -328,20 +357,24 @@ container AdditionalOperations
 		{
 			attribute<rdc>               geometry (poly)                    := org_rel -> Step2/geometry_rd;
 			attribute<string>            Site_ID                            := RedevType+'_'+string(id(.));
+			attribute<jaar>              Avg_bouwjaar                       := mean(domain/pand_bouwjaar, Objecten_rel);
+			attribute<jaar>              SD_bouwjaar                        := sd(domain/pand_bouwjaar, Objecten_rel);
+			attribute<int32>             MutatieMaand                       := min(domain/MutatieMaand, Objecten_rel) > 21000000i || min(domain/MutatieMaand, Objecten_rel) < 0i
+																				? null_i 
+																				: min(domain/MutatieMaand, Objecten_rel);
+			attribute<m2>                area                               := area(geometry, m2);
+			
 			attribute<.>                 Objecten_rel     (domain)          := point_in_polygon(domain/vbo_geometry, geometry);
+			
 			unit<uint32>                 Objecten                           := select_with_org_rel(IsDefined(Objecten_rel))
 			{
 				attribute<rdc>    pand_geometry (poly) := domain/pand_geometry[org_rel];
 				attribute<rdc>    vbo_geometry         := domain/vbo_geometry[org_rel];
 				attribute<int32>  MutatieMaand         := domain/MutatieMaand[org_rel];
 				attribute<int32>  vbo_oppervlakte      := domain/vbo_oppervlakte[org_rel];
+				attribute<jaar>   pand_bouwjaar        := domain/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := RedevType+'_'+string(Objecten_rel[org_rel]);
 			}
-			
-			
-			// attribute<rdc>               geometry_rd (poly)                 := geometry;
-			// attribute<m2>                area                               := area(geometry, m2);
-			// attribute<rdc>               centroid                           := centroid_or_mid(geometry);
 		}
 	}
 }

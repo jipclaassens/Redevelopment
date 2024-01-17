@@ -128,7 +128,7 @@ container BAG : using = "typeringen;eenheden"
 			parameter<uint32> PrevYear := Year - 100;
 			
 			parameter<string> VoorraadStatus_str := Parameters/Use_BAG_VoorraadStatussen 
-														? '(src/meta/status == ''Pand in gebruik''  || src/meta/status == ''Pand in gebruik (niet ingemeten)'' || src/meta/status == ''Pand buiten gebruik'' || src/meta/status == ''Verbouwing pand'')'
+														? '(src/status == ''Pand in gebruik''  || src/status == ''Pand in gebruik (niet ingemeten)'' || src/status == ''Pand buiten gebruik'' || src/status == ''Verbouwing pand'')'
 														: 'const(TRUE,src)';
 			parameter<string> Selectie_str       := Parameters/BAG_Selection_Area == 'Aggl'
 														? 'IsDefined(src/Aggl_rel)'
@@ -410,7 +410,7 @@ container BAG : using = "typeringen;eenheden"
 			/////
 			parameter<string> BAG_dir            := Parameters/BAG_dir == 'NORMAAL' ? 'BAG_DataDir'  : 'BAG_DataDir_OVSRV6';
 			parameter<string> VoorraadStatus_str := Parameters/Use_BAG_VoorraadStatussen 
-														? '(src_src/meta/status == ''Verblijfsobject buiten gebruik'' || src_src/meta/status == ''Verblijfsobject in gebruik'' || src_src/meta/status == ''Verblijfsobject in gebruik (niet ingemeten)'' || src_src/meta/status == ''Verbouwing verblijfsobject'')'
+														? '(import/status == ''Verblijfsobject buiten gebruik'' || import/status == ''Verblijfsobject in gebruik'' || import/status == ''Verblijfsobject in gebruik (niet ingemeten)'' || import/status == ''Verbouwing verblijfsobject'')'
 														: 'const(TRUE,src)';
 			
 			unit<uint32>                          pand_src_domein           := ='Panden/Y' + string(Year) + '/src';

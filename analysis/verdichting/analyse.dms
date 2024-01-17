@@ -12,7 +12,7 @@ container Analyse : using = "eenheden;typeringen;geometries"
 	#include<redev_obv_hele_bag.dms>
 	#include<DetermineUrbanisationK.dms>
 	// #include <RedevelopmentOptionValue.dms>
-	#include <sloop_nieuwbouw_snapshots_kwartalen.dms>
+	// #include <sloop_nieuwbouw_snapshots_kwartalen.dms>
 	// #include <UAI.dms>
 	// #include <verschil_per_ha.dms> // jaarlijkse verdichting analyse en paper 1
 }

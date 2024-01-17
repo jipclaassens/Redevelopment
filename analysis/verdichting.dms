@@ -5,7 +5,7 @@ container Verdichting
 		parameter<int32>   VBO_opp_truncation              := 500i;
 		parameter<int32>   VBO_opp_truncation_lower        := 10i;
 		parameter<int32>   VBO_opp_truncation_defaultvalue := 120i;
-		parameter<bool>    Use_BAG_VoorraadStatussen       := FALSE; // true false     FALSE voor de redevelopment analyse
+		parameter<bool>    Use_BAG_VoorraadStatussen       := true; // true false     FALSE voor de redevelopment analyse
 		parameter<string>  BAG_Selection_Area              := 'NL'; //'MRA', 'NL', 'AMS', 'Aggl'
 		parameter<float64> supersmall_inflate              := 1000d; //1m
 		parameter<float64> small_inflate                   := 5000d; //5m

@@ -1,7 +1,7 @@
 container MaakVolledigeBAG : using = "typeringen/BAG"
 { 
 	// te configureren
-	parameter<string>  Snapshot_Date_Input := '20230411';
+	parameter<string>  Snapshot_Date_Input := '20240111';
 	//
 	parameter<string>  FSSDir              := '%SourceDataDir%/BAG/' + Snapshot_Date_Input + '/fss';
 	parameter<string>  Result_FSS_dir      := '%SourceDataDir%/BAG/VolledigeTabel_' + Snapshot_Date_Input;

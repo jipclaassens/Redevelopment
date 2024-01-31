@@ -35,7 +35,7 @@ container AdditionalClassifications
 	{
 		attribute<string> name := id(.) < 10 ? '0'+string(id(.)) : string(id(.));
 	}
-	unit<uint32> Jaren := range(uint32, 2012, 2023)
+	unit<uint32> Jaren := range(uint32, 2012, 2024)
 	{
 		attribute<string> name := string(id(.));
 		attribute<string> label := 'Y'+name;

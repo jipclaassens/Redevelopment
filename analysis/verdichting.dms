@@ -1,5 +1,10 @@
 container Verdichting 
 { 
+	container MaakOntkoppeldeData
+	{
+		parameter<string> SN := 'Ready', ExplicitSuppliers = "/Analyse/Redev_obv_hele_bag/AdditionalOperations/SN/NB_metSloop_TouchSloopPerc/Step3";
+		
+	}
 	container Parameters : using = "eenheden"
 	{
 		parameter<int32>   VBO_opp_truncation              := 500i;
@@ -226,12 +231,4 @@ container Verdichting
 			parameter<string> AHNDrive           := 'E:/SourceData/AHN';
 		}
 	}
-	
 }
-
-
-///Brondata/BAG/Snapshots/Panden/Y202301/pand/Voorraad/geometry
-// /Brondata/BAG/Snapshots/Panden/Y201201/pand/Voorraad/geometry
-
-///Brondata/BRK/Perceel/Make_inAggl_zonderwegen_FSS
-

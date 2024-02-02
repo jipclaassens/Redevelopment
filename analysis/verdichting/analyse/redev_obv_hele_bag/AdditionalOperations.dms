@@ -1,13 +1,13 @@
 container AdditionalOperations
 {
-	//welke panden stonden er al in 2012?
+	//welke woon en nietwoon panden stonden er al in 2012?
 	unit<uint32>  BestaandeBouwIn2012        := PrepBAG/BeginVoorraad
 	{
 		attribute<rdc>            pand_geometry (poly)                := PrepBAG/BeginVoorraad/pand_geometry;
 	}
 	
-	//Subset van percelen waarop sloop van woningen plaats vindt
-	unit<uint32> Sloop_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/S/domain/overlay_metPercelen/first_rel))) 
+	//Subset van percelen waarop sloop van woningen of niet-woningen plaats vindt
+	unit<uint32> Sloop_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/S/domain/overlay_metPercelen/first_rel)) || IsDefined(invert(PrepDomains/S_nw/domain/overlay_metPercelen/first_rel))) 
 	{
 		attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry[rdc];
 	}
@@ -139,11 +139,11 @@ container AdditionalOperations
 	
 	container SN 
 	{
-		unit<uint32> Sloop_domain := PrepDomains/S/domain
-		{ 
-			attribute<rdc_mm>                           pand_geometry_mm (poly)            := pand_geometry[rdc_mm];
-			attribute<rdc>                              vbo_geometry                       := PrepDomains/S/domain/vbo_geometry;
-			// attribute<NB_metSloop_TouchSloopPerc/Step3> Aggregated_rel      := point_in_polygon(vbo_geometry[rdc_mm], NB_metSloop_TouchSloopPerc/Step3/inflate);
+		unit<uint32> Sloop_domain_W_NW := union_unit(PrepDomains/S/domain, PrepDomains/S_nw/domain)
+		{
+			attribute<rdc_mm>            pand_geometry_mm (poly)            := union_data(., PrepDomains/S/domain/pand_geometry, PrepDomains/S_nw/domain/pand_geometry)[rdc_mm];
+			attribute<rdc>               vbo_geometry                       := union_data(., PrepDomains/S/domain/vbo_geometry, PrepDomains/S_nw/domain/vbo_geometry);
+			attribute<string>            label                              := union_data(., PrepDomains/S/domain/label, PrepDomains/S_nw/domain/label);
 			
 			unit<uint32> Step1 := split_union_polygon(pand_geometry_mm)
 			{
@@ -155,21 +155,6 @@ container AdditionalOperations
 				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);
 			}
 		}
-		
-		// unit<uint32> Nieuwbouw_domain  := PrepDomains/N/domain
-		// { 
-			// attribute<rdc_mm>            pand_geometry_mm (poly)                 := pand_geometry[rdc_mm];
-			
-			// unit<uint32> Step1 := split_union_polygon(pand_geometry_mm)
-			// {
-				// attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende panden en voeg die samen
-			// }
-			
-			// unit<uint32> Step2 := split_union_polygon(Step1/inflate)
-			// {
-				// attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  //deflate 
-			// }
-		// }
 		
 		unit<uint32> NieuwbouwPerceel_Tile := Nieuwbouw_perceel
 		{
@@ -201,7 +186,7 @@ container AdditionalOperations
 			}
 		}
 		
-		unit<uint32> intersect  := ='overlay_polygon(Sloop_domain/Step2/deflate, NieuwbouwPerceel_Tile/Step2/inflate)' //intersect perceel met nieuwbouw met gesloopte panden
+		unit<uint32> intersect  := ='overlay_polygon(Sloop_domain_W_NW/Step2/deflate, NieuwbouwPerceel_Tile/Step2/inflate)' //intersect perceel met nieuwbouw met gesloopte panden
 		{
 			unit<uint32> nieuwbouw_perceel_metSloop := select_with_org_rel(IsDefined(second_rel)) //nieuwbouw perceel dat een gesloopt pand bevat
 			{
@@ -265,16 +250,15 @@ container AdditionalOperations
 					attribute<.>   uq_N_pand_rel (PrepDomains/n/domain) := rlookup(PrepDomains/n/domain/label, values);
 				}
 				
-				unit<uint32> uq_S_pand := unique(PrepDomains/S/domain/label)
+				unit<uint32> uq_S_pand := unique(Sloop_domain_W_NW/label)
 				{
-					attribute<rdc> pand_geometry (poly)                 := PrepDomains/S/domain/pand_geometry[invert(uq_S_pand_rel)];
+					attribute<rdc> pand_geometry (poly)                 := Sloop_domain_W_NW/pand_geometry_mm[rdc][invert(sloop_domain_rel)];
 					attribute<m2>  pand_area                            := area(pand_geometry, m2);
-					attribute<.>   uq_S_pand_rel (PrepDomains/S/domain) := rlookup(PrepDomains/S/domain/label, values);
+					attribute<.>   sloop_domain_rel (Sloop_domain_W_NW) := rlookup(Sloop_domain_W_NW/label, values);
 				}
 			}
 			
 			unit<uint32> CleanUp := select_with_org_rel(Read_Step3/area >= Parameters/minimum_site_area && Read_Step3/share_N_pand_op_perceel > Parameters/minimum_SN_area_share && Read_Step3/share_S_pand_op_perceel > Parameters/minimum_SN_area_share)
-			// unit<uint32> CleanUp := select_with_org_rel(Step3/area >= Parameters/minimum_site_area && Step3/share_N_pand_op_perceel > Parameters/minimum_SN_area_share && Step3/share_S_pand_op_perceel > Parameters/minimum_SN_area_share)
 			{
 				attribute<upoint>        fdom_id                            := point(const(0,.), id(.));
 				attribute<rdc>           geometry  (poly)                   := org_rel -> geometry_rd;

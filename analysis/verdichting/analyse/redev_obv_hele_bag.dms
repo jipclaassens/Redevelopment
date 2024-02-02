@@ -131,6 +131,14 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 				, int32
 			);
 		
+		container AvgObjectSize_PerRedevType_PerVerslagMaand :=
+			for_each_nedv(
+				Redev_ObjectTypes/name
+				, replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/AvgObjectSize_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
+				, Verslagmaanden
+				, int32
+			);
+		
 		container AvgObjectSize_PerRedevType :=
 			for_each_nedv(
 				Redev_ObjectTypes/name
@@ -197,7 +205,24 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 					, void
 					, int32
 				);
+			container AvgObjectSize_PerRedevType := 
+				for_each_nedv(
+					Redev_ObjectTypes/name
+					, 'mean((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' ? vbo_oppervlakte_edit : null_i)'
+					, void
+					, int32
+				);
 		}
+	}
+	
+	unit<uint32> AMS 
+	: StorageName = "%LocalDataProjDir%/Temp/Amsterdam.shp"
+	, StorageType = "gdal.vect"
+	, DialogData = "rdc";
+	
+	unit<uint32> PerSite_Amsterdam := select_with_attr_by_cond(Read_PerSite_Export, IsDefined(Read_PerSite_Export/Amsterdam_rel))
+	{
+	
 	}
 	
 	unit<uint32> Read_PerSite_Export
@@ -214,6 +239,8 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		attribute<m2>               site_oppervlakte;
 		attribute<jaar>             avg_bouwjaar;
 		attribute<jaar>             sd_bouwjaar;
+		
+		attribute<AMS>              Amsterdam_rel := point_in_polygon(centroid_or_mid(geometry), AMS/geometry);
 		
 		unit<uint32> test := select_with_attr_by_cond(., type_class == Redev_SiteTypes/v/transformatie);
   		container Per_VerslagMaand := 

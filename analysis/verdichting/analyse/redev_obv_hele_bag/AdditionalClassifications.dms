@@ -13,9 +13,9 @@ container AdditionalClassifications
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 
-	unit<uint8> MutatieTypen : nrofrows = 8
+	unit<uint8> MutatieTypen : nrofrows = 9
 	{
-		attribute<string> name  : ['N', 'T', 'S', 'O', 'TMplus', 'TMmin', 'Cplus', 'Cmin'];
+		attribute<string> name  : ['N', 'T', 'S', 'O', 'TMplus', 'TMmin', 'Cplus', 'Cmin','S_nw'];
 		attribute<string> label := name;
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}

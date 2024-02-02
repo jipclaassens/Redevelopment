@@ -67,7 +67,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<.>           pv_sf_eind_begin_rel          := rlookup(pv_sf_einddatum_key, pv_sf_begindatum_key);
 		}
 		
-		container Condense_based_on_SF := Condense_T(SelectNonOverlappingPeriods, SelectNonOverlappingPeriods/pv_sf_eind_begin_rel);
+		// container Condense_based_on_SF := Condense_T(SelectNonOverlappingPeriods, SelectNonOverlappingPeriods/pv_sf_eind_begin_rel);
 		
 		container impl
 		{
@@ -341,7 +341,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 	}
  */ 
  
- 	Template Condense_T
+/*  	Template Condense_T
 	{
 		unit<uint32> src;
 		attribute<src> end_to_start_rel (src);
@@ -378,5 +378,5 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<.>           per_src_Tabel (src) := invert(org_rel)[SelectOnlyObjectWithChainRel/OnlyOrLastInChain_rel];
 		}
 	}
- 
+ */ 
  }

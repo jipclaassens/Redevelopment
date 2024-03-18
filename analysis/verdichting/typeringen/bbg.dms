@@ -111,6 +111,7 @@ container BBG : isHidden = "True", using = "eenheden"
 		attribute<uint8> id := id(.);
 		attribute<string> label:    ['dens','grey','green'], DialogType = "LabelText";
 		attribute<string> name := replace(label, ' ', '_');
+		attribute<uint32> BrushColor   :  [rgb(200,0,0), rgb(128,128,128),rgb(0,200,0)] , DialogType = "BrushColor";
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	

@@ -194,6 +194,17 @@ container Tijd: isHidden = "True", using = "eenheden"
 		attribute<string> next_name := 'Y' + string(next_value);
 		attribute<uint32> next_value := id(.) + 1;
 	}
+	unit<uint32> jaren12_24 := range(uint32, 2012, 2025)
+	{
+		attribute<string> label   := name , DialogType = "LabelText";
+		attribute<string> name    := 'Y' + string(id(.));
+		attribute<uint32> value   := id(.);
+		attribute<bool>   HeeftBAG   := value >= 2012;
+		attribute<string> prev_name := 'Y' + string(prev_value);
+		attribute<uint32> prev_value := sub_or_null(id(.),1);
+		attribute<string> next_name := 'Y' + string(next_value);
+		attribute<uint32> next_value := id(.) + 1;
+	}
 	
 	
 	unit<uint32> jaren12_19_nodata := union_unit(NoData, jaren12_19)

@@ -46,7 +46,6 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 	
 	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
 	, StorageName = "%LocalDataProjDir%/Temp/PerObject_Export.fss"
-	// , StorageName = "= propvalue(PerObject_Export, 'StorageName')"
 	, using = "AdditionalClassifications"
 	{
 		attribute<rdc>              geometry                        := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_geometry')+')';
@@ -61,7 +60,6 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 	
 	unit<uint32> PerSite_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_SiteTypes/name+'_Sites')+')'
 	, StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
-	// , StorageName = "= propvalue(PerSite_Export, 'StorageName')"
 	, using = "AdditionalClassifications"
 	{
 		attribute<rdc>              geometry (poly)                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/geometry')+')';
@@ -75,8 +73,7 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 	}
 
 	unit<uint32> Read_PerObject_Export
-	: StorageName = "%LocalDataProjDir%/Temp/PerObject_Export.fss"
-	// : StorageName = "= propvalue(PerObject_Export, 'StorageName')"
+	: StorageName = "= propvalue(PerObject_Export, 'StorageName')"
 	, StorageReadOnly = "true"
 	, using = "AdditionalClassifications"
 	{
@@ -91,6 +88,57 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		attribute<UrbanisationK>    UrbanisationK_rel;
 		attribute<m2>               site_oppervlakte     := rjoin(site_id, Read_PerSite_Export/site_id, Read_PerSite_Export/site_oppervlakte);
 		attribute<bool>             IsWithinUrbanContour := IsDefined(point_in_polygon(geometry, /Brondata/begenzing_bebouwd_gebied/Bevolkingskern_2011/shapes/geometry));
+		
+		attribute<NL_grid/domain>   per_grid := geometry[NL_grid/domain];
+		
+		unit<uint8> DensK : nrofrows = 6
+		{
+			attribute<string> name : ['B_dens','B_grey','B_green','N_dens','N_grey','N_green'];
+			attribute<string> label := name;
+		}
+		
+		// /Brondata/bestand_bodem_gebruik/BBG/Dominant/bbg2012_100m_3k
+		container GridAnalysis :=
+			for_each_ne(
+				Redev_ObjectTypes/name
+				, 'GridAnalysis_T('+quote(Redev_ObjectTypes/name)+')'
+			)
+		{
+			container Transform :=
+				for_each_nedv(
+					Redev_ObjectTypes/name
+					, replace('union_data(DensK, '+AsList('GridAnalysis/@OT@/Total/'+DensK/name,',')+')','@OT@', Redev_ObjectTypes/name)
+					, DensK
+					, uint32
+				);
+		}
+		
+		Template GridAnalysis_T
+		{
+			parameter<string> RedevType;
+			///
+			container PerGrid
+			{
+				attribute<uint32>  totaal   (NL_grid/domain)  := ='sum(type_class == Redev_ObjectTypes/V/'+RedevType+' ? 1 : 0, per_grid)';
+				attribute<uint32>  B_dens   (NL_grid/domain)  := Brondata/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens[uint32] * totaal;
+				attribute<uint32>  B_grey   (NL_grid/domain)  := Brondata/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey[uint32] * totaal;
+				attribute<uint32>  B_green  (NL_grid/domain)  := Brondata/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green[uint32] * totaal;
+				attribute<uint32>  N_dens   (NL_grid/domain)  := Brondata/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens[uint32] * totaal;
+				attribute<uint32>  N_grey   (NL_grid/domain)  := Brondata/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey[uint32] * totaal;
+				attribute<uint32>  N_green  (NL_grid/domain)  := Brondata/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green[uint32] * totaal;
+			}
+			
+			container Total
+			{
+				parameter<uint32>  totaal     := sum(PerGrid/totaal);
+				parameter<uint32>  B_dens     := sum(PerGrid/B_dens);
+				parameter<uint32>  B_grey     := sum(PerGrid/B_grey);
+				parameter<uint32>  B_green    := sum(PerGrid/B_green);
+				parameter<uint32>  N_dens     := sum(PerGrid/N_dens);
+				parameter<uint32>  N_grey     := sum(PerGrid/N_grey);
+				parameter<uint32>  N_green    := sum(PerGrid/N_green);
+			}
+		}
 		
 		container Per_VerslagMaand := 
 			for_each_ne(

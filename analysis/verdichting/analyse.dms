@@ -14,5 +14,5 @@ container Analyse : using = "eenheden;typeringen;geometries"
 	// #include <RedevelopmentOptionValue.dms>
 	// #include <sloop_nieuwbouw_snapshots_kwartalen.dms>
 	// #include <UAI.dms>
-	// #include <verschil_per_ha.dms> // jaarlijkse verdichting analyse en paper 1
+	#include <verschil_per_ha.dms> // jaarlijkse verdichting analyse en paper 1
 }

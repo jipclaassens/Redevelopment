@@ -76,9 +76,11 @@ container AdditionalClassifications
 	
 	unit<uint8> pand_status_w_Undefined := union_unit_uint8(Undefined, pand_status)
 	{
-		attribute<string> name := union_data(., Undefined/name, pand_status/name);
-		attribute<string> label := name;
+		attribute<string>      name            := union_data(., Undefined/name, pand_status/name);
+		attribute<bool>        IsVoorraad      := union_data(., const(FALSE, Undefined), pand_status/IsVoorraad);
+		attribute<string>      label           := name;
 		attribute<pand_status> pand_status_rel := rlookup(name, pand_status/name);
+		
 		
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}

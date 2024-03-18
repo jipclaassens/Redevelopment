@@ -10,9 +10,11 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<uint64>               pand_bag_nr                   := BAG_Tabel_path/pand_bag_nr;
 		attribute<uint64>               vbo_bag_nr                    := BAG_Tabel_path/vbo_bag_nr;
 		attribute<int32>                vbo_oppervlakte               := BAG_Tabel_path/vbo_oppervlakte;
+		attribute<int32>                vbo_oppervlakte_UnknownEdit   := vbo_oppervlakte == 9999i || vbo_oppervlakte == 99999i ? 0i : vbo_oppervlakte;
 		attribute<int32>                begindatum                    := BAG_Tabel_path/begindatum;
 		attribute<jaar>                 begin_jaar                    := (begindatum / 10000i)[jaar];
 		attribute<int32>                einddatum                     := BAG_Tabel_path/einddatum;
+		attribute<vbo_gebruiksdoel_ext> prev_gebruiksdoel_rel         := gebruiksdoel_rel[pv_begin_eind_rel];
 		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel              := BAG_Tabel_path/gebruiksdoel_rel;
 		attribute<jaar>                 pand_bouwjaar                 := BAG_Tabel_path/pand_bouwjaar;
 		// attribute<WP4>                  pand_type                     := BAG_Tabel_path/pand_type;
@@ -44,6 +46,147 @@ container PrepBAG : using = "AdditionalClassifications"
 			}
 		}
 		
+		container VoorraadWoningenPer1Jan :=
+			for_each_nedv(
+				typeringen/Tijd/jaren12_24/name
+				, 'sum(VBO_IsVoorraad && VBO_IsWonen && begindatum < int32('+string(typeringen/Tijd/jaren12_24/value)+'0101) && einddatum >= int32('+string(typeringen/Tijd/jaren12_24/value)+'0101) ?  1 :0)'
+				, void
+				, uint32
+			);
+		container VoorraadNietWoningenPer1Jan :=
+			for_each_nedv(
+				typeringen/Tijd/jaren12_24/name
+				, 'sum(VBO_IsVoorraad && !VBO_IsWonen && begindatum < int32('+string(typeringen/Tijd/jaren12_24/value)+'0101) && einddatum >= int32('+string(typeringen/Tijd/jaren12_24/value)+'0101) ?  1 :0)'
+				, void
+				, uint32
+			);
+			
+		container Per1Jan :=
+			for_each_ne(
+				typeringen/Tijd/jaren12_24/name
+				, 'Per1jan_T('+string(typeringen/Tijd/jaren12_24/value)+'[int32], '+string(typeringen/Tijd/jaren12_24/prev_value)+'[int32])'
+			);
+			
+		unit<uint32> Transformatie_Results := ='union_unit('+AsItemList('Per1Jan/'+typeringen/Tijd/jaren12_24/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra')+')'
+		{
+			attribute<uint64> vbo_bag_nr  := ='union_data(.,'+AsItemList('Per1Jan/'+typeringen/Tijd/jaren12_24/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra/vbo_bag_nr')+')';
+		}
+		
+		Template Per1jan_T
+		{
+			parameter<int32> Year;
+			parameter<int32> PrevYear;
+			//
+			
+			unit<uint32> PrevDomain := ='Per1Jan/y'+string(PrevYear)+'/select';
+			
+			unit<uint32> select := select_with_org_rel(begindatum < int32(string(Year)+'0101') && einddatum >= int32(string(Year)+'0101'))
+			{
+				attribute<rdc>                  geometry                      := BAG_Tabel/geometry[org_rel];
+				attribute<uint64>               pand_bag_nr                   := BAG_Tabel/pand_bag_nr[org_rel];
+				attribute<uint64>               vbo_bag_nr                    := BAG_Tabel/vbo_bag_nr[org_rel];
+				attribute<PrevDomain>           PrevDomain_vbo_rel            := rlookup(vbo_bag_nr, PrevDomain/vbo_bag_nr);
+				attribute<int32>                vbo_oppervlakte               := BAG_Tabel/vbo_oppervlakte[org_rel];
+				attribute<int32>                vbo_oppervlakte_UnknownEdit   := BAG_Tabel/vbo_oppervlakte_UnknownEdit[org_rel];
+				attribute<vbo_status>           prev_vbo_status_rel           := =PrevYear == 2011i ? 'const(null_b,.)' : 'PrevDomain/vbo_status_rel[PrevDomain_vbo_rel]';
+				attribute<vbo_status>           vbo_status_rel                := BAG_Tabel/vbo_status_rel[org_rel]; 
+				attribute<vbo_gebruiksdoel_ext> prev_gebruiksdoel_rel         := =PrevYear == 2011i ? 'const(null_b,.)' : 'PrevDomain/gebruiksdoel_rel[PrevDomain_vbo_rel]';
+				attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel              := BAG_Tabel/gebruiksdoel_rel[org_rel];
+				attribute<jaar>                 pand_bouwjaar                 := BAG_Tabel/pand_bouwjaar[org_rel];
+				attribute<bool>                 Pand_WasVoorraad              := =PrevYear == 2011i ? 'const(FALSE,.)' : 'PrevDomain/Pand_IsVoorraad[PrevDomain_vbo_rel]';
+				attribute<bool>                 Pand_IsVoorraad               := BAG_Tabel/Pand_IsVoorraad[org_rel];
+				attribute<bool>                 VBO_WasVoorraad               := =PrevYear == 2011i ? 'const(FALSE,.)' : 'PrevDomain/VBO_IsVoorraad[PrevDomain_vbo_rel]';
+				attribute<bool>                 VBO_IsVoorraad                := BAG_Tabel/VBO_IsVoorraad[org_rel];
+				attribute<bool>                 VBO_WasWonen                  := =PrevYear == 2011i ? 'const(FALSE,.)' : 'PrevDomain/VBO_IsWonen[PrevDomain_vbo_rel]';
+				attribute<bool>                 VBO_IsWonen                   := BAG_Tabel/VBO_IsWonen[org_rel];
+		
+				unit<uint32>                    uq_pand_nr                    := unique(pand_bag_nr);
+				attribute<uq_pand_nr>           uq_pand_nr_rel                := rlookup(pand_bag_nr, uq_pand_nr/values);
+				
+				//transformatie identificatie (Goedhuys, M. & van der Wal, E. (2020) Transformaties in de woningvoorraad 2018-2019)
+				//1a pand in gebruik t0 + t1
+				attribute<bool>                      pand_vooraad_prev_current    := Pand_WasVoorraad && Pand_IsVoorraad;
+				//1b pand minimaal 1 vbo in voorraad op t0 en t1
+				attribute<uint32>                    p_count_voorr_vbo_prev       := =PrevYear == 2011i ? 'const(null_u,.)' : 'PrevDomain/p_count_voorr_vbo[PrevDomain_vbo_rel]';
+				attribute<uint32>                    p_count_voorr_vbo            := sum(VBO_IsVoorraad ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
+				attribute<bool>                      p_min1_vbovoorr_prev_curr    := p_count_voorr_vbo_prev > 0 && p_count_voorr_vbo > 0;
+				
+				//selectie uit 1 waarbij:
+				//2a count 'vbo in voorraad niet wonen' op t0  minimaal 1 is
+				attribute<uint32>                    p_count_voorr_vbo_NW_prev    := =PrevYear == 2011i ? 'const(null_u,.)' : 'PrevDomain/p_count_voorr_vbo_NW[PrevDomain_vbo_rel]';
+				attribute<uint32>                    p_count_voorr_vbo_NW         := sum(VBO_IsVoorraad  && not(VBO_IsWonen)  ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
+				attribute<bool>                      p_min1_vbovoorr_NW_prev      := p_count_voorr_vbo_NW_prev > 0;
+				
+				//2b en count 'vbo in vooraad wonen' met minimaal 1 is toegenomen tussen t0 en t1
+				attribute<uint32>                    p_count_voorr_vbo_W_prev     := =PrevYear == 2011i ? 'const(null_u,.)' : 'PrevDomain/p_count_voorr_vbo_W[PrevDomain_vbo_rel]';
+				attribute<uint32>                    p_count_voorr_vbo_W          := sum(VBO_IsVoorraad  && VBO_IsWonen  ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
+				attribute<bool>                      p_toename_vbovoorr_W         := (int32(p_count_voorr_vbo_W) - int32(p_count_voorr_vbo_W_prev)) > 0i;
+				
+				//2c en minimaal een niet-woon vbo verdwijnen of veranderen van oppervlak (afnemen?)
+				attribute<bool>                      p_afname_vbovoorr_NW         := (int32(p_count_voorr_vbo_NW) - int32(p_count_voorr_vbo_NW_prev)) < 0i;
+				
+				attribute<int32>                     p_sum_voorr_vbo_NW_opp_prev  := =PrevYear == 2011i ? 'const(null_i,.)' : 'PrevDomain/p_sum_voorr_vbo_NW_opp[PrevDomain_vbo_rel]';
+				attribute<int32>                     p_sum_voorr_vbo_NW_opp       := sum(VBO_IsVoorraad  && not(VBO_IsWonen)  ? vbo_oppervlakte_UnknownEdit : 0i, uq_pand_nr_rel)[uq_pand_nr_rel];
+				attribute<bool>                      p_afname_vbovoorr_NW_opp     := (p_sum_voorr_vbo_NW_opp - p_sum_voorr_vbo_NW_opp_prev) < 0i;
+				
+				
+				//3 selectie van objecten die muteren van nietwonen naar wonen of objecten die in t0 niet bestonden en t1 wel
+				attribute<bool>                      v_tr_nw_w                    := VBO_WasVoorraad && VBO_IsVoorraad && not(VBO_WasWonen) && VBO_IsWonen;
+				attribute<bool>                      v_NotExit_Voorraad           := IsNull(prev_vbo_status_rel) && VBO_IsVoorraad;
+				
+				//Plausibel? na elke stap kun je afvallen en niet meer erbij komen.
+				//4 objecten kleiner dan 15m2 zijn geen transformatie objecten
+				attribute<bool>                      Plausibel_MinOpp             := not(vbo_oppervlakte < 15i);
+				//5 als het pand max 2 jaar ouders is dan de transformatiedatum, is het geen transformatie, maar nieuwbouw te laat.
+				attribute<bool>                      Plausibel_Bouwjaar           := not(int32(pand_bouwjaar) > year - 2i);  //2020 > 2022 - 2  || 2018 > 2022 -2 || 2021 > 2022-2
+				//BRP criteria
+				//6
+				//7
+				
+				//Plausibel? opp verandering
+				//8 IF woonopp > 80% van totale opp van pand (zowel voor als na opp verandering), EN woonopp is onttrokken --> woningsplitsing
+				attribute<int32>                     p_sum_voorr_vbo_W_opp_prev     := =PrevYear == 2011i ? 'const(null_i,.)' : 'PrevDomain/p_sum_voorr_vbo_W_opp[PrevDomain_vbo_rel]';
+				attribute<int32>                     p_sum_voorr_vbo_W_opp          := sum(VBO_IsVoorraad  && VBO_IsWonen  ? vbo_oppervlakte_UnknownEdit : 0i, uq_pand_nr_rel)[uq_pand_nr_rel];
+				attribute<bool>                      p_afname_vbovoorr_W_opp        := (p_sum_voorr_vbo_W_opp - p_sum_voorr_vbo_W_opp_prev) < 0i;
+				attribute<float32>                   p_share_woonopp_prev           := float32(p_sum_voorr_vbo_W_opp_prev) / float32(p_sum_voorr_vbo_W_opp_prev + p_sum_voorr_vbo_NW_opp_prev);
+				attribute<float32>                   p_share_woonopp                := float32(p_sum_voorr_vbo_W_opp) / float32(p_sum_voorr_vbo_W_opp + p_sum_voorr_vbo_NW_opp);
+				attribute<bool>                      Plausibel_p_share_opp_W        := not(p_share_woonopp_prev > 0.8f && p_share_woonopp > 0.8f && p_afname_vbovoorr_W_opp);
+				
+				//9 IF woonopp < 80% van totale opp van pand (zowel voor als na opp verandering), EN nietwoon opp gelijk, EN woonopp is onttrokken --> woningsplitsing
+				attribute<bool>                      p_vbovoorr_NW_opp_gelijk       := (p_sum_voorr_vbo_NW_opp - p_sum_voorr_vbo_NW_opp_prev) == 0i;
+				attribute<bool>                      Plausibel_p_share_opp_W_NW     := not(p_share_woonopp_prev < 0.8f && p_share_woonopp < 0.8f && p_vbovoorr_NW_opp_gelijk && p_afname_vbovoorr_W_opp);
+				//BAG, BRP, WOZ combinatie criteria
+				//10
+				//11
+				
+				//extra regels:
+				//1.1 pand met een vbo, waarbij functie verandert van logies naar wonen --> geen transformatie
+				attribute<bool>                     VBO_WasLogies                  := prev_gebruiksdoel_rel == vbo_gebruiksdoel_ext/V/logies;
+				attribute<bool>                     Plausibel_logies_wonen         := not(VBO_WasLogies && VBO_IsWonen);
+				//1.2 nvt
+				//1.3 nvt
+				//1.4 ls er meerdere functies zijn, krijgt wonen voorrang.
+				//1.5 onbekende opp 9999 of 99999 worden op 0 gezet en bij uitsplitsingen niet meegeteld
+				//1.6 transformaties zijn onderdeel van overige toevoegingen
+				//1.7 woningen toegevoegd aan volledig woonpanden tellen niet mee
+				//1.8 woningen verdwenen uit getransformeerde panden worden niet geteld.
+				
+				attribute<bool>                      IsTr_na_1                      := pand_vooraad_prev_current && p_min1_vbovoorr_prev_curr;
+				attribute<bool>                      IsTr_na_2                      := IsTr_na_1 && p_min1_vbovoorr_NW_prev && p_toename_vbovoorr_W && (p_afname_vbovoorr_NW || p_afname_vbovoorr_NW_opp);
+				attribute<bool>                      IsTr_na_3                      := IsTr_na_2 && (v_tr_nw_w || v_NotExit_Voorraad);
+				attribute<bool>                      IsTr_na_3_en_Plausibel_1       := IsTr_na_3 && Plausibel_MinOpp && Plausibel_Bouwjaar;
+				attribute<bool>                      IsTr_na_3_en_Plausibel_2       := IsTr_na_3_en_Plausibel_1 && Plausibel_p_share_opp_W && Plausibel_p_share_opp_W_NW;
+				attribute<bool>                      IsTr_na_3_en_Plausibel_2_extra := IsTr_na_3_en_Plausibel_2 && Plausibel_logies_wonen;
+				
+				unit<uint32> Sub_IsTr_na_1 := select_with_attr_by_cond(.,IsTr_na_1);
+				unit<uint32> Sub_IsTr_na_2 := select_with_attr_by_cond(.,IsTr_na_2);
+				unit<uint32> Sub_IsTr_na_3 := select_with_attr_by_cond(.,IsTr_na_3);
+				unit<uint32> Sub_IsTr_na_3_en_Plausibel_1 := select_with_attr_by_cond(.,IsTr_na_3_en_Plausibel_1);
+				unit<uint32> Sub_IsTr_na_3_en_Plausibel_2 := select_with_attr_by_cond(.,IsTr_na_3_en_Plausibel_2);
+				unit<uint32> Sub_IsTr_na_3_en_Plausibel_2_extra := select_with_attr_by_cond(.,IsTr_na_3_en_Plausibel_2_extra);
+			}
+		}
+		
 		attribute<bool>                 WasObjectVoorraadBijStartBAG  := sum_uint8(VBO_IsVoorraad && begindatum <= 20111201i ? 1b : 0b, uq_vbo_rel)[uq_vbo_rel] > 0b; //nodig voor bepaling 'mutatie in 2e instantie' 
 		
 		// Extra stappen om Nieuwbouw (N+) te identificeren, ipv T+ of C+
@@ -58,6 +201,8 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<bool>                 VBO_IsVoorraad                := vbo_status/isVoorraad[vbo_status_rel];
 		attribute<bool>                 VBO_WasWonen                  := prev_functie_rel == FunctieK/v/wonen;
 		attribute<bool>                 VBO_IsWonen                   := functie_rel == FunctieK/v/wonen;
+		attribute<bool>                 Pand_WasVoorraad              := pand_status_w_Undefined/isVoorraad[prev_pand_status_rel];
+		attribute<bool>                 Pand_IsVoorraad               := pand_status/isVoorraad[pand_status_rel];
 		
 		// vbo overgang
 		attribute<vbo_status>           prev_vbo_status_rel           := vbo_status_rel[pv_begin_eind_rel];   // vbo status was
@@ -83,6 +228,8 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<.>                     pv_eind_begin_rel            := rlookup(pv_einddatum_key, pv_begindatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id)
 		attribute<.>                     pv_begin_eind_rel            := rlookup(pv_begindatum_key, pv_einddatum_key); //gives the index number of the next record in the chain. If null, it is the only record in the chain (based on pand id/vbo id)
 	
+		
+		
 		//Identificatie in vooraad Nieuwbouw (N+)
 		attribute<bool>                  IDEN_N_1                     := ((prev_vbo_status_rel == vbo_status/v/verblijfsobject_gevormd  && VBO_IsVoorraad) || (IsNull(prev_vbo_status_rel) && VBO_IsVoorraad))
 																			&& (pand_status_rel == pand_status/v/bouw_gestart || pand_status_rel == pand_status/v/bouwvergunning_verleend)
@@ -112,9 +259,10 @@ container PrepBAG : using = "AdditionalClassifications"
 																			&& VBO_WasWonen && VBO_IsWonen;
 		attribute<bool>                  IDEN_T                       := IDEN_T_1 && IDEN_T_2; 
 		
-		attribute<bool>                  IDEN_TMplus                  := VBO_WasVoorraad && VBO_IsVoorraad
+		attribute<bool>                  IDEN_TMplus_status           := VBO_WasVoorraad && VBO_IsVoorraad
 																			&& not(VBO_WasWonen) && VBO_IsWonen;
-		
+		attribute<bool>                  IDEN_TMplus_ExtraAnalysis    := IsDefined(rlookup(vbo_bag_nr, Transformatie_Results/vbo_bag_nr));
+		attribute<bool>                  IDEN_TMplus                  := IDEN_TMplus_status || IDEN_TMplus_ExtraAnalysis;
 		
 		//Identificatie In voorraad correctie (C+)
 		attribute<bool>                  IDEN_Cplus                   := not(VBO_WasVoorraad) && VBO_IsVoorraad
@@ -154,7 +302,7 @@ container PrepBAG : using = "AdditionalClassifications"
 																	// && VBO_IsWonen 
 																	&& begindatum < PrikMoment 
 																	&& einddatum >= PrikMoment;
-																			
+		
 	}
 	
 	container Mutaties_Per_VerslagMaand := 
@@ -556,5 +704,23 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<rdc>                     pand_geometry (poly)  := BAG_Tabel/pand_geometry[org_rel];
 		attribute<uint64>                  vbo_bag_nr            := BAG_Tabel/vbo_bag_nr[org_rel];
 		attribute<uint64>                  pand_bag_nr           := BAG_Tabel/pand_bag_nr[org_rel];
+		attribute<vbo_gebruiksdoel_ext>    gebruiksdoel_rel      := BAG_Tabel/gebruiksdoel_rel[org_rel];
+		attribute<AMS>                     Amsterdam_rel         := point_in_polygon(geometry, AMS/geometry);
+		
+		unit<uint32> Amsterdam_VBO := select_with_org_rel(IsDefined(./Amsterdam_rel))
+		, StorageName = "%LocalDataProjDir%/Maps/Voorraad_VBO.shp"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<rdc>                     geometry              := ../geometry[org_rel];
+			attribute<vbo_gebruiksdoel_ext>    gebruiksdoel_rel      := ../gebruiksdoel_rel[org_rel];
+			attribute<..>                      org_rel               : DisableStorage = "true";
+		}
+		unit<uint32> Amsterdam_Pand := select_with_org_rel(IsDefined(./Amsterdam_rel))
+		, StorageName = "%LocalDataProjDir%/Maps/Voorraad_Pand.shp"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<rdc>                     geometry (poly)  := ../pand_geometry[org_rel];
+			attribute<..>                      org_rel               : DisableStorage = "true";
+		}
 	}
 }

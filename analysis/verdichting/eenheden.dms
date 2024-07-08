@@ -5,6 +5,7 @@ container eenheden: isHidden = "True"
 	unit<int16>     maand;
 	unit<float32>  	cm                    := 0.01f * m;
 	unit<float32>  	m                     := BaseUnit('Meter', float32);
+	unit<float32>  	mm                    := 0.001f * m;
 	unit<int32>     NrWoningen            := BaseUnit('NrWoning', int32);
 	unit<float32>   PandUnit              := BaseUnit('Pand', float32);
 	unit<int32>     NrJobs                := BaseUnit('Job', int32);

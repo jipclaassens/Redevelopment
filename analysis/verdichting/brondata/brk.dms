@@ -44,7 +44,7 @@ container BRK
 		attribute<int32>    Perceelnummer;
 		attribute<float64>  PerceelnummerRotatie;
 		
-		attribute<RegioIndelingen/Corop> COROP_rel := point_in_polygon(centroid_or_mid(geometry), RegioIndelingen/Corop/geometry);
+		// attribute<RegioIndelingen/Corop> COROP_rel := point_in_polygon(centroid_or_mid(geometry), RegioIndelingen/Corop/geometry);
 		
 		// attribute<bool>     Is_SA := IsDefined(point_in_polygon(centroid_or_mid(geometry), /geometries/selection_polygon/geometry));
 		
@@ -53,25 +53,25 @@ container BRK
 			// unit<uint32> Cutout_roads := overlay_polygon(geometry[rdc_mm], /Brondata/BRT/NL_minus_wegen_Split/geometry); //rekentijd 1.44u, eventueel omdraaien geeft ander resultaat?
 		// }
 		
-		unit<uint32> Cutout_roads := overlay_polygon(geometry[rdc_mm], /Brondata/BRT/NL_minus_wegen_Split/geometry)
+		unit<uint32> Cutout_roads := bg_overlay_polygon(geometry, /Brondata/BRT/NL_minus_wegen_Split/geometry[rdc])
 		, StorageName = "='%LocalDataProjDir%/Temp/BRK/BRK_'+Parameters/BRK_file_date+'_minus_BRT_wegen_'+Parameters/BRT_file_date+'.fss'"
 		{
-			attribute<rdc_mm> geometry (poly);
+			attribute<rdc> geometry (poly);
 		}
 	}
 	
 	
-	parameter<bool> Generate_AllCOROP := TRUE, ExplicitSuppliers = "=AsList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Generate',';')";
-	container Perceel_PerCOROP := 
-		for_each_ne(
-			RegioIndelingen/COROP/name
-			, 'Perceel_PerCOROP_T('+quote(RegioIndelingen/Corop/name)+')'
-		);
+	// parameter<bool> Generate_AllCOROP := TRUE, ExplicitSuppliers = "=AsList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Generate',';')";
+	// container Perceel_PerCOROP := 
+		// for_each_ne(
+			// RegioIndelingen/COROP/name
+			// , 'Perceel_PerCOROP_T('+quote(RegioIndelingen/Corop/name)+')'
+		// );
 	
-	unit<uint32> Perceel_minus_Roads_CombinedFromCOROP := ='union_unit('+AsItemList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Read_Cutout_roads')+')'
-	{
-		attribute<rdc_mm> geometry (poly) := ='union_data(.,'+AsItemList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Read_Cutout_roads/geometry')+')';
-	}
+	// unit<uint32> Perceel_minus_Roads_CombinedFromCOROP := ='union_unit('+AsItemList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Read_Cutout_roads')+')'
+	// {
+		// attribute<rdc> geometry (poly) := ='union_data(.,'+AsItemList('Perceel_PerCOROP/'+RegioIndelingen/COROP/name+'/Read_Cutout_roads/geometry')+')';
+	// }
 	
 	Template Perceel_PerCOROP_T
 	{
@@ -82,16 +82,16 @@ container BRK
 		unit<uint32> Perceel_PerCOROP := select_with_attr_by_cond(Perceel, Perceel/COROP_rel == RegioRel);
 		unit<uint32> Roads_PerCOROP   := ='Brondata/BRT/Wegen_PerCOROP/'+RegioName+'/NL_minus_wegen_Split';
 		
-		unit<uint32> Cutout_roads := overlay_polygon(Perceel_PerCOROP/geometry[rdc_mm], Roads_PerCOROP/geometry)
+		unit<uint32> Cutout_roads := bg_overlay_polygon(Perceel_PerCOROP/geometry, Roads_PerCOROP/geometry_rd)
 		, StorageName = "='%LocalDataProjDir%/Temp/BRK/PerCorop/'+RegioName+'/BRK_'+Parameters/BRK_file_date+'_minus_BRT_wegen_'+Parameters/BRT_file_date+'.fss'"
 		{
-			attribute<rdc_mm> geometry (poly);
+			attribute<rdc> geometry (poly);
 		}
 		unit<uint32> Read_Cutout_roads
 		: StorageName = "='%LocalDataProjDir%/Temp/BRK/PerCorop/'+RegioName+'/BRK_'+Parameters/BRK_file_date+'_minus_BRT_wegen_'+Parameters/BRT_file_date+'.fss'"
 		, StorageReadOnly = "true"
 		{
-			attribute<rdc_mm> geometry (poly);
+			attribute<rdc> geometry (poly);
 		}
 		
 		parameter<bool> Generate := TRUE, ExplicitSuppliers = "Cutout_roads/geometry";

@@ -34,6 +34,9 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		unit<uint32> Onttrekking_Sites              := AdditionalOperations/Clustering/O/CleanUp;
 		unit<uint32> Onttrekking_Objecten           := AdditionalOperations/Clustering/O/CleanUp/Objecten;
 		
+		unit<uint32> Sloop_Sites                    := AdditionalOperations/Clustering/S/CleanUp;
+		unit<uint32> Sloop_Objecten                 := AdditionalOperations/Clustering/S/CleanUp/Objecten;
+		
 		unit<uint32> Onveranderd_Sites              := AdditionalOperations/Clustering/Onveranderd/CleanUp;
 		unit<uint32> Onveranderd_Objecten           := AdditionalOperations/Clustering/Onveranderd/CleanUp/Objecten;
 		
@@ -378,7 +381,7 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 			attribute<string>      label                                       := org_rel -> string(pand_bag_nr);
 			attribute<rdc>         pand_geometry  (poly)                       := org_rel -> pand_geometry;
 			attribute<jaar>        pand_bouwjaar                               := org_rel -> pand_bouwjaar;
-			unit<uint32>           overlay_metPercelen                         := overlay_polygon(perceel/geometry[rdc_mm], pand_geometry[rdc_mm]) //intersect nieuwbouw_perceel_metSloop met gesloopte panden
+			unit<uint32>           overlay_metPercelen                         := bg_overlay_polygon(perceel/geometry, pand_geometry) //intersect nieuwbouw_perceel_metSloop met gesloopte panden
 			{
 				attribute<m2> area_percelen := area(perceel/geometry[rdc], m2)[first_rel];
 				attribute<m2> area_panden   := area(pand_geometry, m2)[second_rel];

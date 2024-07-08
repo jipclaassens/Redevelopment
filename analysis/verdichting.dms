@@ -2,7 +2,7 @@ container Verdichting
 { 
 	container MaakOntkoppeldeData
 	{
-		parameter<string> SN := 'Ready', ExplicitSuppliers = "/Analyse/Redev_obv_hele_bag/AdditionalOperations/SN/NB_metSloop_TouchSloopPerc/Step3";
+		// parameter<string> SN := 'Ready', ExplicitSuppliers = "/Analyse/Redev_obv_hele_bag/AdditionalOperations/SN/NB_metSloop_TouchSloopPerc/Step3";
 		
 	}
 	container Parameters : using = "eenheden"
@@ -10,20 +10,27 @@ container Verdichting
 		parameter<int32>   VBO_opp_truncation              := 500i;
 		parameter<int32>   VBO_opp_truncation_lower        := 10i;
 		parameter<int32>   VBO_opp_truncation_defaultvalue := 120i;
-		parameter<bool>    Use_BAG_VoorraadStatussen       := true; // true false     FALSE voor de redevelopment analyse
+		// parameter<bool>    Use_BAG_VoorraadStatussen       := true; // true false     FALSE voor de redevelopment analyse
 		parameter<string>  BAG_Selection_Area              := 'NL'; //'MRA', 'NL', 'AMS', 'Aggl'
-		parameter<float64> supersmall_inflate              := 1000d; //1m
-		parameter<float64> small_inflate                   := 5000d; //5m
-		parameter<float64> big_inflate                     := 10000d; //10m
-		parameter<float64> superbig_inflate                := 20000d; //20m
+		
+		parameter<mm>      supersmall_inflate_mm           := supersmall_inflate_m[mm];
+		parameter<mm>      small_inflate_mm                := small_inflate_m[mm];
+		parameter<mm>      big_inflate_mm                  := big_inflate_m[mm];
+		parameter<mm>      superbig_inflate_mm             := superbig_inflate_m[mm];
+		
+		parameter<m>       supersmall_inflate_m            := 1[m]; //1m
+		parameter<m>       small_inflate_m                 := 5[m]; //5m
+		parameter<m>       big_inflate_m                   := 10[m]; //10m
+		parameter<m>       superbig_inflate_m              := 20[m]; //20m
+		
 		parameter<string>  bouwjaar_truncation_expr        := 'bouwjaar <= 1005s || bouwjaar > @YYYY@[eenheden/jaar] ? (0/0)[int16] : bouwjaar < 1500s ? 1500s : bouwjaar';
 		parameter<m>       highrise_threshold              := 30[m];
 		parameter<m>       verdiepinghoogte                := 2.8[m];
 		parameter<m2>      minimum_site_area               := 25[m2];
 		parameter<float32> minimum_SN_area_share           := 0.01f;
-		parameter<bool>    uq_identificatie_ontkoppeld     := true;
-		parameter<bool>    UseSimplify                     := true;
-		parameter<float64> Simplify_Value                  := 500d;
+		// parameter<bool>    uq_identificatie_ontkoppeld     := true;
+		// parameter<bool>    UseSimplify                     := true;
+		// parameter<float64> Simplify_Value                  := 500d;
 		// parameter<bool>    AfgeleidePandTyperingOntkoppeld := TRUE;
 		// parameter<bool>    UseAfgeleidePandTypering        := false;
 		parameter<string>  BAG_dir                         := 'OVSRV06'; // 'OVSRV06' 'NORMAAL'
@@ -38,19 +45,19 @@ container Verdichting
 	container geometries: using = "eenheden"
 	{
 		unit<fpoint> rdc_base         : SpatialReference = "EPSG:28992", 	DialogData = "ngr_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
-		unit<fpoint> rdc              := range(rdc_base, point(0f,300000f), point(280000f,625000f));
-		unit<ipoint> rdc_mm           := gridset(rdc, point(0.001,0.001), point(0.0, 0.0), ipoint);
+		unit<fpoint> rdc              := range(rdc_base, point_xy(0f,300000f), point_xy(280000f,625000f));
+		unit<ipoint> rdc_mm           := gridset(rdc, point_xy(0.001,0.001), point_xy(0.0, 0.0), ipoint);
 		unit<dpoint> wgs84_base       : SpatialReference = "EPSG:4326";
 		unit<fpoint> LambertEA_base   : SpatialReference = "EPSG:3035", DialogData = "ngr_layer_lea";
-		unit<fpoint> LambertEA        := range(LambertEA_base, point(2500000f, 1300000f), point(4900000f, 4300000f));
+		unit<fpoint> LambertEA        := range(LambertEA_base, point_xy(2500000f, 1300000f), point_xy(4900000f, 4300000f));
 		unit<fpoint> WebMercator_base : SpatialReference = "EPSG:3857";
 		
 		unit<uint32> BoundingBox_NL : nrofrows = 1
 		{
-			parameter<rdc> top_left     := point(0[m], 625000[m], rdc); //XY
-			parameter<rdc> top_right    := point(300000[m], 625000[m], rdc);
-			parameter<rdc> bottom_left  := point(0[m], 300000[m], rdc);
-			parameter<rdc> bottom_right := point(300000[m], 300000[m], rdc);
+			parameter<rdc> top_left     := point_xy(0[m], 625000[m], rdc); //XY
+			parameter<rdc> top_right    := point_xy(300000[m], 625000[m], rdc);
+			parameter<rdc> bottom_left  := point_xy(0[m], 300000[m], rdc);
+			parameter<rdc> bottom_right := point_xy(300000[m], 300000[m], rdc);
 			
 			unit<uint32> point_set : nrofrows = 5
 			{
@@ -65,10 +72,10 @@ container Verdichting
 		
 		unit<uint32> selection_polygon : nrofrows = 1
 		{
-			parameter<rdc> top_left     := point(114000[m], 490000[m], rdc); //XY
-			parameter<rdc> top_right    := point(127000[m], 490000[m], rdc);
-			parameter<rdc> bottom_left  := point(114000[m], 480000[m], rdc);
-			parameter<rdc> bottom_right := point(127000[m], 480000[m], rdc);
+			parameter<rdc> top_left     := point_xy(114000[m], 490000[m], rdc); //XY
+			parameter<rdc> top_right    := point_xy(127000[m], 490000[m], rdc);
+			parameter<rdc> bottom_left  := point_xy(114000[m], 480000[m], rdc);
+			parameter<rdc> bottom_right := point_xy(127000[m], 480000[m], rdc);
 			
 			unit<uint32> point_set : nrofrows = 5
 			{
@@ -103,9 +110,9 @@ container Verdichting
 				parameter<m>       gridgrootte;
 				parameter<m>       afkapstraal;
 				parameter<float32> straal                 := afkapstraal / gridgrootte;
-				unit<spoint>       potRange               := range(spoint, point(-straal[int16], -straal[int16]), point(straal[int16] + 1s, straal[int16] + 1s))
+				unit<spoint>       potRange               := range(spoint, point_xy(-straal[int16], -straal[int16]), point_xy(straal[int16] + 1s, straal[int16] + 1s))
 				{
-					attribute<Dist2Range> distMatr        := dist2(point(0s, 0s, potRange), Dist2Range);
+					attribute<Dist2Range> distMatr        := dist2(point_xy(0s, 0s, potRange), Dist2Range);
 					attribute<float32> AbsWeight          := distMatr[float32] <= (straal * straal) ? 1f / (distMatr[float32] ^ 2f) : 0f;
 					attribute<float32> AbsWeight_w_center := distMatr[float32] == 0f ? 1f : distMatr[float32] <= (straal * straal) ? 1f / (distMatr[float32] ^ 2f) : 0f;
 					attribute<float32> AbsWeight_wo_center := distMatr[float32] == 0f ? 0f : distMatr[float32] <= (straal * straal) ? 1f / (distMatr[float32] ^ 2f) : 0f;
@@ -157,16 +164,16 @@ container Verdichting
 				range(
 					 gridset(
 						 rdc
-						,point(gridsize, -gridsize, rdc)
-						,point(x_min, y_max, rdc)
+						,point_xy(gridsize, -gridsize, rdc)
+						,point_xy(x_min, y_max, rdc)
 						,spoint
 					)
-					,point(0s, 0s)
-					,point(nr_cols, nr_rows)
+					,point_xy(0s, 0s)
+					,point_xy(nr_cols, nr_rows)
 				),	DialogData = "rdc"
 			{
 				attribute<.>                    id               := id(.);
-				attribute<rdc>                  point_rd         := id[rdc] + point(0.5f * gridsize, -0.5f * gridsize, rdc);
+				attribute<rdc>                  point_rd         := id[rdc] + point_xy(0.5f * gridsize, -0.5f * gridsize, rdc);
 				attribute<uint32>               id_nr            := (pointcol(id)[uint32] + 1) + ((pointrow(id)[uint32]) * (x_max[uint32] / gridsize[uint32]));
 				attribute<NL_grid/domain_25m>   grid_25m_rel     := id(.)[NL_grid/domain_25m];
 				attribute<NL_grid/domain_100m>  grid_100m_rel    := id(.)[NL_grid/domain_100m];

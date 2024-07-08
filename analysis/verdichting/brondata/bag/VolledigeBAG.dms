@@ -11,22 +11,22 @@ container VolledigeBAG : using = "typeringen/BAG"
 	//Create new domain with the combination of all existing pand_nrs associated with VBO's and the pand_nrs in the panden domain. 
 	unit<uint32> Historische_Join := join_equal_values(vbo_uq_pand_nr_rel, pand_uq_pand_nr_rel)
 	{
-		attribute<rdc>         geometry                       := vbos/vbo/geometry[nr_1_rel];
-		attribute<rdc>         pand_geometry (poly)           := panden/pand/geometry[nr_2_rel];
-		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[nr_2_rel];
-		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[nr_1_rel];
-		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte[nr_1_rel];
-		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar_trunc[nr_2_rel];
-		// attribute<WP4>         pand_type                      := panden/pand/WP4_rel[nr_2_rel];
+		attribute<rdc>         geometry                       := vbos/vbo/geometry[first_rel];
+		attribute<rdc>         pand_geometry (poly)           := panden/pand/geometry[second_rel];
+		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[second_rel];
+		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[first_rel];
+		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte[first_rel];
+		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar_trunc[second_rel];
+		// attribute<WP4>         pand_type                      := panden/pand/WP4_rel[second_rel];
 		
-		attribute<int32>       pand_begindatum                := panden/pand/begindatum[nr_2_rel];
-		attribute<int32>       pand_einddatum                 := panden/pand/einddatum[nr_2_rel];
-		attribute<int32>       vbo_begindatum                 := vbos/vbo/begindatum[nr_1_rel];
-		attribute<int32>       vbo_einddatum                  := vbos/vbo/einddatum[nr_1_rel];
+		attribute<int32>       pand_begindatum                := panden/pand/begindatum[second_rel];
+		attribute<int32>       pand_einddatum                 := panden/pand/einddatum[second_rel];
+		attribute<int32>       vbo_begindatum                 := vbos/vbo/begindatum[first_rel];
+		attribute<int32>       vbo_einddatum                  := vbos/vbo/einddatum[first_rel];
 		
-		attribute<pand_status> pand_status_rel                := panden/pand/status_rel[nr_2_rel];
-		attribute<vbo_status>  vbo_status_rel                 := vbos/vbo/status_rel[nr_1_rel];
-		attribute<uint16>      vbo_functie_code               := vbos/vbo/functie_code[nr_1_rel];
+		attribute<pand_status> pand_status_rel                := panden/pand/status_rel[second_rel];
+		attribute<vbo_status>  vbo_status_rel                 := vbos/vbo/status_rel[first_rel];
+		attribute<uint16>      vbo_functie_code               := vbos/vbo/functie_code[first_rel];
 		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel         := rlookup(impl/gebruiksdoel, vbo_gebruiksdoel_ext/name);
 		
 		attribute<string>      pand_vbo_key                   := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
@@ -210,6 +210,8 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>                      einddatum                 := import/meta/EINDDATUM == 0i ? MaxDatum : import/meta/EINDDATUM;
 			attribute<uint16>                     functie_code              := impl/gebruiksdoelen/functie_code;
 			
+			attribute<RegioUnit_AMS>              AMS_rel                   := point_in_polygon(geometry, RegioUnit_AMS/geometry);
+				
 			unit<uint32> impl := .
 			{
 				container gebruiksdoelen :=
@@ -225,13 +227,16 @@ container VolledigeBAG : using = "typeringen/BAG"
 
 				attribute<float32>    x                         := PointCol(geometry);
 				attribute<float32>    y                         := PointRow(geometry);
-				attribute<bool>       vbo_selection_condition   := x < 300000f && x > 0f && y < 620000f && y > 300000f; //binnen NL
+				// attribute<bool>       vbo_selection_condition   := x < 300000f && x > 0f && y < 620000f && y > 300000f; //binnen NL
+				attribute<string>     vbo_selection_condition   := =Parameters/BAG_Selection_Area == 'AMS'
+																		? 'IsDefined(src/ams_rel)'
+																		: 'const(TRUE,src)';
 			}
 		}
 
 		// We only select valid records. We omit for example all records that have a geometry outside of the bounding box of Netherlands 
-		// unit<uint32> vbo := select_with_attr_by_org_rel(src, src/impl/vbo_selection_condition);
-		unit<uint32> vbo := select_with_attr_by_org_rel(src, const(TRUE,src));
+		unit<uint32> vbo := select_with_attr_by_org_rel(src, src/impl/vbo_selection_condition);
+		// unit<uint32> vbo := select_with_attr_by_org_rel(src, const(TRUE,src));
 	}
 	
 	template meta_src_template // Voor het inlezen van de generieke BAG attributen

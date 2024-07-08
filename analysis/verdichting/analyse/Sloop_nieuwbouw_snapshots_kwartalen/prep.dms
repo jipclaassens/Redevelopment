@@ -581,7 +581,7 @@ container Prep
 							
 							attribute<perceel>                             perceel_rel                            := point_in_polygon(centroid, perceel/geometry_rd);
 							
-							unit<uint32> overlay_metPercelen               := overlay_polygon(perceel/geometry_mm, geometry_mm); //intersect nieuwbouw_perceel_metSloop met gesloopte panden
+							unit<uint32> overlay_metPercelen               := bg_overlay_polygon(perceel/geometry, geometry); //intersect nieuwbouw_perceel_metSloop met gesloopte panden
 							
 							attribute<bool>                                IsPerceel_inthisDomain (perceel)       := IsDefined(rlookup(id(perceel),perceel_rel));
 							

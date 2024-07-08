@@ -47,7 +47,7 @@ container AdditionalOperations : using = "geometries"
 		attribute<rdc_mm>         geometry_mm (poly)                  := org_rel -> geometry_mm;
 		attribute<bool>           IsNieuwbouw_OpBebouwd               := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel));
 		attribute<RegioUnit_Aggl> Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
-		unit<uint32>              Nieuwbouw_OpBebouwd                 := overlay_polygon(BestaandeBouwIn2012/geometry_mm, ./geometry_mm), FreeData = "False";
+		unit<uint32>              Nieuwbouw_OpBebouwd                 := bg_overlay_polygon(BestaandeBouwIn2012/geometry, ./geometry);
 
 		unit<uint32>                   Nieuwbouw_src                       := PrepDomains/Nieuwbouw_Woon
 		{
@@ -70,7 +70,7 @@ container AdditionalOperations : using = "geometries"
 		attribute<rdc_mm>              geometry_mm (poly)                  := org_rel -> geometry_mm;
 		attribute<bool>                IsNieuwbouw_OpBebouwd               := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel));
 		attribute<RegioUnit_Aggl>      Aggl_rel                            := point_in_polygon(centroid_or_mid(geometry), RegioUnit_Aggl/geometry);
-		unit<uint32>                   Nieuwbouw_OpBebouwd                 := overlay_polygon(BestaandeBouwIn2012/geometry_mm, ./geometry_mm), FreeData = "False";
+		unit<uint32>                   Nieuwbouw_OpBebouwd                 := bg_overlay_polygon(BestaandeBouwIn2012/geometry, ./geometry), FreeData = "False";
 
 		unit<uint32>                   Nieuwbouw_src                       := PrepDomains/Nieuwbouw_Mixed
 		{
@@ -292,9 +292,9 @@ container AdditionalOperations : using = "geometries"
 		attribute<bool>                  GeenOverlapmet_SN_Mixed            := !IsDefined(rlookup(id(.),intersect_met_SN_Mixed/first_rel));
 		attribute<bool>                  GeenOverlapmet_SN                  := GeenOverlapmet_SN_Woon && GeenOverlapmet_SN_NietWoon && GeenOverlapmet_SN_Mixed;
 		
-		unit<uint32>                     intersect_met_SN_Woon              := overlay_polygon(geometry_mm, SN/Woon/Result/geometry[rdc_mm]), FreeData = "False";
-		unit<uint32>                     intersect_met_SN_NietWoon          := overlay_polygon(geometry_mm, SN/NietWoon/Result/geometry[rdc_mm]), FreeData = "False";
-		unit<uint32>                     intersect_met_SN_Mixed             := overlay_polygon(geometry_mm, SN/Mixed/Result/geometry[rdc_mm]), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_Woon              := bg_overlay_polygon(geometry SN/Woon/Result/geometry), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_NietWoon          := bg_overlay_polygon(geometry, SN/NietWoon/Result/geometry), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_Mixed             := bg_overlay_polygon(geometry, SN/Mixed/Result/geometry), FreeData = "False";
 		attribute<Periods>               RelevantJaar                       := org_rel -> RelevantJaar;
 		attribute<rdc>                   centroid                           := centroid_or_mid(geometry);
 		attribute<uint16>                pand_hoogte                        := org_rel -> pand_hoogte;
@@ -386,9 +386,9 @@ container AdditionalOperations : using = "geometries"
 		attribute<bool>                  GeenOverlapmet_SN_Mixed            := !IsDefined(rlookup(id(.),intersect_met_SN_Mixed/first_rel));
 		attribute<bool>                  GeenOverlapmet_SN                  := GeenOverlapmet_SN_Woon && GeenOverlapmet_SN_NietWoon && GeenOverlapmet_SN_Mixed;
 		
-		unit<uint32>                     intersect_met_SN_Woon              := overlay_polygon(geometry_mm, SN/Woon/Result/geometry[rdc_mm]), FreeData = "False";
-		unit<uint32>                     intersect_met_SN_NietWoon          := overlay_polygon(geometry_mm, SN/NietWoon/Result/geometry[rdc_mm]), FreeData = "False";
-		unit<uint32>                     intersect_met_SN_Mixed             := overlay_polygon(geometry_mm, SN/Mixed/Result/geometry[rdc_mm]), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_Woon              := bg_overlay_polygon(geometry, SN/Woon/Result/geometry), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_NietWoon          := bg_overlay_polygon(geometry, SN/NietWoon/Result/geometry), FreeData = "False";
+		unit<uint32>                     intersect_met_SN_Mixed             := bg_overlay_polygon(geometry, SN/Mixed/Result/geometry), FreeData = "False";
 		attribute<Periods>               RelevantJaar                       := org_rel -> RelevantJaar;
 		attribute<rdc>                   centroid                           := centroid_or_mid(geometry);
 		attribute<uint16>                pand_hoogte                        := org_rel -> pand_hoogte;
@@ -708,14 +708,14 @@ container AdditionalOperations : using = "geometries"
 			}
 		}
 		
-		unit<uint32> intersect  := ='overlay_polygon(Sloop_domain/Step2/deflate, NieuwbouwPerceel_Tile/Step2/inflate)' //intersect perceel met nieuwbouw met gesloopte panden
+		unit<uint32> intersect  := ='bg_overlay_polygon(Sloop_domain/Step2/deflate, NieuwbouwPerceel_Tile/Step2/inflate)' //intersect perceel met nieuwbouw met gesloopte panden
 		{
 			unit<uint32> nieuwbouw_perceel_metSloop := select_with_org_rel(IsDefined(second_rel)) //nieuwbouw perceel dat een gesloopt pand bevat
 			{
 				attribute<uint32>        second_rel                         := org_rel -> second_rel;
 				attribute<rdc_mm>        geometry_mm (poly)                 := NieuwbouwPerceel_Tile/Step2/inflate[second_rel];
 				
-				unit<uint32> overlay_metSloopPercelen  := ='overlay_polygon(SloopPerceel_Tile/Step2/inflate, geometry_mm)'; //intersect nieuwbouw_perceel_metSloop met gesloopte panden
+				unit<uint32> overlay_metSloopPercelen  := ='bg_overlay_polygon(SloopPerceel_Tile/Step2/inflate, geometry_mm)'; //intersect nieuwbouw_perceel_metSloop met gesloopte panden
 			}
 			
 			unit<uint32> TouchingSloopPercelen := select_with_org_rel(IsDefined(nieuwbouw_perceel_metSloop/overlay_metSloopPercelen/first_rel))

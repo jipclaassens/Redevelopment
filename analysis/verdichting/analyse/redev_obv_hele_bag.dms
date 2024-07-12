@@ -1,6 +1,6 @@
 container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;typeringen/redev;typeringen/tijd;geometries"
 {
-	unit<uint32>      Perceel             := /Brondata/BRK/Perceel_minus_Roads_CombinedFromCOROP;
+	unit<uint32>      Perceel             := /Brondata/BRK/Perceel/Perceel_minus_wegen;
 	unit<uint32>      RegioUnit_Gem_oud   := /Brondata/RegioIndelingen/Gemeente_oud;
 	
 	#include<PrepBAG.dms>

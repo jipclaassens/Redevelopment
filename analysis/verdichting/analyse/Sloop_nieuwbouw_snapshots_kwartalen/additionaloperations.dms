@@ -117,12 +117,12 @@ container AdditionalOperations : using = "geometries"
 		
 		unit<uint32> Step1 := split_union_polygon(geometry_mm)
 		{
-			attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry, parameters/big_inflate, 8b);
+			attribute<rdc_mm> inflate (poly) := bg_buffer_multi_polygon(geometry, parameters/big_inflate, 8b);
 		}
 		
 		unit<uint32> Step2 := split_polygon(Step1/inflate)
 		{
-			attribute<rdc_mm> deflate (poly)                      := bg_buffer_polygon(geometry, -parameters/big_inflate, 8b);
+			attribute<rdc_mm> deflate (poly)                      := bg_buffer_multi_polygon(geometry, -parameters/big_inflate, 8b);
 			attribute<rdc>    geometry_rd (poly)                  := deflate[rdc];
 			attribute<m2>     area                                := area(geometry_rd, m2);
 		}
@@ -215,12 +215,12 @@ container AdditionalOperations : using = "geometries"
 		
 		unit<uint32> Step1 := split_union_polygon(geometry_mm)
 		{
-			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(geometry, parameters/big_inflate, 8b);
+			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_multi_polygon(geometry, parameters/big_inflate, 8b);
 		}
 		
 		unit<uint32> Step2 := split_polygon(Step1/inflate)
 		{
-			attribute<rdc_mm>            deflate (poly)                     := bg_buffer_polygon(geometry, -parameters/big_inflate, 8b);
+			attribute<rdc_mm>            deflate (poly)                     := bg_buffer_multi_polygon(geometry, -parameters/big_inflate, 8b);
 			attribute<rdc>               geometry_rd (poly)                 := deflate[rdc];
 			attribute<m2>                area                               := area(geometry_rd, m2);
 		}
@@ -489,12 +489,12 @@ container AdditionalOperations : using = "geometries"
 		
 		unit<uint32> Step1 := split_union_polygon(domain/geometry_mm)
 		{
-			attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry, parameters/small_inflate, 8b);
+			attribute<rdc_mm> inflate (poly) := bg_buffer_multi_polygon(geometry, parameters/small_inflate, 8b);
 		}
 		
 		unit<uint32> Step2 := split_union_polygon(Step1/inflate)
 		{
-			attribute<rdc_mm> deflate     (poly) := bg_buffer_polygon(geometry, -parameters/small_inflate, 8b); //, DisableStorage = "true";
+			attribute<rdc_mm> deflate     (poly) := bg_buffer_multi_polygon(geometry, -parameters/small_inflate, 8b); //, DisableStorage = "true";
 			attribute<rdc>    geometry_rd (poly) := deflate[rdc];
 			attribute<m2>     area               := area(geometry_rd, m2);
 		}
@@ -564,13 +564,13 @@ container AdditionalOperations : using = "geometries"
 		
 		unit<uint32> Step1 := split_union_polygon(Onveranderd_domain/geometry_mm)
 		{
-			attribute<rdc_mm> inflate (poly) := bg_buffer_polygon(geometry,  parameters/small_inflate, 8b);
+			attribute<rdc_mm> inflate (poly) := bg_buffer_multi_polygon(geometry,  parameters/small_inflate, 8b);
 		}
 		
 		unit<uint32> Step2 := split_union_polygon(Step1/inflate)
 		, StorageName = "='%LocalDataProjDir%/Temp/Onveranderd_'+OnveranderdTypeName+'.fss'"
 		{
-			attribute<rdc_mm> deflate     (poly) := bg_buffer_polygon(geometry,  -parameters/small_inflate, 8b), DisableStorage = "true";
+			attribute<rdc_mm> deflate     (poly) := bg_buffer_multi_polygon(geometry,  -parameters/small_inflate, 8b), DisableStorage = "true";
 			attribute<rdc>    geometry_rd (poly) := deflate[rdc];
 			attribute<rdc_mm> geometry    (poly) : DisableStorage = "true";
 		}
@@ -654,12 +654,12 @@ container AdditionalOperations : using = "geometries"
 			
 			unit<uint32> Step1 := split_union_polygon(geometry_mm)
 			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende percelen en voeg die samen
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende percelen en voeg die samen
 			}
 			
 			unit<uint32> Step2 := split_union_polygon(Step1/inflate)
 			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_multi_polygon(geometry,  -parameters/big_inflate, 8b);
 			}
 		}
 		
@@ -669,42 +669,42 @@ container AdditionalOperations : using = "geometries"
 			
 			unit<uint32> Step1 := split_union_polygon(geometry_mm)
 			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende panden en voeg die samen
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate, 8b); //vind aangrenzende panden en voeg die samen
 			}
 			
 			unit<uint32> Step2 := split_union_polygon(Step1/inflate)
 			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  //deflate 
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_multi_polygon(geometry,  -parameters/big_inflate, 8b);  //deflate 
 			}
 		}
 		
 		unit<uint32> NieuwbouwPerceel_Tile := Nieuwbouw_Woon_perceel
 		{
-			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(geometry_mm,  parameters/supersmall_inflate, 8b);   
+			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_multi_polygon(geometry_mm,  parameters/supersmall_inflate, 8b);   
 		
 			unit<uint32> Step1 := split_union_polygon(inflate)
 			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_multi_polygon(geometry,  -parameters/big_inflate, 8b);  
 			}
 			
 			unit<uint32> Step2 := split_union_polygon(Step1/deflate)
 			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b);   
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate, 8b);   
 			}
 		}
 		
 		unit<uint32> SloopPerceel_Tile := ='Sloop_'+Was+'_perceel'
 		{
-			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_polygon(geometry_mm,  parameters/supersmall_inflate, 8b);   
+			attribute<rdc_mm>            inflate (poly)                     := bg_buffer_multi_polygon(geometry_mm,  parameters/supersmall_inflate, 8b);   
 			
 			unit<uint32> Step1 := split_union_polygon(inflate)
 			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/big_inflate, 8b);  
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_multi_polygon(geometry,  -parameters/big_inflate, 8b);  
 			}
 			
 			unit<uint32> Step2 := split_union_polygon(Step1/deflate)
 			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b);   
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate, 8b);   
 			}
 		}
 		
@@ -731,12 +731,12 @@ container AdditionalOperations : using = "geometries"
 			
 			unit<uint32> Step1 := split_union_polygon(geometry_mm)
 			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_polygon(geometry,  -parameters/small_inflate, 8b);
+				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_multi_polygon(geometry,  -parameters/small_inflate, 8b);
 			}
 			
 			unit<uint32> Step2 := split_union_polygon(Step1/deflate)
 			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b);
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate, 8b);
 			}
 			
 			unit<uint32> Step3 := split_union_polygon(Step2/inflate)
@@ -744,7 +744,7 @@ container AdditionalOperations : using = "geometries"
 			{
 				attribute<rdc_mm>        geometry (poly)                    : DisableStorage = "true";
 				attribute<rdc>           geometry_rd (poly)                 := geometry[rdc];
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_polygon(geometry,  parameters/big_inflate, 8b), DisableStorage = "true";
+				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate, 8b), DisableStorage = "true";
 				attribute<Periods>       Modus_Sloopjaar                    := modus(Sloop_domain/RelevantJaar, Sloop_domain/Aggregated_rel);
 			}
 			

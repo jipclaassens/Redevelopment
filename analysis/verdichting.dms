@@ -45,19 +45,25 @@ container Verdichting
 	container geometries: using = "eenheden"
 	{
 		unit<fpoint> rdc_base         : SpatialReference = "EPSG:28992", 	DialogData = "ngr_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
-		unit<fpoint> rdc              := range(rdc_base, point_xy(0f,300000f), point_xy(280000f,625000f));
+		unit<fpoint> rdc              := range(rdc_base, point_xy(x_min,y_min), point_xy(x_max,y_max));
 		unit<ipoint> rdc_mm           := gridset(rdc, point_xy(0.001,0.001), point_xy(0.0, 0.0), ipoint);
 		unit<dpoint> wgs84_base       : SpatialReference = "EPSG:4326";
 		unit<fpoint> LambertEA_base   : SpatialReference = "EPSG:3035", DialogData = "ngr_layer_lea";
 		unit<fpoint> LambertEA        := range(LambertEA_base, point_xy(2500000f, 1300000f), point_xy(4900000f, 4300000f));
 		unit<fpoint> WebMercator_base : SpatialReference = "EPSG:3857";
 		
+		//BOUNDING BOX OF THE NETHERLANDS
+		parameter<m> x_min := 0[m];
+		parameter<m> x_max := 280000[m];
+		parameter<m> y_min := 300000[m];
+		parameter<m> y_max := 625000[m];
+		
 		unit<uint32> BoundingBox_NL : nrofrows = 1
 		{
-			parameter<rdc> top_left     := point_xy(0[m], 625000[m], rdc); //XY
-			parameter<rdc> top_right    := point_xy(300000[m], 625000[m], rdc);
-			parameter<rdc> bottom_left  := point_xy(0[m], 300000[m], rdc);
-			parameter<rdc> bottom_right := point_xy(300000[m], 300000[m], rdc);
+			parameter<rdc> top_left     := point_xy(x_min, y_max, rdc); //XY
+			parameter<rdc> top_right    := point_xy(x_max, y_max, rdc);
+			parameter<rdc> bottom_left  := point_xy(x_min, y_min, rdc);
+			parameter<rdc> bottom_right := point_xy(x_max, y_min, rdc);
 			
 			unit<uint32> point_set : nrofrows = 5
 			{
@@ -126,13 +132,33 @@ container Verdichting
 				}
 			}
 		}
+		
+		
+		
+		unit<uint32> TileDomain       := NL_grid/perGridsize/size_1000m/points
+		{
+			attribute<rdc>         geometry                 := NL_grid/perGridsize/size_1000m/points/geometry;
+			attribute<rdc>         geometry_poly     (poly) := points2sequence(makepoly/Point, makepoly/SeqNr, makepoly/Ordinal);
+			
+			unit<uint32> makepoly:= union_unit(., ., ., ., .) 
+			{
+				attribute<rdc>                point   := union_data(., 
+															geometry + const(point_xy(-500f,  500f, rdc), .., rdc), 
+															geometry + const(point_xy( 500f,  500f, rdc), .., rdc), 
+															geometry + const(point_xy( 500f, -500f, rdc), .., rdc), 
+															geometry + const(point_xy(-500f, -500f, rdc), .., rdc),
+															geometry + const(point_xy(-500f,  500f, rdc), .., rdc));
+				attribute<..>                 SeqNr   := union_data(., id(..), id(..), id(..), id(..), id(..));
+				attribute<uint32>             Ordinal := id(.) / #..;
+			}
+		}
 	}
 	
 	container NL_grid: Using = "eenheden;geometries"
 	{
-		unit<uint32> Gridsizes : nrofrows = 4
+		unit<uint32> Gridsizes : nrofrows = 5
 		{
-			attribute<m>      size : [10, 25, 100, 500];
+			attribute<m>      size : [10, 25, 100, 500, 1000];
 			attribute<string> name := 'size_'+string(size)+'m';
 		}
 		
@@ -141,6 +167,7 @@ container Verdichting
 		unit<spoint> domain_25m   := perGridsize/size_25m/domain;
 		unit<spoint> domain_100m  := perGridsize/size_100m/domain;
 		unit<spoint> domain_500m  := perGridsize/size_500m/domain;
+		unit<spoint> domain_1000m := perGridsize/size_1000m/domain;
 	
 		parameter<m> x_min := 0[m];
 		parameter<m> x_max := 280000[m];

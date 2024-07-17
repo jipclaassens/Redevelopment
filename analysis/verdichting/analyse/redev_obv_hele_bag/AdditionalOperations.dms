@@ -139,75 +139,57 @@ container AdditionalOperations
 	
 	container SN 
 	{
-		unit<uint32> Sloop_domain_W_NW := union_unit(PrepDomains/S/domain, PrepDomains/S_nw/domain)
+		//ik wil SN identificeren. Door nieuwbouw panden die op hetzelfde perceel zijn gebouwd als er panden gesloopt zijn. 
+		//Dus we gaan uit van de nieuwere perceelsgrenzen, die waarschijnlijk corresponderen met de nieuwbouw. 
+		//Daarnaast wil ik graag ruimtelijk clusteren. Gesloopte panden die naast elkaar staan zijn onderdeel van hetzelfde SN-project. Dus Sloop pand (wonen of niet wonen) inflaten, dissolven, deflaten.
+		//Nieuwbouw percelen (perceel dat NB panden bevat) clusteren: inflate, dissolve, deflate.
+		//Sloop percelen (perceel dat sloop panden bevat) clusteren: inflate, dissolve, deflate.
+		
+		
+		// sloop panden + buffer - wegen
+		// nieuwbouw panden + buffer - wegen
+		
+		// clean up, want bufferdelen die afgesneden zijn door wegen 
+			// door overlay met originele panden, en relaties
+			
+		// dissolve van gecleande NB en Sloop buffers. 
+		
+		
+	
+		unit<uint32> SloopPanden := union_unit(PrepDomains/S/domain, PrepDomains/S_nw/domain)
 		{
-			attribute<rdc_mm>            pand_geometry_mm (poly)            := union_data(., PrepDomains/S/domain/pand_geometry, PrepDomains/S_nw/domain/pand_geometry)[rdc_mm];
+			attribute<rdc>               pand_geometry (poly)               := union_data(., PrepDomains/S/domain/pand_geometry, PrepDomains/S_nw/domain/pand_geometry);
 			attribute<rdc>               vbo_geometry                       := union_data(., PrepDomains/S/domain/vbo_geometry, PrepDomains/S_nw/domain/vbo_geometry);
 			attribute<string>            label                              := union_data(., PrepDomains/S/domain/label, PrepDomains/S_nw/domain/label);
-			
-			unit<uint32> Step1 := split_union_polygon(pand_geometry_mm)
-			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_mm[float64], 8b); //vind aangrenzende percelen en voeg die samen
-			}
-			
-			unit<uint32> Step2 := split_union_polygon(Step1/inflate)
-			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_multi_polygon(geometry,  -parameters/big_inflate_mm[float64], 8b);
-			}
 		}
-		
-		unit<uint32> NieuwbouwPerceel_Tile := Nieuwbouw_perceel
+
+		container SloopPanden_Clustered      := Cluster_Polygonen_T(SloopPanden, SloopPanden/pand_geometry);
+		container NieuwbouwPerceel_Clustered := Cluster_Polygonen_T(Nieuwbouw_perceel, Nieuwbouw_perceel/perceel_geometry);
+		container SloopPerceel_Clustered     := Cluster_Polygonen_T(Sloop_perceel, Sloop_perceel/perceel_geometry);
+ 
+		unit<uint32> Overlap_SloopPanden_NBPercelen  := bg_overlay_polygon(SloopPanden_Clustered/clustered, NieuwbouwPerceel_Clustered/clustered) 
+		, Descr = "identificeer alle NB percelen waar ook gesloopte panden op staan."
 		{
-			attribute<rdc>            inflate (poly)                     := bg_buffer_multi_polygon(perceel_geometry,  parameters/supersmall_inflate_m[float64], 8b);
-		
-			unit<uint32> Step1 := split_union_polygon(inflate[rdc_mm])
+			unit<uint32> NBPerceel_metSloopPand := select_with_org_rel(IsDefined(second_rel)) 
+			, Descr = "overlay geeft alleen de overlap. Via deze select pakken we de originele percelen terug."
 			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_multi_polygon(geometry,  -parameters/big_inflate_mm[float64], 8b);  
-			}
-			
-			unit<uint32> Step2 := split_union_polygon(Step1/deflate)
-			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_mm[float64], 8b);   
-				attribute<rdc>           inflate_rd (poly)                  := inflate[rdc];
-			}
-		}
-		
-		unit<uint32> SloopPerceel_Tile := Sloop_perceel
-		{
-			attribute<rdc>            inflate (poly)                     := bg_buffer_multi_polygon(perceel_geometry,  parameters/supersmall_inflate_m[float64], 8b);   
-			
-			unit<uint32> Step1 := split_union_polygon(inflate[rdc_mm])
-			{
-				attribute<rdc_mm>        deflate (poly)                     := bg_buffer_multi_polygon(geometry,  -parameters/big_inflate_mm[float64], 8b);  
-			}
-			
-			unit<uint32> Step2 := split_union_polygon(Step1/deflate)
-			{
-				attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_mm[float64], 8b);   
-				attribute<rdc>           inflate_rd (poly)                  := inflate[rdc];
-			}
-		}
-		
-		unit<uint32> intersect  := ='bg_overlay_polygon(Sloop_domain_W_NW/Step2/deflate[rdc], NieuwbouwPerceel_Tile/Step2/inflate_rd)' //intersect perceel met nieuwbouw met gesloopte panden
-		{
-			unit<uint32> nieuwbouw_perceel_metSloop := select_with_org_rel(IsDefined(second_rel)) //nieuwbouw perceel dat een gesloopt pand bevat
-			{
-				attribute<uint32>        second_rel                         := org_rel -> second_rel;
-				attribute<rdc>           geometry (poly)                    := NieuwbouwPerceel_Tile/Step2/inflate_rd[second_rel];
+				attribute<rdc> geometry (poly) := NieuwbouwPerceel_Clustered/clustered[org_rel -> second_rel];
 				
-				unit<uint32> overlay_metSloopPercelen  := ='bg_overlay_polygon(SloopPerceel_Tile/Step2/inflate_rd, geometry)'; //intersect nieuwbouw_perceel_metSloop met gesloopte panden
+				unit<uint32> Overlap_metSloopPercelen  := bg_overlay_polygon(SloopPerceel_Clustered/clustered, geometry)
+				, Descr = "nu kan het voorkomen dat er sloop panden zijn die buiten die 'originele' NB percelen staan, maar eigenlijk wel onderdeel zijn van het SN-project. Dus gaan we de sloop percelen nog intersecten met die NBpercelen die sloop bevatten.";
 			}
 			
-			unit<uint32> TouchingSloopPercelen := select_with_org_rel(IsDefined(nieuwbouw_perceel_metSloop/overlay_metSloopPercelen/first_rel))
+			unit<uint32> SloopPerceel_overlappendmet_NB_Perceel_metSloopPand := select_with_org_rel(IsDefined(NBPerceel_metSloopPand/Overlap_metSloopPercelen/first_rel))
+			, Descr = "nu pakken we de perceelsgrenzen van die slooppercelen die overlap hebben met de NB-percelen die sloop bevatten."
 			{
-				attribute<uint32>        first_rel                          := org_rel -> first_rel;
-				attribute<rdc>           geometry (poly)                    := SloopPerceel_Tile/Step2/inflate_rd[first_rel];
+				attribute<rdc> geometry (poly) := SloopPerceel_Clustered/clustered[org_rel -> first_rel];
 			}
 		}
 		
-		unit<uint32> NB_metSloop_TouchSloopPerc := union_unit(intersect/nieuwbouw_perceel_metSloop, intersect/TouchingSloopPercelen)
+		unit<uint32> NBPerceel_metSloopPand_en_overlappende_SloopPercelen := union_unit(Overlap_SloopPanden_NBPercelen/NBPerceel_metSloopPand, Overlap_SloopPanden_NBPercelen/SloopPerceel_overlappendmet_NB_Perceel_metSloopPand)
+		, Descr = "voeg de NBpercelen die sloop bevatten samen met de slooppercelen die met elkaar overlap hebben."
 		{
-			attribute<rdc>            geometry (poly)                 := union_data(., intersect/nieuwbouw_perceel_metSloop/geometry, intersect/TouchingSloopPercelen/geometry);
+			attribute<rdc>            geometry (poly)                 := union_data(., Overlap_SloopPanden_NBPercelen/NBPerceel_metSloopPand/geometry, Overlap_SloopPanden_NBPercelen/SloopPerceel_overlappendmet_NB_Perceel_metSloopPand/geometry);
 			
 			unit<uint32> Step1 := split_union_polygon(geometry[rdc_mm])
 			{
@@ -220,20 +202,9 @@ container AdditionalOperations
 			}
 			
 			unit<uint32> Step3 := split_union_polygon(Step2/inflate)
-			// , StorageName = "%LocalDataProjDir%/Temp/SN.fss"
 			{
-				attribute<rdc_mm>        geometry (poly)                    : DisableStorage = "true";
+				attribute<rdc_mm>        geometry (poly);
 				attribute<rdc>           geometry_rd (poly)                 := geometry[rdc];
-				// attribute<rdc_mm>        inflate (poly)                     := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_mm, 8b), DisableStorage = "true";
-			// }
-			
-			// unit<uint32> Read_Step3 
-			// : StorageName = "%LocalDataProjDir%/Temp/SN.fss"
-			// , StorageReadOnly = "true"
-			// , Dialogdata = "geometry_rd"
-			// , DialogType = "map"
-			// {
-				// attribute<rdc>           geometry_rd (poly);
 				attribute<m2>            area                               := area(geometry_rd, m2);
 				
 				attribute<.> uq_N_pand_perceel_rel (uq_N_pand) := point_in_polygon(centroid_or_mid(uq_N_pand/pand_geometry), geometry_rd);
@@ -252,11 +223,11 @@ container AdditionalOperations
 					attribute<.>   uq_N_pand_rel (PrepDomains/n/domain) := rlookup(PrepDomains/n/domain/label, values);
 				}
 				
-				unit<uint32> uq_S_pand := unique(Sloop_domain_W_NW/label)
+				unit<uint32> uq_S_pand := unique(SloopPanden/label)
 				{
-					attribute<rdc> pand_geometry (poly)                 := Sloop_domain_W_NW/pand_geometry_mm[rdc][invert(sloop_domain_rel)];
+					attribute<rdc> pand_geometry (poly)                 := SloopPanden/pand_geometry[invert(sloop_domain_rel)];
 					attribute<m2>  pand_area                            := area(pand_geometry, m2);
-					attribute<.>   sloop_domain_rel (Sloop_domain_W_NW) := rlookup(Sloop_domain_W_NW/label, values);
+					attribute<.>   sloop_domain_rel (SloopPanden) := rlookup(SloopPanden/label, values);
 				}
 			}
 			
@@ -308,7 +279,23 @@ container AdditionalOperations
 			}
 		}
 		
-		unit<uint32> Result := NB_metSloop_TouchSloopPerc/CleanUp;
+		unit<uint32> Result := NBPerceel_metSloopPand_en_overlappende_SloopPercelen/CleanUp;
+		
+		Template Cluster_Polygonen_T
+		{
+			unit<uint32>                 src;
+			attribute<rdc>               geometry (poly, src);
+			//
+			attribute<rdc>               inflate (poly, src)                := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 8b);   
+			
+			unit<uint32> dissolve := split_union_polygon(inflate[rdc_mm])
+			{
+				attribute<rdc>           deflate (poly)                     := bg_buffer_multi_polygon(geometry[rdc],  -parameters/big_inflate_m[float64], 8b);  
+				attribute<rdc>           outer   (poly)                     := bg_outer_multi_polygon(deflate);
+			}
+			attribute<rdc>               clustered (poly, dissolve)         := dissolve/outer;
+		}
+ 		
 	}
 	
 	unit<uint32> TeClusterenTypes : nrofrows = 5

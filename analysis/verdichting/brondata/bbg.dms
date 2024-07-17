@@ -19,6 +19,15 @@ container bestand_bodem_gebruik : using = "typeringen/bbg"
 			attribute<gg_src> CBSKlasse_rel_2012 := bbg_ek/CBSKlasseNr[value(BG12, bbg_ek)];
 			attribute<gg_src> CBSKlasse_rel_2015 := bbg_ek/CBSKlasseNr[value(BG15, bbg_ek)];
 			attribute<gg_src> CBSKlasse_rel_2017 := bbg_ek/CBSKlasseNr[value(BG17, bbg_ek)];
+			
+			unit<uint32> IsWonen_1996 := select_with_org_rel(CBSKlasse_rel_1996 == gg_src/v/woongebied)
+			{
+				attribute<rdc> geometry (poly) := ../geometry[org_rel];
+			}
+			unit<uint32> IsWonen_2010 := select_with_org_rel(CBSKlasse_rel_2010 == gg_src/v/woongebied)
+			{
+				attribute<rdc> geometry (poly) := ../geometry[org_rel];
+			}
 		}
 		
 		container Dominant

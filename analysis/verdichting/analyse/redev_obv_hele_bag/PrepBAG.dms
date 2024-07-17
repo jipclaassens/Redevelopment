@@ -681,7 +681,8 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<int32>  Saldo (Verslagmaanden) := ='union_data(Verslagmaanden, '+AsList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/Totalen_PerMutatieType/Saldo', ',')+')';
 	}
 	
-	unit<uint32> FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
+	unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
+	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
 	{
 		attribute<rdc>                     geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
 		attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
@@ -696,6 +697,21 @@ container PrepBAG : using = "AdditionalClassifications"
 																		,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)
 																		,MutatieTypen_rel_src
 																	);
+	}
+	
+	unit<uint32> FinalMutationTable
+	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
+	, StorageReadOnly = "true"
+	{
+		attribute<rdc>                     geometry;
+		attribute<rdc>                     pand_geometry (poly);
+		attribute<uint64>                  vbo_bag_nr;
+		attribute<jaar>                    pand_bouwjaar;
+		attribute<uint64>                  pand_bag_nr;
+		attribute<int32>                   vbo_oppervlakte;
+		attribute<int32>                   MutatieMaand;
+		attribute<MutatieTypen>            MutatieTypen_rel_src;
+		attribute<MutatieTypen>            MutatieTypen_rel;
 	}
 	
 	unit<uint32> BeginVoorraad      := select_with_org_rel(BAG_Tabel/ActiefOp_StartBAG)

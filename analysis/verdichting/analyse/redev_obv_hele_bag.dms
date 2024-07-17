@@ -381,10 +381,33 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 			attribute<string>      label                                       := org_rel -> string(pand_bag_nr);
 			attribute<rdc>         pand_geometry  (poly)                       := org_rel -> pand_geometry;
 			attribute<jaar>        pand_bouwjaar                               := org_rel -> pand_bouwjaar;
-			unit<uint32>           overlay_metPercelen                         := bg_overlay_polygon(perceel/geometry, pand_geometry) //intersect nieuwbouw_perceel_metSloop met gesloopte panden
+			
+			container impl
+			: Descr = "tbv identificatie van afwijkende pand geometrieeen. Buiten NL, of zeer groot, of dunne slivers."
 			{
-				attribute<m2> area_percelen := area(perceel/geometry[rdc], m2)[first_rel];
-				attribute<m2> area_panden   := area(pand_geometry, m2)[second_rel];
+				attribute<rdc>       NW                         (..) := lower_bound(pand_geometry);
+				attribute<rdc>       SE                         (..) := upper_bound(pand_geometry);
+				attribute<float32>   X_ext                      (..) := sub_or_null(PointCol(SE),PointCol(NW));
+				attribute<float32>   Y_ext                      (..) := sub_or_null(PointRow(SE),PointRow(NW));
+ 
+				attribute<float32>   lower_x                    (..) := pointCol(NW);
+				attribute<float32>   upper_x                    (..) := pointCol(SE);
+				attribute<float32>   lower_y                    (..) := pointRow(NW);
+				attribute<float32>   upper_y                    (..) := pointRow(SE);
+				
+				attribute<bool>      pand_selection_condition   (..) := ='X_ext < 1000f && Y_ext < 1000f' //panden met een grotere x/y range dan 1km eruit
+																						'&& lower_x < 300000f && lower_x > 0f'
+																						'&& upper_x < 300000f && upper_x > 0f'
+																						'&& lower_y < 620000f && lower_y > 300000f'
+																						'&& upper_y < 620000f && upper_y > 300000f'; //binnen NL
+			}
+			
+			unit<uint32>           zonder_afwijkende_pand_geometrieen          := select_with_attr_by_cond(., impl/pand_selection_condition), DialogType = "map", DialogData = "vbo_geometry";
+
+			unit<uint32>           overlay_metPercelen                         := bg_overlay_polygon(perceel/geometry, zonder_afwijkende_pand_geometrieen/pand_geometry) 
+			{
+				attribute<m2> area_percelen := area(perceel/geometry, m2)[first_rel];
+				attribute<m2> area_panden   := area(zonder_afwijkende_pand_geometrieen/pand_geometry, m2)[second_rel];
 				
 				attribute<float32> share_pand_op_perceel := area_panden / area_percelen;
 			}

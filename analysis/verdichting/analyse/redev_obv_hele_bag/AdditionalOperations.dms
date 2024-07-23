@@ -158,16 +158,79 @@ container AdditionalOperations
 	
 		unit<uint32> SloopPanden := union_unit(PrepDomains/S/domain, PrepDomains/S_nw/domain)
 		{
-			attribute<rdc>               pand_geometry (poly)               := union_data(., PrepDomains/S/domain/pand_geometry, PrepDomains/S_nw/domain/pand_geometry);
-			attribute<rdc>               vbo_geometry                       := union_data(., PrepDomains/S/domain/vbo_geometry, PrepDomains/S_nw/domain/vbo_geometry);
-			attribute<string>            label                              := union_data(., PrepDomains/S/domain/label, PrepDomains/S_nw/domain/label);
+			attribute<rdc> geometry    (poly) := union_data(., PrepDomains/S/domain/pand_geometry, PrepDomains/S_nw/domain/pand_geometry);
+			
+			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de nieuwbouw panden.
+			attribute<rdc> inflate     (poly) := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+			
+			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
+			unit<uint32> PandenBuffer_x_WegSpoor       := bg_overlay_polygon(inflate, Brondata/BRT/Relevant_Tiles_x_wegSpoor/TiledNonWegSpoor);
+			// unit<uint32> PandenBuffer_x_WegSpoor_Split := split_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_mm]);
+			unit<uint32> PandenBuffer_x_WegSpoor_Split := bg_split_union_polygon(PandenBuffer_x_WegSpoor/geometry);
+			
+			//De bufferdelen die door een weg zijn afgesneden, moeten eruit worden gefilterd.
+			unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden := bg_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry[rdc], geometry)
+			{
+				//dit zijn dan de panden buffers, zonder de door de wegafgesneden stukken.
+				attribute<rdc> Cleaned (poly) := PandenBuffer_x_WegSpoor_Split/geometry[first_rel][rdc];
+			}
 		}
+		
+		unit<uint32> NieuwbouwPanden := PrepDomains/N/domain
+		{
+			attribute<rdc> geometry (poly)                    := pand_geometry;
+			
+			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de sloop panden.
+			attribute<rdc> inflate     (poly) := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+			
+			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
+			unit<uint32> PandenBuffer_x_WegSpoor       := bg_overlay_polygon(inflate, Brondata/BRT/Relevant_Tiles_x_wegSpoor/TiledNonWegSpoor)
+			{
+				attribute<float32> Area := Area(geometry, float32);
+			}
+			// unit<uint32> PandenBuffer_x_WegSpoor_Split := split_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_mm]);
+			unit<uint32> PandenBuffer_x_WegSpoor_Split := bg_split_union_polygon(PandenBuffer_x_WegSpoor/geometry);
+			
+			//De bufferdelen die door een weg zijn afgesneden, moeten eruit worden gefilterd.
+			unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden := bg_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry[rdc], geometry)
+			{
+				//dit zijn dan de panden buffers, zonder de door de wegafgesneden stukken.
+				attribute<rdc> Cleaned (poly) := PandenBuffer_x_WegSpoor_Split/geometry[first_rel][rdc];
+			}
+		}
+		
+		// merge de sloop en nb gebufferde panden, zonder de afgesneden stukken.
+		unit<uint32> Merge_NB_Sloop_Panden_Buffer := union_unit(SloopPanden/PandenBuffer_Minus_WegSpoor_x_Panden, NieuwbouwPanden/PandenBuffer_Minus_WegSpoor_x_Panden)
+		{
+			attribute<rdc> geometry (poly)           := union_data(., SloopPanden/PandenBuffer_Minus_WegSpoor_x_Panden/cleaned, NieuwbouwPanden/PandenBuffer_Minus_WegSpoor_x_Panden/cleaned);
+			// unit<uint32>   Dissolve                  := split_union_polygon(geometry[rdc_mm]);
+			unit<uint32>   Dissolve                  := bg_split_union_polygon(geometry);
+			attribute<rdc> Outer    (poly, dissolve) := bg_outer_multi_polygon(Dissolve/geometry[rdc]);
+			attribute<rdc> Deflate  (poly, dissolve) := bg_buffer_multi_polygon(Outer, -0.9d*parameters/big_inflate_m[float64], 16b);
+			
+			attribute<bool> Has_Sloop_building (dissolve) := IsDefined(invert(point_in_polygon(centroid_or_mid(NieuwbouwPanden/geometry), Deflate)));
+			attribute<bool> Has_NB_building    (dissolve) := IsDefined(invert(point_in_polygon(centroid_or_mid(SloopPanden/geometry), Deflate)));
+		}
+		
+		// neem alleen de merge over waar sloop EN nieuwbouw op plaatsvindt
+		unit<uint32> Sites_met_Sloop_en_NB := select_with_org_rel(Merge_NB_Sloop_Panden_Buffer/Has_Sloop_building && Merge_NB_Sloop_Panden_Buffer/Has_NB_building)
+		{
+			attribute<rdc> geometry (poly)           := Merge_NB_Sloop_Panden_Buffer/Deflate[org_rel];
+		}
+		
+		
+		
+		
+		
+		
+		
+		
 
-		container SloopPanden_Clustered      := Cluster_Polygonen_T(SloopPanden, SloopPanden/pand_geometry);
-		container NieuwbouwPerceel_Clustered := Cluster_Polygonen_T(Nieuwbouw_perceel, Nieuwbouw_perceel/perceel_geometry);
-		container SloopPerceel_Clustered     := Cluster_Polygonen_T(Sloop_perceel, Sloop_perceel/perceel_geometry);
+		// container SloopPanden_Clustered      := Cluster_Polygonen_T(SloopPanden, SloopPanden/pand_geometry);
+		// container NieuwbouwPerceel_Clustered := Cluster_Polygonen_T(Nieuwbouw_perceel, Nieuwbouw_perceel/perceel_geometry);
+		// container SloopPerceel_Clustered     := Cluster_Polygonen_T(Sloop_perceel, Sloop_perceel/perceel_geometry);
  
-		unit<uint32> Overlap_SloopPanden_NBPercelen  := bg_overlay_polygon(SloopPanden_Clustered/clustered, NieuwbouwPerceel_Clustered/clustered) 
+/* 		unit<uint32> Overlap_SloopPanden_NBPercelen  := bg_overlay_polygon(SloopPanden_Clustered/clustered, NieuwbouwPerceel_Clustered/clustered) 
 		, Descr = "identificeer alle NB percelen waar ook gesloopte panden op staan."
 		{
 			unit<uint32> NBPerceel_metSloopPand := select_with_org_rel(IsDefined(second_rel)) 
@@ -185,8 +248,8 @@ container AdditionalOperations
 				attribute<rdc> geometry (poly) := SloopPerceel_Clustered/clustered[org_rel -> first_rel];
 			}
 		}
-		
-		unit<uint32> NBPerceel_metSloopPand_en_overlappende_SloopPercelen := union_unit(Overlap_SloopPanden_NBPercelen/NBPerceel_metSloopPand, Overlap_SloopPanden_NBPercelen/SloopPerceel_overlappendmet_NB_Perceel_metSloopPand)
+ */		
+/* 		unit<uint32> NBPerceel_metSloopPand_en_overlappende_SloopPercelen := union_unit(Overlap_SloopPanden_NBPercelen/NBPerceel_metSloopPand, Overlap_SloopPanden_NBPercelen/SloopPerceel_overlappendmet_NB_Perceel_metSloopPand)
 		, Descr = "voeg de NBpercelen die sloop bevatten samen met de slooppercelen die met elkaar overlap hebben."
 		{
 			attribute<rdc>            geometry (poly)                 := union_data(., Overlap_SloopPanden_NBPercelen/NBPerceel_metSloopPand/geometry, Overlap_SloopPanden_NBPercelen/SloopPerceel_overlappendmet_NB_Perceel_metSloopPand/geometry);
@@ -278,8 +341,8 @@ container AdditionalOperations
 				}
 			}
 		}
-		
-		unit<uint32> Result := NBPerceel_metSloopPand_en_overlappende_SloopPercelen/CleanUp;
+ */		
+		// unit<uint32> Result := NBPerceel_metSloopPand_en_overlappende_SloopPercelen/CleanUp;
 		
 		Template Cluster_Polygonen_T
 		{

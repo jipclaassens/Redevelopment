@@ -192,7 +192,7 @@ container RegioIndelingen : using = "geometries"
 	{
 		attribute<geometries/rdc> geometry (poly);
 		attribute<string>         GM_NAAM;
-		attribute<string>         GM_CODE;
+		attribute<string>         GM_CODE : DialogType = "LabelText";
 		attribute<string>         label     := GM_NAAM, DialogType = "LabelText";
 		attribute<string>         name                              := AsItemName(GM_NAAM); //replace(label, '/', '_', '-', '_', ' ', '_','(','',')','','â','a','ú','','''','',',','');
 		attribute<.>              per_grid (NL_grid/domain)         := poly2grid(geometry, NL_grid/domain);
@@ -230,6 +230,13 @@ container RegioIndelingen : using = "geometries"
 		}
 		
 		unit<uint32> Amsterdam := subset(GM_CODE == 'GM0363')
+		{
+			attribute<geometries/rdc>    geometry (poly)                   := ../geometry[nr_OrgEntity];
+			attribute<geometries/rdc_mm> geometry_mm (poly)                := geometry[geometries/rdc_mm];
+			attribute<string>            GM_CODE                           := ../GM_CODE[nr_OrgEntity];
+			attribute<string>            label                             := ../label[nr_OrgEntity]; //, DialogType = "LabelText";
+		}
+		unit<uint32> Utrecht := subset(GM_CODE == 'GM0344')
 		{
 			attribute<geometries/rdc>    geometry (poly)                   := ../geometry[nr_OrgEntity];
 			attribute<geometries/rdc_mm> geometry_mm (poly)                := geometry[geometries/rdc_mm];

@@ -211,6 +211,7 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<uint16>                     functie_code              := impl/gebruiksdoelen/functie_code;
 			
 			attribute<RegioUnit_AMS>              AMS_rel                   := point_in_polygon(geometry, RegioUnit_AMS/geometry);
+			attribute<RegioUnit_Utrecht>          Utrecht_rel               := point_in_polygon(geometry, RegioUnit_Utrecht/geometry);
 				
 			unit<uint32> impl := .
 			{
@@ -228,9 +229,11 @@ container VolledigeBAG : using = "typeringen/BAG"
 				attribute<float32>    x                         := PointCol(geometry);
 				attribute<float32>    y                         := PointRow(geometry);
 				// attribute<bool>       vbo_selection_condition   := x < 300000f && x > 0f && y < 620000f && y > 300000f; //binnen NL
-				attribute<string>     vbo_selection_condition   := =Parameters/BAG_Selection_Area == 'AMS'
+				attribute<bool>     vbo_selection_condition   := =Parameters/BAG_Selection_Area == 'AMS'
 																		? 'IsDefined(src/ams_rel)'
-																		: 'const(TRUE,src)';
+																		: Parameters/BAG_Selection_Area == 'Utrecht'
+																			? 'IsDefined(src/utrecht_rel)'
+																			: 'const(TRUE,src)';
 			}
 		}
 

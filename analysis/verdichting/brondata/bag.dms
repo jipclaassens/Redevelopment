@@ -13,6 +13,7 @@ container BAG : using = "typeringen;eenheden"
 	// unit<uint32>    RegioUnit_bbg     := Brondata/RegioIndelingen/BBG_2000;
 	unit<uint32>    RegioUnit_MRA     := Brondata/RegioIndelingen/MRA/MRA1;
 	unit<uint32>    RegioUnit_AMS     := Brondata/RegioIndelingen/Gemeente/Amsterdam;
+	unit<uint32>    RegioUnit_Utrecht := Brondata/RegioIndelingen/Gemeente/Utrecht;
 	unit<uint32>    Perceel           := Brondata/BRK/Perceel;
 	
 	unit<uint8>     WP2               := typeringen/bag/type_woonpand_2;

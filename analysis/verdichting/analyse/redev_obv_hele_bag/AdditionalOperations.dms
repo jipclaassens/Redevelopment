@@ -164,9 +164,8 @@ container AdditionalOperations
 			attribute<rdc> inflate     (poly) := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
-			unit<uint32> PandenBuffer_x_WegSpoor       := bg_overlay_polygon(inflate, Brondata/BRT/Relevant_Tiles_x_wegSpoor/TiledNonWegSpoor);
-			// unit<uint32> PandenBuffer_x_WegSpoor_Split := split_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_mm]);
-			unit<uint32> PandenBuffer_x_WegSpoor_Split := bg_split_union_polygon(PandenBuffer_x_WegSpoor/geometry);
+			unit<uint32> PandenBuffer_x_WegSpoor              := bg_overlay_polygon(inflate, Brondata/BRT/Relevant_Tiles_x_wegSpoor/ReadTiledNonWegSpoor);
+			unit<uint32> PandenBuffer_x_WegSpoor_Split        := bg_split_union_polygon(PandenBuffer_x_WegSpoor/geometry);
 			
 			//De bufferdelen die door een weg zijn afgesneden, moeten eruit worden gefilterd.
 			unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden := bg_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry[rdc], geometry)
@@ -184,12 +183,16 @@ container AdditionalOperations
 			attribute<rdc> inflate     (poly) := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
-			unit<uint32> PandenBuffer_x_WegSpoor       := bg_overlay_polygon(inflate, Brondata/BRT/Relevant_Tiles_x_wegSpoor/TiledNonWegSpoor)
+			unit<uint32> PandenBuffer_x_WegSpoor         := bg_overlay_polygon(inflate, Brondata/BRT/Relevant_Tiles_x_wegSpoor/ReadTiledNonWegSpoor);
+			
+			//Hierin liggen veel dubbele panden op elkaar wat een probleem geeft in de union, dus trucjes toepassen om dit qua rekentijd te versnellen.
+			unit<uint32>       Tiles_x_PandenBufferWegSpoor                := bg_overlay_polygon(geometries/TileDomain/geometry_poly, PandenBuffer_x_WegSpoor/geometry);
+			unit<uint32>       Relevant_Tiles_x_PandenBufferWegSpoor       := select_with_org_rel(Has_Any(Tiles_x_PandenBufferWegSpoor/first_rel))
 			{
-				attribute<float32> Area := Area(geometry, float32);
+				attribute<rdc> Tiles                     (poly) := geometries/TileDomain/geometry_poly[org_rel];
+				attribute<rdc> TiledPandenBufferWegSpoor (poly) := bg_union_polygon(Tiles_x_PandenBufferWegSpoor/geometry,invert(org_rel)[Tiles_x_PandenBufferWegSpoor/first_rel]);
 			}
-			// unit<uint32> PandenBuffer_x_WegSpoor_Split := split_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_mm]);
-			unit<uint32> PandenBuffer_x_WegSpoor_Split := bg_split_union_polygon(PandenBuffer_x_WegSpoor/geometry);
+			unit<uint32> PandenBuffer_x_WegSpoor_Split        := bg_split_union_polygon(Relevant_Tiles_x_PandenBufferWegSpoor/TiledPandenBufferWegSpoor);
 			
 			//De bufferdelen die door een weg zijn afgesneden, moeten eruit worden gefilterd.
 			unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden := bg_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry[rdc], geometry)
@@ -203,7 +206,6 @@ container AdditionalOperations
 		unit<uint32> Merge_NB_Sloop_Panden_Buffer := union_unit(SloopPanden/PandenBuffer_Minus_WegSpoor_x_Panden, NieuwbouwPanden/PandenBuffer_Minus_WegSpoor_x_Panden)
 		{
 			attribute<rdc> geometry (poly)           := union_data(., SloopPanden/PandenBuffer_Minus_WegSpoor_x_Panden/cleaned, NieuwbouwPanden/PandenBuffer_Minus_WegSpoor_x_Panden/cleaned);
-			// unit<uint32>   Dissolve                  := split_union_polygon(geometry[rdc_mm]);
 			unit<uint32>   Dissolve                  := bg_split_union_polygon(geometry);
 			attribute<rdc> Outer    (poly, dissolve) := bg_outer_multi_polygon(Dissolve/geometry[rdc]);
 			attribute<rdc> Deflate  (poly, dissolve) := bg_buffer_multi_polygon(Outer, -0.9d*parameters/big_inflate_m[float64], 16b);

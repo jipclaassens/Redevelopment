@@ -143,6 +143,16 @@ container BAG: using = "eenheden"
 		attribute<bool>      IsInSloop       : [FALSE, TRUE,  FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE];
 	}
 	
+	unit<uint8> standplaats_status : nrofrows = 2
+	{
+		attribute<string>    label       : ['Plaats aangewezen', 'Plaats ingetrokken'], DialogType = "LabelText";
+	}
+
+	unit<uint8> ligplaats_status : nrofrows = 2
+	{
+		attribute<string>    label       : ['Plaats aangewezen', 'Plaats ingetrokken'], DialogType = "LabelText";
+	}
+	
 	unit<uint8> nummeraanduiding_status : nrofrows = 3
 	{
 		unit<uint8> elements := range(uint8, 0b, uint8(2*#.))

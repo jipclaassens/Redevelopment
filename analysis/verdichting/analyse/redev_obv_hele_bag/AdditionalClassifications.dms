@@ -20,12 +20,24 @@ container AdditionalClassifications
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	
-	unit<uint32> Verslagmaanden := combine(Jaren, Maanden)
+	unit<uint32> Verslagmaanden0 := combine(Jaren, Maanden)
+	{
+		attribute<string> jaar  := Jaren/name[first_rel];
+		attribute<string> maand := Maanden/name[second_rel];
+	}
+	
+	unit<uint32> Verslagmaanden_additional : nrofrows = 7
+	{
+		attribute<string> jaar  : ['2024','2024','2024','2024','2024','2024','2024'];
+		attribute<string> maand : ['01','02','03','04','05','06','07'];
+	}
+	
+	unit<uint32> Verslagmaanden := union_unit(Verslagmaanden0, Verslagmaanden_additional)
 	{
 		attribute<string> label := 'Y'+name;
 		attribute<string> name  := jaar + maand + '01';
-		attribute<string> jaar  := Jaren/name[first_rel];
-		attribute<string> maand := Maanden/name[second_rel];
+		attribute<string> jaar  := union_data(., Verslagmaanden0/jaar, Verslagmaanden_additional/jaar);
+		attribute<string> maand := union_data(., Verslagmaanden0/maand, Verslagmaanden_additional/maand);
 		
 		attribute<bool>   IsFirst   := first(label) == label;
 		attribute<string> prev_name := MakeDefined(name[sub_or_null(id(.), 1)], 'Start');

@@ -28,6 +28,11 @@ container bestand_bodem_gebruik : using = "typeringen/bbg"
 			{
 				attribute<rdc> geometry (poly) := ../geometry[org_rel];
 			}
+			
+			unit<uint32> IsVerblijfsrecreatie_2017 := select_with_org_rel(CBSKlasse_rel_2017 == gg_src/V/verblijfsrecreatie)
+			{
+				attribute<rdc> geometry (poly) := ../geometry[org_rel];
+			}
 		}
 		
 		container Dominant
@@ -259,11 +264,16 @@ container bestand_bodem_gebruik : using = "typeringen/bbg"
 		attribute<uint8>                bbg2008_corr                   := bbg2008 == 34b ? bbg2006_corr : bbg2008;
 		attribute<uint8>                bbg2010_corr                   := bbg2010 == 34b ? bbg2008_corr : bbg2010;
 		attribute<uint8>                bbg2012_corr                   := bbg2012 == 34b ? bbg2010_corr : bbg2012;
+		attribute<uint8>                bbg2015_corr                   := bbg2015 == 34b ? bbg2012_corr : bbg2015;
+		attribute<uint8>                bbg2017_corr                   := bbg2017 == 34b ? bbg2015_corr : bbg2017;
 		
 		attribute<begr_beb_geb>    bbg2012_begrenzing  := gg_src/begr_beb_geb_rel[gg2012_src_rel];
 		attribute<begr_beb_geb>    bbg2006_begrenzing  := gg_src/begr_beb_geb_rel[gg2006_src_rel];
 		
+		attribute<bool>      IsVerblijfsrecreatie := gg2017_src_rel == gg_src/V/verblijfsrecreatie;
+		unit<uint32> verblijfsrecreatie := select_with_attr_by_cond(., IsVerblijfsrecreatie);
 		
+		attribute<gg_src>    gg2017_src_rel    := rlookup(bbg2017_corr, gg_src/bbg_klasse);
 		attribute<gg_src>    gg2012_src_rel    := rlookup(bbg2012_corr, gg_src/bbg_klasse);
 		attribute<gg_src>    gg2006_src_rel    := rlookup(bbg2006_corr, gg_src/bbg_klasse);
 		attribute<gg_src>    gg2000_src_rel    := rlookup(bbg2000_corr, gg_src/bbg_klasse);

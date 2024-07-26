@@ -1,6 +1,6 @@
 container VolledigeBAG : using = "typeringen/BAG"
 { 
-	parameter<string>  Snapshot_Date_Input := '20240111';
+	parameter<string>  Snapshot_Date_Input := '20240708';
 	parameter<string>  Result_FSS_dir      := '%SourceDataDir%/BAG/VolledigeTabel_' + Snapshot_Date_Input;
 	parameter<int32>   MaxDatum            := 20500101i;
 	
@@ -18,6 +18,10 @@ container VolledigeBAG : using = "typeringen/BAG"
 		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte[first_rel];
 		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar_trunc[second_rel];
 		// attribute<WP4>         pand_type                      := panden/pand/WP4_rel[second_rel];
+		
+		attribute<bool>        IsMogelijkWoningCorporatiePand := panden/pand/IsMogelijkWoningCorporatiePand[second_rel];
+		attribute<uint32>      pand_count_ZorgFuncties           := vbos/vbo/pand_count_ZorgFuncties[first_rel];
+		attribute<uint32>      pand_count_ZorgFuncties_StartBAG  := vbos/vbo/pand_count_ZorgFuncties_StartBAG[first_rel];
 		
 		attribute<int32>       pand_begindatum                := panden/pand/begindatum[second_rel];
 		attribute<int32>       pand_einddatum                 := panden/pand/einddatum[second_rel];
@@ -57,7 +61,10 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>       begindatum                     := max_elem(pand_begindatum, vbo_begindatum);
 			attribute<int32>       einddatum                      := min_elem(pand_einddatum, vbo_einddatum);
 			attribute<jaar>        pand_bouwjaar                  := org_rel -> pand_bouwjaar;
-			attribute<WP4>         pand_type                      := org_rel -> pand_type;
+			// attribute<WP4>         pand_type                      := org_rel -> pand_type;
+			
+			attribute<bool>        IsMogelijkWoningCorporatiePand := org_rel -> IsMogelijkWoningCorporatiePand;
+			attribute<uint32>      pand_count_ZorgFuncties_StartBAG := org_rel -> pand_count_ZorgFuncties_StartBAG;
 			
 			attribute<string>      pv_key                         := string(pand_bag_nr) +'_'+ string(vbo_bag_nr);
 			attribute<string>      status_key                     := string(pand_status_rel) + '_' + string(vbo_status_rel);
@@ -123,7 +130,8 @@ container VolledigeBAG : using = "typeringen/BAG"
 		:	StorageName = "= Result_FSS_dir + '/pand.fss'"
 		,	StorageReadOnly = "True"
 		{
-			attribute<rdc>                          geometry (poly);
+			attribute<rdc_mm>                       geometry_mm (poly);
+			attribute<rdc>                          geometry (poly) := geometry_mm[rdc];
 			attribute<string>                       identificatie;
 			attribute<jaar>                         bouwjaar;
 
@@ -140,6 +148,16 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>                        einddatum                    := impl/einddatum0 < 19600101i ? impl/EINDREGISTRATIE : impl/einddatum0;
 			attribute<jaar>                         bouwjaar                     := import/bouwjaar;
 			attribute<jaar>                         bouwjaar_trunc               := =replace(parameters/bouwjaar_truncation_expr, '@YYYY@', '2025');
+			
+			attribute<bool>                         IsMogelijkWoningCorporatiePand       := Read_IsMogelijkWoningCorporatiePand;
+			attribute<bool>                         Write_IsMogelijkWoningCorporatiePand := IsDefined(rlookup(id(.), Identify_StudentenPanden/second_rel)), StorageName = "=Result_FSS_dir + '/IsMogelijkWoningCorporatiePand.fss'";
+			attribute<bool>                         Read_IsMogelijkWoningCorporatiePand  : StorageName = "=Result_FSS_dir + '/IsMogelijkWoningCorporatiePand.fss'", StorageReadOnly = "true";
+			
+			unit<uint32> Identify_StudentenPanden := point_in_all_polygons(/Brondata/EigendomStaat/Corporatiebezit_data/geometry, geometry);
+			unit<uint32> Select_StudentenPanden := select_with_org_rel(IsDefined(rlookup(id(.), Identify_StudentenPanden/second_rel)))
+			{
+				attribute<rdc>                          geometry (poly)              :=  ../geometry[org_rel];
+			}
 			
 			unit<uint32> impl := .
 			{
@@ -176,7 +194,8 @@ container VolledigeBAG : using = "typeringen/BAG"
 		:	StorageName = "= Result_FSS_dir + '/vbo.fss'"
 		,	StorageReadOnly = "True"
 		{
-			attribute<rdc>                        geometry; 
+			attribute<rdc_mm>                     geometry_mm;
+			attribute<rdc>                        geometry  := geometry_mm[rdc];
 			attribute<string>                     identificatie;
 			attribute<int32>                      oppervlakte;
 			attribute<string>                     nummeraanduiding_id;
@@ -209,12 +228,25 @@ container VolledigeBAG : using = "typeringen/BAG"
 			attribute<int32>                      begindatum                := import/meta/BEGINDATUM == 0i ? MaxDatum : import/meta/BEGINDATUM;
 			attribute<int32>                      einddatum                 := import/meta/EINDDATUM == 0i ? MaxDatum : import/meta/EINDDATUM;
 			attribute<uint16>                     functie_code              := impl/gebruiksdoelen/functie_code;
-			
+			attribute<uint32>                     pand_count_ZorgFuncties   := impl/pand_count_ZorgFuncties[(impl/uq_pand_rel)];
+			attribute<uint32>                     pand_count_ZorgFuncties_StartBAG   := impl/pand_count_ZorgFuncties_StartBAG[(impl/uq_pand_rel)];
 			attribute<RegioUnit_AMS>              AMS_rel                   := point_in_polygon(geometry, RegioUnit_AMS/geometry);
 			attribute<RegioUnit_Utrecht>          Utrecht_rel               := point_in_polygon(geometry, RegioUnit_Utrecht/geometry);
-				
+			
+			attribute<bool>                       VBO_IsVoorraad            := vbo_status/isVoorraad[status_rel];
+			
+			//adhoc
+			unit<uint32> sel := select_with_attr_by_cond(., impl/IsGezondheidsZorg);
+			
 			unit<uint32> impl := .
 			{
+				attribute<bool>                 IsGezondheidsZorg             := gebruiksdoelen/GezondheidsZorg;
+				attribute<bool>                 IsVoorraadStartBAG            := VBO_IsVoorraad && begindatum <= 20111201i;
+				attribute<uint32>               pand_count_ZorgFuncties (uq_pand)       := sum(IsGezondheidsZorg && VBO_IsVoorraad ? 1 : 0, uq_pand_rel);
+				attribute<uint32>               pand_count_ZorgFuncties_StartBAG (uq_pand)       := sum(IsGezondheidsZorg && IsVoorraadStartBAG ? 1 : 0, uq_pand_rel);
+				unit<uint32> uq_pand := unique(pand_bag_nr);
+				attribute<uq_pand>        uq_pand_rel := rlookup(pand_bag_nr, uq_pand/values);
+			
 				container gebruiksdoelen :=
 					for_each_nedv(
 						vbo_gebruiksdoel/name
@@ -241,6 +273,92 @@ container VolledigeBAG : using = "typeringen/BAG"
 		unit<uint32> vbo := select_with_attr_by_org_rel(src, src/impl/vbo_selection_condition);
 		// unit<uint32> vbo := select_with_attr_by_org_rel(src, const(TRUE,src));
 	}
+	
+	
+	container Standplaatsen
+	{
+		//import the source BAG files
+		unit<uint32> import
+		:	StorageName = "= Result_FSS_dir + '/standplaats.fss'"
+		,	StorageReadOnly = "True"
+		{
+			attribute<rdc_mm>                     geometry_mm (poly);
+			attribute<rdc>                        geometry    (poly) := geometry_mm[rdc];
+			attribute<string>                     identificatie;
+			attribute<string>                     nevenadres;
+			attribute<int32>                      nummeraanduiding_id;
+			
+			container meta := meta_src_template(., standplaats_status);
+		}
+		
+		//enrich the source attributes, and prepare selection criteria.
+		unit<uint32> src := import
+		{
+			attribute<rdc>                        geometry (poly) := import/geometry;
+			attribute<standplaats_status>         status_rel      := import/meta/status_rel;
+			attribute<uint64>                     bag_nr          := uint64(identificatie);
+			attribute<int32>                      begindataum     := meta/begindatum;
+			
+			parameter<int32>  datum_start := 20160101i;
+			parameter<int32>  datum_eind  := 20180101i;
+
+			unit<uint32> SelectieMoment := select_with_org_rel(meta/begindatum >= datum_start && meta/begindatum < datum_eind && impl/selection_condition)
+			{
+				attribute<rdc>                     geometry  (poly)            := src/geometry[org_rel];
+			}
+			
+			container impl
+			: Descr = "tbv identificatie van afwijkende pand geometrieeen. Buiten NL, of zeer groot, of dunne slivers."
+			{
+				attribute<rdc>       NW                         (..) := lower_bound(geometry);
+				attribute<rdc>       SE                         (..) := upper_bound(geometry);
+				attribute<float32>   X_ext                      (..) := sub_or_null(PointCol(SE),PointCol(NW));
+				attribute<float32>   Y_ext                      (..) := sub_or_null(PointRow(SE),PointRow(NW));
+ 
+				attribute<float32>   lower_x                    (..) := pointCol(NW);
+				attribute<float32>   upper_x                    (..) := pointCol(SE);
+				attribute<float32>   lower_y                    (..) := pointRow(NW);
+				attribute<float32>   upper_y                    (..) := pointRow(SE);
+				
+				attribute<bool>      selection_condition        (..) := ='X_ext < 1000f && Y_ext < 1000f' //panden met een grotere x/y range dan 1km eruit
+																						'&& lower_x < 300000f && lower_x > 0f'
+																						'&& upper_x < 300000f && upper_x > 0f'
+																						'&& lower_y < 620000f && lower_y > 300000f'
+																						'&& upper_y < 620000f && upper_y > 300000f'; //binnen NL
+			}
+			
+			
+		}
+		unit<uint32> standplaats := select_with_attr_by_org_rel(src, src/impl/selection_condition);
+	}
+	
+	container Ligplaatsen
+	{
+		//import the source BAG files
+		unit<uint32> import
+		:	StorageName = "= Result_FSS_dir + '/ligplaats.fss'"
+		,	StorageReadOnly = "True"
+		{
+			attribute<rdc_mm>                     geometry_mm (poly);
+			attribute<rdc>                        geometry    (poly) := geometry_mm[rdc];
+			attribute<string>                     identificatie;
+			attribute<string>                     nevenadres;
+			attribute<int32>                      nummeraanduiding_id;
+			
+			container meta := meta_src_template(., ligplaats_status);
+		}
+		
+		//enrich the source attributes, and prepare selection criteria.
+		unit<uint32> src := import
+		{
+			attribute<rdc>                        geometry (poly) := import/geometry;
+			attribute<ligplaats_status>         status_rel      := import/meta/status_rel;
+			attribute<uint64>                     bag_nr          := uint64(identificatie);
+		}
+
+		unit<uint32> ligplaats := select_with_attr_by_org_rel(src, const(TRUE,src));
+	}
+	
 	
 	template meta_src_template // Voor het inlezen van de generieke BAG attributen
 	{

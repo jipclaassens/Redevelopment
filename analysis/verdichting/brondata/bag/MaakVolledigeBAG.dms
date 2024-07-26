@@ -1,7 +1,7 @@
 container MaakVolledigeBAG : using = "typeringen/BAG"
 { 
 	// te configureren
-	parameter<string>  Snapshot_Date_Input := '20240111';
+	parameter<string>  Snapshot_Date_Input := '20240708';
 	//
 	parameter<string>  FSSDir              := '%SourceDataDir%/BAG/' + Snapshot_Date_Input + '/fss';
 	parameter<string>  Result_FSS_dir      := '%SourceDataDir%/BAG/VolledigeTabel_' + Snapshot_Date_Input;
@@ -11,8 +11,8 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 	parameter<string> SuppliersExprAll := 
 		isValidFSSDir
 			? 	
-				// 'object/ligplaats/result_fss;'
-				// 'object/standplaats/result_fss;'
+				'object/ligplaats/result_fss;'
+				'object/standplaats/result_fss;'
 				'object/pand/result_fss;'
 				'object/vbo/result_fss;'
 				'object/nummeraanduiding/result_fss;'
@@ -27,7 +27,7 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 
 	container object
 	{
-/* 		container ligplaats
+		container ligplaats
 		{
 			unit<uint32> src
 			: StorageName     = "= FSSDir + '/ligplaats.fss' "
@@ -36,8 +36,9 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 				attribute<geometries/rdc_mm> geometry_mm (polygon);
 				attribute<string>            identificatie;
 				attribute<string>            nummeraanduiding_id;
-
-				container meta          := meta_src_template(src, typeringen/status/ligplaats);
+				attribute<.>                 mutatie_rel := id(.);
+				
+				container meta          := meta_src_template(src, typeringen/BAG/ligplaats_status);
 
 				unit<uint32> nevenadres // 1->0..n relatie
 				{
@@ -47,8 +48,13 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 			}
 			unit<uint32> result := src
 			{
-				attribute<uint32>            count                 := pcount(impl/selectie/result_rel), DisableStorage = "True";
-				unit<uint32> nevenadres := select_with_attr_by_cond(src/nevenadres, IsDefined(rlookup(src/nevenadres/mutatie_rel, impl/selectie/org_rel))) // is een 1->0..n relatie
+				attribute<geometries/rdc_mm>    geometry_mm (poly) := bg_simplify_polygon(src/geometry_mm, 0.1);
+				attribute<string>               identificatie      := src/identificatie;
+				attribute<string>               nummeraanduiding_id := src/nummeraanduiding_id;
+				
+				// attribute<uint32>            count                 := pcount(impl/selectie/result_rel), DisableStorage = "True";
+				// unit<uint32> nevenadres := select_with_attr_by_cond(src/nevenadres, IsDefined(rlookup(src/nevenadres/mutatie_rel, impl/selectie/org_rel))) // is een 1->0..n relatie
+				unit<uint32> nevenadres := select_with_attr_by_cond(src/nevenadres, IsDefined(rlookup(src/nevenadres/mutatie_rel, src/mutatie_rel))) // is een 1->0..n relatie
 				{
 					attribute<string> identificatie := src/identificatie[mutatie_rel];
 				}
@@ -56,7 +62,7 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 
 			unit<uint32> result_fss := select_with_attr_by_org_rel(result, const(true,result)), StorageName = "= Result_FSS_dir + '/ligplaats.fss'"
 			{
-				attribute<uint32> count  : DisableStorage = "True";
+				// attribute<uint32> count  : DisableStorage = "True";
 				attribute<result> org_rel: DisableStorage = "True";
 
 				container meta := collect_attr_by_org_rel(result/meta, result_fss, org_rel);
@@ -64,8 +70,8 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 				unit<uint32> nevenadres := select_with_attr_by_org_rel(result/nevenadres, const(true,result/nevenadres));
 			}
 		}
- */
-/* 		container standplaats
+
+ 		container standplaats
 		{
 			unit<uint32> src
 			: StorageName     = "= FSSDir + '/standplaats.fss'"
@@ -74,8 +80,9 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 				attribute<geometries/rdc_mm> geometry_mm (polygon);
 				attribute<string>            identificatie;
 				attribute<string>            nummeraanduiding_id;
-
-				container meta          := meta_src_template(src, typeringen/status/standplaats);
+				attribute<.>                 mutatie_rel := id(.);
+ 
+				container meta          := meta_src_template(src, typeringen/BAG/standplaats_status);
 				unit<uint32> nevenadres // 1->0..n relatie
 				{
 					attribute<string> nummeraanduiding_id;
@@ -85,8 +92,13 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 
 			unit<uint32> result := src
 			{
-				attribute<uint32>            count                 := pcount(impl/selectie/result_rel), DisableStorage = "True";
-				unit<uint32> nevenadres := select_with_attr_by_cond(src/nevenadres, IsDefined(rlookup(src/nevenadres/mutatie_rel, impl/selectie/org_rel))) // is een 1->0..n relatie
+				attribute<geometries/rdc_mm>    geometry_mm (poly) := bg_simplify_polygon(src/geometry_mm, 0.1);
+				attribute<string>               identificatie      := src/identificatie;
+				attribute<string>               nummeraanduiding_id := src/nummeraanduiding_id;
+				
+				// attribute<uint32>   count      := pcount(impl/selectie/result_rel), DisableStorage = "True";
+				// unit<uint32>        nevenadres := select_with_attr_by_cond(src/nevenadres, IsDefined(rlookup(src/nevenadres/mutatie_rel, impl/selectie/org_rel))) // is een 1->0..n relatie
+				unit<uint32>        nevenadres := select_with_attr_by_cond(src/nevenadres, IsDefined(rlookup(src/nevenadres/mutatie_rel, src/mutatie_rel))) // is een 1->0..n relatie
 				{
 					attribute<string> identificatie := src/identificatie[mutatie_rel];
 				}
@@ -101,7 +113,7 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 				unit<uint32> nevenadres := select_with_attr_by_org_rel(result/nevenadres, const(true,result/nevenadres));
 			}
 		}
- */
+ 
 		container pand
 		{
 			parameter<string> nr_fss : StorageName = "= FSSDir + '/pand/nr_fss.csv'", StorageType = "str";
@@ -132,9 +144,9 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 			unit<uint32> src := = 'union_unit(' + asList('Filesets/nr_' +  string(id(fileset)) + '/File', ',') + ')'
 			{
 				attribute<geometries/rdc_mm> geometry_mm   (polygon) := = 'union_data(., ' + asList('Filesets/nr_' +  string(id(fileset)) + '/File/geometry_mm', ',') + ')';
-				attribute<geometries/rdc>    geometry      (polygon) := geometry_mm[geometries/rdc];
+				// attribute<geometries/rdc>    geometry      (polygon) := geometry_mm[geometries/rdc];
 				
-				attribute<geometries/rdc>    bg_simplified (polygon) := bg_simplify_polygon(geometry, 1.0);
+				attribute<geometries/rdc_mm> geometry_mm_simpl (poly) := bg_simplify_polygon(geometry_mm, 0.1);
 
 				attribute<string>            identificatie           := = 'union_data(., ' + asList('Filesets/nr_' +  string(id(fileset)) + '/File/identificatie', ',') + ')';
 				attribute<eenheden/jaar>     oorspronkelijkBouwjaar  := = 'union_data(., ' + asList('Filesets/nr_' +  string(id(fileset)) + '/File/oorspronkelijkBouwjaar', ',') + ')';
@@ -174,7 +186,7 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 			{
 				attribute<uint32>                                              vbo_count             := pcount(vbo/result/pand_rel)      , DisableStorage = "True";
 				attribute<eenheden/jaar>                                       bouwjaar              := oorspronkelijkBouwjaar;
-				attribute<geometries/rdc>                                      geometry    (poly)    := bg_simplified;
+				attribute<geometries/rdc_mm>                                   geometry_mm (poly)    := geometry_mm_simpl;
 				attribute<string>                                              identificatie         := src/identificatie;
 
 				// container woningtype
@@ -276,7 +288,7 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 			unit<uint32> src := = 'union_unit(' + asList('Filesets/nr_' +  string(id(fileset)) + '/File', ',') + ')'
 			{
 				attribute<geometries/rdc_mm> geometry_mm         := = 'union_data(., ' + asList('Filesets/nr_' +  string(id(fileset)) + '/File/geometry_mm', ',') + ')';
-				attribute<geometries/rdc>    geometry            := geometry_mm[geometries/rdc];
+				// attribute<geometries/rdc>    geometry            := geometry_mm[geometries/rdc];
 				attribute<string>            identificatie       := = 'union_data(., ' + asList('Filesets/nr_' +  string(id(fileset)) + '/File/identificatie', ',') + ')';
 				attribute<string>            nummeraanduiding_id := = 'union_data(., ' + asList('Filesets/nr_' +  string(id(fileset)) + '/File/nummeraanduiding_id', ',') + ')';
 				attribute<int32>             oppervlakte         := = 'union_data(., ' + asList('Filesets/nr_' +  string(id(fileset)) + '/File/oppervlakte', ',') + ')';
@@ -344,7 +356,7 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 				attribute<pand/result>       pand_rel            := point_in_polygon(geometry_mm, pand/result/geometry_mm), DisableStorage = "True";
 				attribute<string>            pand_id_geom        := pand/result/identificatie[pand_rel];
 
-				attribute<geometries/rdc>    geometry            := src/geometry;
+				attribute<geometries/rdc_mm> geometry_mm         := src/geometry_mm;
 				attribute<string>            identificatie       := src/identificatie;
 				attribute<string>            nummeraanduiding_id := src/nummeraanduiding_id;
 				attribute<int32>             oppervlakte         := src/oppervlakte;

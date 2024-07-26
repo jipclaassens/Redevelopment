@@ -11,7 +11,7 @@ container Verdichting
 		parameter<int32>   VBO_opp_truncation_lower        := 10i;
 		parameter<int32>   VBO_opp_truncation_defaultvalue := 120i;
 		// parameter<bool>    Use_BAG_VoorraadStatussen       := true; // true false     FALSE voor de redevelopment analyse
-		parameter<string>  BAG_Selection_Area              := 'NL'; //'MRA', 'NL', 'AMS', 'Aggl'
+		parameter<string>  BAG_Selection_Area              := 'AMS'; //'MRA', 'NL', 'AMS', 'Aggl'
 		
 		parameter<mm>      supersmall_inflate_mm           := supersmall_inflate_m[mm];
 		parameter<mm>      small_inflate_mm                := small_inflate_m[mm];
@@ -47,6 +47,7 @@ container Verdichting
 		unit<fpoint> rdc_base         : SpatialReference = "EPSG:28992", 	DialogData = "ngr_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
 		unit<fpoint> rdc              := range(rdc_base, point_xy(x_min,y_min), point_xy(x_max,y_max));
 		unit<ipoint> rdc_mm           := gridset(rdc, point_xy(0.001,0.001), point_xy(0.0, 0.0), ipoint);
+		unit<ipoint> rdc_cm           := gridset(rdc, point_xy(0.01,0.01), point_xy(0.0, 0.0), ipoint);
 		unit<dpoint> wgs84_base       : SpatialReference = "EPSG:4326";
 		unit<fpoint> LambertEA_base   : SpatialReference = "EPSG:3035", DialogData = "ngr_layer_lea";
 		unit<fpoint> LambertEA        := range(LambertEA_base, point_xy(2500000f, 1300000f), point_xy(4900000f, 4300000f));
@@ -258,9 +259,7 @@ container Verdichting
 	{
 		container Overridable
 		{
-			parameter<String> BAG_DataDir        := '%sourceDataDir%';
-			parameter<String> BAG_DataDir_OVSRV6 := 'D:/SourceData';
-			
+			parameter<String> BAG_DataDir        := 'C:/SourceData/BAG';
 			parameter<String> AltSourceDataDir   := 'E:/SourceData';
 			parameter<string> AHNDrive           := 'E:/SourceData/AHN';
 		}

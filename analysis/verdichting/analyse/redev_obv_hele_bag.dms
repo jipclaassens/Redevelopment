@@ -47,35 +47,35 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		unit<uint32> Nieuwbouw_OpBebouwd_Objecten   := AdditionalOperations/Nieuwbouw_Panden_OpBebouwd/result/Objecten;
 	}
 	
-	// unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
-	// , StorageName = "%LocalDataProjDir%/Temp/PerObject_Export.fss"
-	// , using = "AdditionalClassifications"
-	// {
-		// attribute<rdc>              geometry                        := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_geometry')+')';
-		// attribute<string>           site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_id')+')';
-		// attribute<Redev_ObjectTypes>type_class                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_ObjectTypes/name)+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten)',',')+'), Redev_ObjectTypes/name)';
-		// attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point(const('+string(id(Redev_ObjectTypes))+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten), id(FinalDomains/'+Redev_ObjectTypes/name+'_Objecten))',',')+')';
-		// attribute<int32>            MutatieMaand                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/MutatieMaand')+')';
-		// attribute<int32>            vbo_oppervlakte                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_oppervlakte')+')';
-		// attribute<jaar>             pand_bouwjaar                   := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bouwjaar')+')';
-		// attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Urbanisation[point_in_polygon(geometry, RegioUnit_gem_oud/geometry)];
-	// }
+	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
+	, StorageName = "%LocalDataProjDir%/Temp/PerObject_Export.fss"
+	, using = "AdditionalClassifications"
+	{
+		attribute<rdc>              geometry                        := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_geometry')+')';
+		attribute<string>           site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_id')+')';
+		attribute<Redev_ObjectTypes>type_class                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_ObjectTypes/name)+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten)',',')+'), Redev_ObjectTypes/name)';
+		attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point(const('+string(id(Redev_ObjectTypes))+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten), id(FinalDomains/'+Redev_ObjectTypes/name+'_Objecten))',',')+')';
+		attribute<int32>            MutatieMaand                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/MutatieMaand')+')';
+		attribute<int32>            vbo_oppervlakte                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_oppervlakte')+')';
+		attribute<jaar>             pand_bouwjaar                   := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bouwjaar')+')';
+		attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Urbanisation[point_in_polygon(geometry, RegioUnit_gem_oud/geometry)];
+	}
 	
-	// unit<uint32> PerSite_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_SiteTypes/name+'_Sites')+')'
-	// , StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
-	// , using = "AdditionalClassifications"
-	// {
-		// attribute<rdc>              geometry (poly)                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/geometry')+')';
-		// attribute<string>           site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/site_id')+')';
-		// attribute<Redev_SiteTypes>  type_class                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_SiteTypes/name)+',FinalDomains/'+Redev_SiteTypes/name+'_Sites)',',')+'), Redev_SiteTypes/name)';
-		// attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point(const('+string(id(Redev_SiteTypes))+',FinalDomains/'+Redev_SiteTypes/name+'_Sites), id(FinalDomains/'+Redev_SiteTypes/name+'_Sites))',',')+')';
-		// attribute<int32>            MutatieMaand                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/MutatieMaand')+')';
-		// attribute<m2>               site_oppervlakte                := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/area')+')';
-		// attribute<jaar>             avg_bouwjaar                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/avg_bouwjaar')+')';
-		// attribute<jaar>             sd_bouwjaar                     := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/sd_bouwjaar')+')';
-	// }
+	unit<uint32> PerSite_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_SiteTypes/name+'_Sites')+')'
+	, StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
+	, using = "AdditionalClassifications"
+	{
+		attribute<rdc>              geometry (poly)                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/geometry')+')';
+		attribute<string>           site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/site_id')+')';
+		attribute<Redev_SiteTypes>  type_class                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_SiteTypes/name)+',FinalDomains/'+Redev_SiteTypes/name+'_Sites)',',')+'), Redev_SiteTypes/name)';
+		attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point(const('+string(id(Redev_SiteTypes))+',FinalDomains/'+Redev_SiteTypes/name+'_Sites), id(FinalDomains/'+Redev_SiteTypes/name+'_Sites))',',')+')';
+		attribute<int32>            MutatieMaand                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/MutatieMaand')+')';
+		attribute<m2>               site_oppervlakte                := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/area')+')';
+		attribute<jaar>             avg_bouwjaar                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/avg_bouwjaar')+')';
+		attribute<jaar>             sd_bouwjaar                     := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/sd_bouwjaar')+')';
+	}
 
-/*	unit<uint32> Read_PerObject_Export
+	unit<uint32> Read_PerObject_Export
 	: StorageName = "= propvalue(PerObject_Export, 'StorageName')"
 	, StorageReadOnly = "true"
 	, using = "AdditionalClassifications"
@@ -265,7 +265,7 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 				);
 		}
 	}
-*/
+
 	
 	// unit<uint32> AMS 
 	// : StorageName = "%LocalDataProjDir%/Temp/Amsterdam.shp"
@@ -277,7 +277,7 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 	
 	// }
 	
-/*	unit<uint32> Read_PerSite_Export
+	unit<uint32> Read_PerSite_Export
 	// : StorageName = "= propvalue(PerSite_Export, 'StorageName')"
 	: StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
 	, StorageReadOnly = "true"
@@ -364,7 +364,6 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 				);
 		}
 	}
-*/
 	
 	#include<AdditionalClassifications.dms>
 	
@@ -379,39 +378,40 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 			attribute<rdc>         vbo_geometry                                := org_rel -> geometry;
 			attribute<int32>       MutatieMaand                                := org_rel -> MutatieMaand;
 			attribute<int32>       vbo_oppervlakte                             := org_rel -> vbo_oppervlakte;
-			attribute<string>      label                                       := org_rel -> string(pand_bag_nr);
+			attribute<string>      label                                       := string(pand_bag_nr);
 			attribute<rdc>         pand_geometry  (poly)                       := org_rel -> pand_geometry;
 			attribute<jaar>        pand_bouwjaar                               := org_rel -> pand_bouwjaar;
+			attribute<uint64>      pand_bag_nr                                 := org_rel -> pand_bag_nr;
 			
-			// container impl
-			// : Descr = "tbv identificatie van afwijkende pand geometrieeen. Buiten NL, of zeer groot, of dunne slivers."
-			// {
-				// attribute<rdc>       NW                         (..) := lower_bound(pand_geometry);
-				// attribute<rdc>       SE                         (..) := upper_bound(pand_geometry);
-				// attribute<float32>   X_ext                      (..) := sub_or_null(PointCol(SE),PointCol(NW));
-				// attribute<float32>   Y_ext                      (..) := sub_or_null(PointRow(SE),PointRow(NW));
+			container impl
+			: Descr = "tbv identificatie van afwijkende pand geometrieeen. Buiten NL, of zeer groot, of dunne slivers."
+			{
+				attribute<rdc>       NW                         (..) := lower_bound(pand_geometry);
+				attribute<rdc>       SE                         (..) := upper_bound(pand_geometry);
+				attribute<float32>   X_ext                      (..) := sub_or_null(PointCol(SE),PointCol(NW));
+				attribute<float32>   Y_ext                      (..) := sub_or_null(PointRow(SE),PointRow(NW));
  
-				// attribute<float32>   lower_x                    (..) := pointCol(NW);
-				// attribute<float32>   upper_x                    (..) := pointCol(SE);
-				// attribute<float32>   lower_y                    (..) := pointRow(NW);
-				// attribute<float32>   upper_y                    (..) := pointRow(SE);
+				attribute<float32>   lower_x                    (..) := pointCol(NW);
+				attribute<float32>   upper_x                    (..) := pointCol(SE);
+				attribute<float32>   lower_y                    (..) := pointRow(NW);
+				attribute<float32>   upper_y                    (..) := pointRow(SE);
 				
-				// attribute<bool>      pand_selection_condition   (..) := ='X_ext < 1000f && Y_ext < 1000f' //panden met een grotere x/y range dan 1km eruit
-																						// '&& lower_x < 300000f && lower_x > 0f'
-																						// '&& upper_x < 300000f && upper_x > 0f'
-																						// '&& lower_y < 620000f && lower_y > 300000f'
-																						// '&& upper_y < 620000f && upper_y > 300000f'; //binnen NL
-			// }
+				attribute<bool>      pand_selection_condition   (..) := ='X_ext < 1000f && Y_ext < 1000f' //panden met een grotere x/y range dan 1km eruit
+																						'&& lower_x < 300000f && lower_x > 0f'
+																						'&& upper_x < 300000f && upper_x > 0f'
+																						'&& lower_y < 620000f && lower_y > 300000f'
+																						'&& upper_y < 620000f && upper_y > 300000f'; //binnen NL
+			}
 			
-			// unit<uint32>           zonder_afwijkende_pand_geometrieen          := select_with_attr_by_cond(., impl/pand_selection_condition), DialogType = "map", DialogData = "vbo_geometry";
+			unit<uint32>           zonder_afwijkende_pand_geometrieen          := select_with_attr_by_cond(., impl/pand_selection_condition), DialogType = "map", DialogData = "vbo_geometry";
 
-			// unit<uint32>           overlay_metPercelen                         := bg_overlay_polygon(perceel/geometry, zonder_afwijkende_pand_geometrieen/pand_geometry) 
-			// {
-				// attribute<m2> area_percelen := area(perceel/geometry, m2)[first_rel];
-				// attribute<m2> area_panden   := area(zonder_afwijkende_pand_geometrieen/pand_geometry, m2)[second_rel];
+			unit<uint32>           overlay_metPercelen                         := bg_overlay_polygon(perceel/geometry, zonder_afwijkende_pand_geometrieen/pand_geometry) 
+			{
+				attribute<m2> area_percelen := area(perceel/geometry, m2)[first_rel];
+				attribute<m2> area_panden   := area(zonder_afwijkende_pand_geometrieen/pand_geometry, m2)[second_rel];
 				
-				// attribute<float32> share_pand_op_perceel := area_panden / area_percelen;
-			// }
+				attribute<float32> share_pand_op_perceel := area_panden / area_percelen;
+			}
 		} 
 	}
 }

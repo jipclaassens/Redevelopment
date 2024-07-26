@@ -756,23 +756,23 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<int32>  Saldo (Verslagmaanden) := ='union_data(Verslagmaanden, '+AsList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/Totalen_PerMutatieType/Saldo', ',')+')';
 	}
 	
-	// unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
-	// , StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
-	// {
-		// attribute<rdc>                     geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
-		// attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
-		// attribute<uint64>                  vbo_bag_nr            := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_bag_nr')+')';
-		// attribute<jaar>                    pand_bouwjaar         := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bouwjaar')+')';
-		// attribute<uint64>                  pand_bag_nr           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
-		// attribute<int32>                   vbo_oppervlakte       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_oppervlakte')+')';
-		// attribute<int32>                   MutatieMaand          := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
-		// attribute<MutatieTypen>            MutatieTypen_rel_src  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
-		// attribute<MutatieTypen>            MutatieTypen_rel      := switch(
-																		 // case(MutatieTypen_rel_src == MutatieTypen/v/Cplus, MutatieTypen/V/T)
-																		// ,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)
-																		// ,MutatieTypen_rel_src
-																	// );
-	// }
+	unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
+	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
+	{
+		attribute<rdc>                     geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
+		attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
+		attribute<uint64>                  vbo_bag_nr            := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_bag_nr')+')';
+		attribute<jaar>                    pand_bouwjaar         := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bouwjaar')+')';
+		attribute<uint64>                  pand_bag_nr           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
+		attribute<int32>                   vbo_oppervlakte       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_oppervlakte')+')';
+		attribute<int32>                   MutatieMaand          := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
+		attribute<MutatieTypen>            MutatieTypen_rel_src  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
+		attribute<MutatieTypen>            MutatieTypen_rel      := switch(
+																		 case(MutatieTypen_rel_src == MutatieTypen/v/Cplus, MutatieTypen/V/T)
+																		,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)
+																		,MutatieTypen_rel_src
+																	);
+	}
 	
 	unit<uint32> FinalMutationTable
 	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
@@ -795,13 +795,13 @@ container PrepBAG : using = "AdditionalClassifications"
 		unit<uint32> adhoc2 := select_with_attr_by_cond(., LigtInLigplaats_start_2016_2017);
 	}
 	
-	// unit<uint32> BeginVoorraad      := select_with_org_rel(BAG_Tabel/ActiefOp_StartBAG)
-	// {
-		// attribute<rdc>                     geometry              := BAG_Tabel/geometry[org_rel];
-		// attribute<rdc>                     pand_geometry (poly)  := BAG_Tabel/pand_geometry[org_rel];
-		// attribute<uint64>                  vbo_bag_nr            := BAG_Tabel/vbo_bag_nr[org_rel];
-		// attribute<uint64>                  pand_bag_nr           := BAG_Tabel/pand_bag_nr[org_rel];
-		// attribute<vbo_gebruiksdoel_ext>    gebruiksdoel_rel      := BAG_Tabel/gebruiksdoel_rel[org_rel];
+	unit<uint32> BeginVoorraad      := select_with_org_rel(BAG_Tabel/ActiefOp_StartBAG)
+	{
+		attribute<rdc>                     geometry              := BAG_Tabel/geometry[org_rel];
+		attribute<rdc>                     pand_geometry (poly)  := BAG_Tabel/pand_geometry[org_rel];
+		attribute<uint64>                  vbo_bag_nr            := BAG_Tabel/vbo_bag_nr[org_rel];
+		attribute<uint64>                  pand_bag_nr           := BAG_Tabel/pand_bag_nr[org_rel];
+		attribute<vbo_gebruiksdoel_ext>    gebruiksdoel_rel      := BAG_Tabel/gebruiksdoel_rel[org_rel];
 		// attribute<AMS>                     Amsterdam_rel         := point_in_polygon(geometry, AMS/geometry);
 		
 		// unit<uint32> Amsterdam_VBO := select_with_org_rel(IsDefined(./Amsterdam_rel))
@@ -819,5 +819,5 @@ container PrepBAG : using = "AdditionalClassifications"
 			// attribute<rdc>                     geometry (poly)  := ../pand_geometry[org_rel];
 			// attribute<..>                      org_rel               : DisableStorage = "true";
 		// }
-	// }
+	}
 }

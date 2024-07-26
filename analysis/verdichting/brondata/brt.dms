@@ -61,7 +61,7 @@ container BRT
 	unit<uint32>       Relevant_Tiles_x_WegSpoor                   := select_with_org_rel(Has_Any(Tiles_x_WegSpoor/first_rel))
 	{
 		attribute<rdc> Tiles            (poly) := geometries/TileDomain/geometry_poly[org_rel];
-		attribute<rdc> TiledWegSpoor    (poly) := bg_union_polygon(Tiles_x_WegSpoor/geometry,invert(org_rel)[Tiles_x_WegSpoor/first_rel]);
+		attribute<rdc> TiledWegSpoor    (poly) := bp_union_polygon(Tiles_x_WegSpoor/geometry[rdc_cm],invert(org_rel)[Tiles_x_WegSpoor/first_rel])[rdc];
 		attribute<rdc> TiledNonWegSpoor (poly) := Tiles - TiledWegSpoor;
 		
 		attribute<rdc> WriteTiledNonWegSpoor (poly) := TiledNonWegSpoor, StorageName = "%LocalDataProjDir%/Temp/TiledNonWegSpoor.fss";

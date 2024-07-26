@@ -16,6 +16,12 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<int32>                einddatum                     := BAG_Tabel_path/einddatum;
 		attribute<vbo_gebruiksdoel_ext> prev_gebruiksdoel_rel         := gebruiksdoel_rel[pv_begin_eind_rel];
 		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel              := BAG_Tabel_path/gebruiksdoel_rel;
+		attribute<bool>                 WasOverigeGebruiksfunctie     := prev_gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks; //tbv TM corrigeren van garageboxen wonen>ovfuncties
+		attribute<bool>                 IsOverigeGebruiksfunctie      := gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks;//tbv TM corrigeren van garageboxen wonen>ovfuncties
+		
+		attribute<bool>                 VBO_WasLogies     := prev_gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/logies; //tbv TM corrigeren van garageboxen wonen>ovfuncties
+		attribute<bool>                 VBO_IsLogies      := gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/logies;//tbv TM corrigeren van garageboxen wonen>ovfuncties
+		
 		attribute<jaar>                 pand_bouwjaar                 := BAG_Tabel_path/pand_bouwjaar;
 		// attribute<WP4>                  pand_type                     := BAG_Tabel_path/pand_type;
 		attribute<FunctieK>             prev_functie_rel              := MakeDefined(vbo_gebruiksdoel_ext/functie_rel[gebruiksdoel_rel[pv_begin_eind_rel]],functie_rel);
@@ -106,6 +112,8 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<bool>                 IsWaarschijnlijkCorrectieVanZorgNaarZorgwooneenheden := pand_count_new_WoonFuncties > (pand_count_ZorgFuncties + 50) 
 																								&& pand_count_ZorgFuncties > 0
 																								&& begindatum < 20180101i && begindatum > 20120101i;
+		attribute<bool>                 IsWaarschijnlijkCorrectieVanVakantiehuisWonenNaarLogies := VBO_WasWonen && VBO_IsLogies
+																								&& begindatum < 20140601i && begindatum > 20120101i;
 
 		
 		// Extra stappen om Nieuwbouw (N+) te identificeren, ipv T+ of C+
@@ -179,7 +187,8 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<bool>                  IDEN_T                       := IDEN_T_1 && IDEN_T_2; 
 		
 		attribute<bool>                  IDEN_TMplus_status           := VBO_WasVoorraad && VBO_IsVoorraad
-																			&& not(VBO_WasWonen) && VBO_IsWonen;
+																			&& not(VBO_WasWonen) && VBO_IsWonen
+																			&& not(WasOverigeGebruiksfunctie && VBO_IsWonen);
 		attribute<bool>                  IDEN_TMplus_ExtraAnalysis    := IsDefined(rlookup(vbo_bag_nr, Transformatie_Results/vbo_bag_nr));
 		attribute<bool>                  IDEN_TMplus                  := IDEN_TMplus_status || IDEN_TMplus_ExtraAnalysis;
 		
@@ -212,7 +221,9 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<bool>                  IDEN_O                       := IDEN_O_1;
 		
 		attribute<bool>                  IDEN_TMmin                   := VBO_WasVoorraad && VBO_IsVoorraad
-																			&& VBO_WasWonen && not(VBO_IsWonen);
+																			&& VBO_WasWonen && not(VBO_IsWonen)
+																			&& not(VBO_WasWonen && IsOverigeGebruiksfunctie)
+																			&& not(IsWaarschijnlijkCorrectieVanVakantiehuisWonenNaarLogies);
 																			
 		//Identificatie uit voorraad correctie (C-)
 		attribute<bool>                  IDEN_Cmin                    := VBO_WasVoorraad && not(VBO_IsVoorraad)
@@ -255,6 +266,9 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<bool>                 VBO_IsVoorraad                := BAG_Tabel/VBO_IsVoorraad[org_rel];
 				attribute<bool>                 VBO_WasWonen                  := =PrevYear == 2011i ? 'const(FALSE,.)' : 'PrevDomain/VBO_IsWonen[PrevDomain_vbo_rel]';
 				attribute<bool>                 VBO_IsWonen                   := BAG_Tabel/VBO_IsWonen[org_rel];
+				
+				attribute<bool>                 VBO_WasOverigeGebruiksfunctie := prev_gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks;
+				attribute<bool>                 VBO_IsOverigeGebruiksfunctie  := gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks;
 		
 				unit<uint32>                    uq_pand_nr                    := unique(pand_bag_nr);
 				attribute<uq_pand_nr>           uq_pand_nr_rel                := rlookup(pand_bag_nr, uq_pand_nr/values);
@@ -264,13 +278,13 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<bool>                      pand_vooraad_prev_current    := Pand_WasVoorraad && Pand_IsVoorraad;
 				//1b pand minimaal 1 vbo in voorraad op t0 en t1
 				attribute<uint32>                    p_count_voorr_vbo_prev       := =PrevYear == 2011i ? 'const(null_u,.)' : 'PrevDomain/p_count_voorr_vbo[PrevDomain_vbo_rel]';
-				attribute<uint32>                    p_count_voorr_vbo            := sum(VBO_IsVoorraad ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
+				attribute<uint32>                    p_count_voorr_vbo            := sum(VBO_IsVoorraad && not(VBO_IsOverigeGebruiksfunctie) ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
 				attribute<bool>                      p_min1_vbovoorr_prev_curr    := p_count_voorr_vbo_prev > 0 && p_count_voorr_vbo > 0;
 				
 				//selectie uit 1 waarbij:
 				//2a count 'vbo in voorraad niet wonen' op t0  minimaal 1 is
 				attribute<uint32>                    p_count_voorr_vbo_NW_prev    := =PrevYear == 2011i ? 'const(null_u,.)' : 'PrevDomain/p_count_voorr_vbo_NW[PrevDomain_vbo_rel]';
-				attribute<uint32>                    p_count_voorr_vbo_NW         := sum(VBO_IsVoorraad  && not(VBO_IsWonen)  ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
+				attribute<uint32>                    p_count_voorr_vbo_NW         := sum(VBO_IsVoorraad && not(VBO_IsOverigeGebruiksfunctie) && not(VBO_IsWonen)  ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
 				attribute<bool>                      p_min1_vbovoorr_NW_prev      := p_count_voorr_vbo_NW_prev > 0;
 				
 				//2b en count 'vbo in vooraad wonen' met minimaal 1 is toegenomen tussen t0 en t1
@@ -282,12 +296,12 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<bool>                      p_afname_vbovoorr_NW         := (int32(p_count_voorr_vbo_NW) - int32(p_count_voorr_vbo_NW_prev)) < 0i;
 				
 				attribute<int32>                     p_sum_voorr_vbo_NW_opp_prev  := =PrevYear == 2011i ? 'const(null_i,.)' : 'PrevDomain/p_sum_voorr_vbo_NW_opp[PrevDomain_vbo_rel]';
-				attribute<int32>                     p_sum_voorr_vbo_NW_opp       := sum(VBO_IsVoorraad  && not(VBO_IsWonen)  ? vbo_oppervlakte_UnknownEdit : 0i, uq_pand_nr_rel)[uq_pand_nr_rel];
+				attribute<int32>                     p_sum_voorr_vbo_NW_opp       := sum(VBO_IsVoorraad && not(VBO_IsOverigeGebruiksfunctie) && not(VBO_IsWonen)  ? vbo_oppervlakte_UnknownEdit : 0i, uq_pand_nr_rel)[uq_pand_nr_rel];
 				attribute<bool>                      p_afname_vbovoorr_NW_opp     := (p_sum_voorr_vbo_NW_opp - p_sum_voorr_vbo_NW_opp_prev) < 0i;
 				
 				
 				//3 selectie van objecten die muteren van nietwonen naar wonen of objecten die in t0 niet bestonden en t1 wel
-				attribute<bool>                      v_tr_nw_w                    := VBO_WasVoorraad && VBO_IsVoorraad && not(VBO_WasWonen) && VBO_IsWonen;
+				attribute<bool>                      v_tr_nw_w                    := VBO_WasVoorraad && VBO_IsVoorraad && not(VBO_WasWonen) && not(VBO_WasOverigeGebruiksfunctie) && VBO_IsWonen;
 				attribute<bool>                      v_NotExit_Voorraad           := IsNull(prev_vbo_status_rel) && VBO_IsVoorraad;
 				
 				//Plausibel? na elke stap kun je afvallen en niet meer erbij komen.
@@ -378,6 +392,11 @@ container PrepBAG : using = "AdditionalClassifications"
 			attribute<bool>                    VBO_IsWonen           := src/VBO_IsWonen[org_rel];
 			attribute<bool>                    vbo_WasVoorraad       := src/vbo_WasVoorraad[org_rel];
 			attribute<bool>                    vbo_IsVoorraad        := src/vbo_IsVoorraad[org_rel];
+			
+			// attribute<bool>                    WasOverigeGebruiksfunctie     := src/WasOverigeGebruiksfunctie[org_rel];
+			// attribute<bool>                    IsOverigeGebruiksfunctie      := src/IsOverigeGebruiksfunctie[org_rel];
+			
+			// attribute<bool>                    IsLogiesfunctie      := src/IsLogiesfunctie[org_rel];
 			
 			// attribute<uint32>                  pand_count_ZorgFuncties_StartBAG  := src/pand_count_ZorgFuncties_StartBAG[org_rel];
 			// attribute<uint32>                  pand_count_new_WoonFuncties       := sum(VBO_IsWonen && vbo_IsVoorraad ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
@@ -557,7 +576,7 @@ container PrepBAG : using = "AdditionalClassifications"
 																						&& Prev/IDEN_S_NW_Prev/AnyTrue, FALSE)                 //correctie 'mutatie in 2e instantie' - b  
 																					,Correctie_1e_Instantie/IDEN_S_NW
 																				);
-			}
+			} 
 		
 			container Prev 
 			{
@@ -709,7 +728,7 @@ container PrepBAG : using = "AdditionalClassifications"
 																			);
 			
 			//adhoc
-			unit<uint32> sel := select_with_attr_by_cond(., MutatieTypen_rel == MutatieTypen/v/TMmin);
+			unit<uint32> sel := select_with_attr_by_cond(., MutatieTypen_rel == MutatieTypen/v/Cplus);
 			
 			unit<uint32> IsMutatie := select_with_attr_by_cond(., IsDefined(MutatieTypen_rel));
 		
@@ -737,23 +756,23 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<int32>  Saldo (Verslagmaanden) := ='union_data(Verslagmaanden, '+AsList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/Totalen_PerMutatieType/Saldo', ',')+')';
 	}
 	
-	unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
-	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
-	{
-		attribute<rdc>                     geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
-		attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
-		attribute<uint64>                  vbo_bag_nr            := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_bag_nr')+')';
-		attribute<jaar>                    pand_bouwjaar         := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bouwjaar')+')';
-		attribute<uint64>                  pand_bag_nr           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
-		attribute<int32>                   vbo_oppervlakte       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_oppervlakte')+')';
-		attribute<int32>                   MutatieMaand          := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
-		attribute<MutatieTypen>            MutatieTypen_rel_src  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
-		attribute<MutatieTypen>            MutatieTypen_rel      := switch(
-																		 case(MutatieTypen_rel_src == MutatieTypen/v/Cplus, MutatieTypen/V/T)
-																		,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)
-																		,MutatieTypen_rel_src
-																	);
-	}
+	// unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
+	// , StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
+	// {
+		// attribute<rdc>                     geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
+		// attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
+		// attribute<uint64>                  vbo_bag_nr            := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_bag_nr')+')';
+		// attribute<jaar>                    pand_bouwjaar         := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bouwjaar')+')';
+		// attribute<uint64>                  pand_bag_nr           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
+		// attribute<int32>                   vbo_oppervlakte       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_oppervlakte')+')';
+		// attribute<int32>                   MutatieMaand          := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
+		// attribute<MutatieTypen>            MutatieTypen_rel_src  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
+		// attribute<MutatieTypen>            MutatieTypen_rel      := switch(
+																		 // case(MutatieTypen_rel_src == MutatieTypen/v/Cplus, MutatieTypen/V/T)
+																		// ,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)
+																		// ,MutatieTypen_rel_src
+																	// );
+	// }
 	
 	unit<uint32> FinalMutationTable
 	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"

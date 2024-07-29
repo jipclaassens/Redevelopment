@@ -7,7 +7,7 @@ container Verdichting
 	}
 	container Parameters : using = "eenheden"
 	{
-		parameter<string>  BAG_Selection_Area              := 'NL'; //'MRA', 'NL', 'AMS', 'Aggl'
+		parameter<string>  BAG_Selection_Area              := 'AMS'; //'MRA', 'NL', 'AMS', 'Aggl'
 		
 		
 		parameter<int32>   VBO_opp_truncation              := 500i;

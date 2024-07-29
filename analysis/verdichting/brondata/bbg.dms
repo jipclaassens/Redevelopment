@@ -270,6 +270,7 @@ container bestand_bodem_gebruik : using = "typeringen/bbg"
 		attribute<begr_beb_geb>    bbg2012_begrenzing  := gg_src/begr_beb_geb_rel[gg2012_src_rel];
 		attribute<begr_beb_geb>    bbg2006_begrenzing  := gg_src/begr_beb_geb_rel[gg2006_src_rel];
 		
+		attribute<bool>      IsWoongebied_2000 := gg2000_src_rel == gg_src/V/woongebied;
 		attribute<bool>      IsVerblijfsrecreatie := gg2017_src_rel == gg_src/V/verblijfsrecreatie;
 		unit<uint32> verblijfsrecreatie := select_with_attr_by_cond(., IsVerblijfsrecreatie);
 		

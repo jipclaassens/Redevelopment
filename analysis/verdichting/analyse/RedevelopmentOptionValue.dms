@@ -45,7 +45,7 @@ container RedevelopmentOptionValue
 	#include <Bouwkosten.dms>
 	
 	unit<uint8> OP
-	:  StorageName = "%SourceDataDir%/RSL/Vastgoed/OntwikkelOptieSamenstellingen_jan2022.csv"
+	:  StorageName = "%Redev_DataDir%/RSL/Vastgoed/OntwikkelOptieSamenstellingen_jan2022.csv"
 	,  StorageType = "gdal.vect"
 	,  StorageReadOnly = "True"
 	,  SyncMode = "none"

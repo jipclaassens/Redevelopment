@@ -193,19 +193,19 @@ container RegionalAvgCharacteristics
 		container impl
 		{
 			attribute<float32> DistTo_Airports_src (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/DistTo_AirportsMain5_2019.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/DistTo_AirportsMain5_2019.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> DistTo_Airports (NL_grid/domain) := DistTo_Airports_src == 0f ? 1f : (DistTo_Airports_src / 1000f) < 1f ? 1f : DistTo_Airports_src / 1000f;
 			
 			attribute<float32> DistTo_HighwayAccessExit_src (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/DistTo_highway_acces_exit_2018.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/DistTo_highway_acces_exit_2018.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> DistTo_HighwayAccessExit (NL_grid/domain) := DistTo_HighwayAccessExit_src == 0f ? 1f : (DistTo_HighwayAccessExit_src / 1000f) < 1f ? 1f : DistTo_HighwayAccessExit_src / 1000f;
 
 			attribute<float32> DistTo_Trainstations_src (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/DistTo_Trainstation_2001.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/DistTo_Trainstation_2001.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> DistTo_Trainstations (NL_grid/domain) := DistTo_Trainstations_src == 0f ? 1f : (DistTo_Trainstations_src / 1000f) < 1f ? 1f : DistTo_Trainstations_src / 1000f;
@@ -213,99 +213,99 @@ container RegionalAvgCharacteristics
 			attribute<float32> DistTo_Trainstations_2019 (NL_grid/domain) := /Brondata/Spatial_data/NWB/Treinstations/DistTo_km;
 			
 			attribute<float32> DistTo_Seaport_src (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/DistTo_Zeehavens2018.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/DistTo_Zeehavens2018.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> DistTo_Seaport (NL_grid/domain) := DistTo_Seaport_src == 0f ? 1f : (DistTo_Seaport_src / 1000f) < 1f ? 1f : DistTo_Seaport_src / 1000f;
 			
 			attribute<float32> DistTo_Urban_Contour_2000_src (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/DistTo_Urban_Contour_2000.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/DistTo_Urban_Contour_2000.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> DistTo_Urban_Contour_2000 (NL_grid/domain) := DistTo_Urban_Contour_2000_src == 0f ? 1f : (DistTo_Urban_Contour_2000_src / 1000f) < 1f ? 1f : DistTo_Urban_Contour_2000_src / 1000f;
 			
 			attribute<float32> LU_Share_Residential_2000 (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/LU_share_residential_2000.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/LU_share_residential_2000.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			
 			attribute<float32> LU_Diversity_index_2000_src (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/LU_simpson_diversity_index_2000.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/LU_simpson_diversity_index_2000.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> LU_Diversity_index_2000 (NL_grid/domain) := LU_Diversity_index_2000_src / 100f;
 			
 			attribute<float32> UAI_2002_src (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/UAI_2002.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/UAI_2002.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> UAI_2002 (NL_grid/domain) := UAI_2002_src / 100f;
 			
 			attribute<float32> UAI_5000m_dcsq (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/UAI_5000m.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/UAI_5000m.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 
 			attribute<float32> UAI_2021 (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/UAI_2021.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/UAI_2021.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 
 			attribute<float32> Reistijd_100k_inw_2017_NL (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd100kInw.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/Reistijd100kInw.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> Reistijd_100k_inw_2017_NL_edit0 (NL_grid/domain) := (Reistijd_100k_inw_2017_NL / 60f) < 1f ? 1f : (Reistijd_100k_inw_2017_NL / 60f) > 120f ? 120f : (Reistijd_100k_inw_2017_NL / 60f);
-			attribute<float32> Reistijd_100k_inw_2017_NL_edit (NL_grid/domain)  := MakeDefined(Reistijd_100k_inw_2017_NL_edit0, 120f) , StorageName = "%SourceDataDir%/SpatialData/Reistijd_100k_inw_2017_NL_edit.fss";
+			attribute<float32> Reistijd_100k_inw_2017_NL_edit (NL_grid/domain)  := MakeDefined(Reistijd_100k_inw_2017_NL_edit0, 120f) , StorageName = "%Redev_DataDir%/SpatialData/Reistijd_100k_inw_2017_NL_edit.fss";
 			
 			attribute<float32> Reistijd_100k_inw_2020_DE_BE (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd100kInw_2020_500m_DE_BE.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/Reistijd100kInw_2020_500m_DE_BE.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> Reistijd_100k_inw_2020_DE_BE_edit0 (NL_grid/domain) := (Reistijd_100k_inw_2020_DE_BE / 60f) < 1f ? 1f : (Reistijd_100k_inw_2020_DE_BE / 60f) > 120f ? 120f : (Reistijd_100k_inw_2020_DE_BE / 60f);
-			attribute<float32> Reistijd_100k_inw_2020_DE_BE_edit (NL_grid/domain)  := MakeDefined(Reistijd_100k_inw_2020_DE_BE_edit0, 120f) , StorageName = "%SourceDataDir%/SpatialData/Reistijd_100k_inw_2020_DE_BE_edit.fss";
+			attribute<float32> Reistijd_100k_inw_2020_DE_BE_edit (NL_grid/domain)  := MakeDefined(Reistijd_100k_inw_2020_DE_BE_edit0, 120f) , StorageName = "%Redev_DataDir%/SpatialData/Reistijd_100k_inw_2020_DE_BE_edit.fss";
 
 			attribute<float32> Reistijd_500k_inw_2020_DE_BE (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd500kInw_2020_500m_DE_BE.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/Reistijd500kInw_2020_500m_DE_BE.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> Reistijd_500k_inw_2020_DE_BE_edit0 (NL_grid/domain) := (Reistijd_500k_inw_2020_DE_BE / 60f) < 1f ? 1f : (Reistijd_500k_inw_2020_DE_BE / 60f) > 120f ? 120f : (Reistijd_500k_inw_2020_DE_BE / 60f);
-			attribute<float32> Reistijd_500k_inw_2020_DE_BE_edit (NL_grid/domain)  := MakeDefined(Reistijd_500k_inw_2020_DE_BE_edit0, 120f) , StorageName = "%SourceDataDir%/SpatialData/Reistijd_500k_inw_2020_DE_BE_edit.fss";
+			attribute<float32> Reistijd_500k_inw_2020_DE_BE_edit (NL_grid/domain)  := MakeDefined(Reistijd_500k_inw_2020_DE_BE_edit0, 120f) , StorageName = "%Redev_DataDir%/SpatialData/Reistijd_500k_inw_2020_DE_BE_edit.fss";
 			
 			attribute<float32> Reistijd_500k_inw_2020_NL (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd500kInw_2020_500m_NL.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/Reistijd500kInw_2020_500m_NL.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> Reistijd_500k_inw_2020_NL_edit0 (NL_grid/domain) := (Reistijd_500k_inw_2020_NL / 60f) < 1f ? 1f : (Reistijd_500k_inw_2020_NL / 60f) > 120f ? 120f : (Reistijd_500k_inw_2020_NL / 60f);
-			attribute<float32> Reistijd_500k_inw_2020_NL_edit (NL_grid/domain)  := MakeDefined(Reistijd_500k_inw_2020_NL_edit0, 120f) , StorageName = "%SourceDataDir%/SpatialData/Reistijd_500k_inw_2020_NL_edit.fss";
+			attribute<float32> Reistijd_500k_inw_2020_NL_edit (NL_grid/domain)  := MakeDefined(Reistijd_500k_inw_2020_NL_edit0, 120f) , StorageName = "%Redev_DataDir%/SpatialData/Reistijd_500k_inw_2020_NL_edit.fss";
 
 			attribute<float32> Reistijd_1000k_inw_2020_DE_BE (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/Reistijd1000kInw_2020_500m_DE_BE.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/Reistijd1000kInw_2020_500m_DE_BE.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			attribute<float32> Reistijd_1000k_inw_2020_DE_BE_edit0 (NL_grid/domain) := (Reistijd_1000k_inw_2020_DE_BE / 60f) < 1f ? 1f : (Reistijd_1000k_inw_2020_DE_BE / 60f) > 120f ? 120f : (Reistijd_1000k_inw_2020_DE_BE / 60f);
-			attribute<float32> Reistijd_1000k_inw_2020_DE_BE_edit (NL_grid/domain)  := MakeDefined(Reistijd_1000k_inw_2020_DE_BE_edit0, 120f) , StorageName = "%SourceDataDir%/SpatialData/Reistijd_1000k_inw_2020_DE_BE_edit.fss";
+			attribute<float32> Reistijd_1000k_inw_2020_DE_BE_edit (NL_grid/domain)  := MakeDefined(Reistijd_1000k_inw_2020_DE_BE_edit0, 120f) , StorageName = "%Redev_DataDir%/SpatialData/Reistijd_1000k_inw_2020_DE_BE_edit.fss";
 			
 			attribute<uint32> Reistijd_stations_2006 (NL_grid/domain)
-			:	StorageName     = "%SourceDataDir%/SpatialData/reistijd_minuten_station_2006.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/reistijd_minuten_station_2006.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			
 			attribute<uint32> bbg2015_groen_buff_src (NL_grid/domain_10m)
-			:	StorageName     = "%SourceDataDir%/SpatialData/bbg2015_groen_buff.tif"
+			:	StorageName     = "%Redev_DataDir%/SpatialData/bbg2015_groen_buff.tif"
 			,	StorageType     = "gdal.grid"
 			,	StorageReadOnly = "True";
 			
 			attribute<float32> Reistijd_stations_edit0 (NL_grid/domain) := Reistijd_stations_2006 == 0 ? (0/0)[float32] : (Reistijd_stations_2006 > 15 ? 15 : Reistijd_stations_2006)[float32];
-			attribute<float32> Reistijd_stations_edit  (NL_grid/domain) := MakeDefined(Reistijd_stations_edit0, 15f), StorageName = "%SourceDataDir%/SpatialData/Reistijd_stations_edit.fss";
+			attribute<float32> Reistijd_stations_edit  (NL_grid/domain) := MakeDefined(Reistijd_stations_edit0, 15f), StorageName = "%Redev_DataDir%/SpatialData/Reistijd_stations_edit.fss";
 		}
 
-		attribute<float32> Reistijd_100k_inw_2017_NL_edit (NL_grid/domain)     : StorageName = "%SourceDataDir%/SpatialData/Reistijd_100k_inw_2017_NL_edit.fss", StorageReadOnly = "true";
-		attribute<float32> Reistijd_100k_inw_2020_DE_BE_edit (NL_grid/domain)  : StorageName = "%SourceDataDir%/SpatialData/Reistijd_100k_inw_2020_DE_BE_edit.fss", StorageReadOnly = "true";
-		attribute<float32> Reistijd_500k_inw_2020_DE_BE_edit (NL_grid/domain)  : StorageName = "%SourceDataDir%/SpatialData/Reistijd_500k_inw_2020_DE_BE_edit.fss", StorageReadOnly = "true";
-		attribute<float32> Reistijd_500k_inw_2020_NL_edit (NL_grid/domain)     : StorageName = "%SourceDataDir%/SpatialData/Reistijd_500k_inw_2020_NL_edit.fss", StorageReadOnly = "true";
-		attribute<float32> Reistijd_1000k_inw_2020_DE_BE_edit (NL_grid/domain) : StorageName = "%SourceDataDir%/SpatialData/Reistijd_1000k_inw_2020_DE_BE_edit.fss", StorageReadOnly = "true";
-		attribute<float32> Reistijd_stations_edit (NL_grid/domain)             : StorageName = "%SourceDataDir%/SpatialData/Reistijd_stations_edit.fss", StorageReadOnly = "true";
+		attribute<float32> Reistijd_100k_inw_2017_NL_edit (NL_grid/domain)     : StorageName = "%Redev_DataDir%/SpatialData/Reistijd_100k_inw_2017_NL_edit.fss", StorageReadOnly = "true";
+		attribute<float32> Reistijd_100k_inw_2020_DE_BE_edit (NL_grid/domain)  : StorageName = "%Redev_DataDir%/SpatialData/Reistijd_100k_inw_2020_DE_BE_edit.fss", StorageReadOnly = "true";
+		attribute<float32> Reistijd_500k_inw_2020_DE_BE_edit (NL_grid/domain)  : StorageName = "%Redev_DataDir%/SpatialData/Reistijd_500k_inw_2020_DE_BE_edit.fss", StorageReadOnly = "true";
+		attribute<float32> Reistijd_500k_inw_2020_NL_edit (NL_grid/domain)     : StorageName = "%Redev_DataDir%/SpatialData/Reistijd_500k_inw_2020_NL_edit.fss", StorageReadOnly = "true";
+		attribute<float32> Reistijd_1000k_inw_2020_DE_BE_edit (NL_grid/domain) : StorageName = "%Redev_DataDir%/SpatialData/Reistijd_1000k_inw_2020_DE_BE_edit.fss", StorageReadOnly = "true";
+		attribute<float32> Reistijd_stations_edit (NL_grid/domain)             : StorageName = "%Redev_DataDir%/SpatialData/Reistijd_stations_edit.fss", StorageReadOnly = "true";
 	
 		attribute<float32> bbg2015_groen_100mbuff_100m (NL_grid/domain)  := sum(impl/bbg2015_groen_buff_src[float32], NL_grid/domain_10m/grid_100m_rel) >= 50f ? 1f : 0f;
 	}

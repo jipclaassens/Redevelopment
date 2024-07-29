@@ -3,7 +3,7 @@ container bestand_bodem_gebruik : using = "typeringen/bbg"
 	container BBG 
 	{
 		unit<uint32> BBG_Reeks_1996_2017
-		:	StorageName     = "%SourceDataDir%/CBS/BestandBodemGebruik/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
+		:	StorageName     = "%Redev_DataDir%/Grondgebruik/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	Source          = "https:\//geodata.cbs.nl/files/Bodemgebruik/BBG2017/CBS_MutatiebestandBBG1996_2017_v1_GPKG.zip"
@@ -180,7 +180,7 @@ container bestand_bodem_gebruik : using = "typeringen/bbg"
 
 
 /* 	container Tijdreeks_behoudrandvoorwaarden : FreeData = "False"
-	, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/BBG_Tijdreeks_100m.fss"
+	, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/BBG_Tijdreeks_100m.fss"
 	, StorageReadOnly = "True"
 	{
 		attribute<gg_src>           bbg1996_10m      (NL_grid/domain_10m); // := BBG_1996_2015/bbg1996_10m, DisableStorage = "True";
@@ -190,25 +190,25 @@ container bestand_bodem_gebruik : using = "typeringen/bbg"
 		attribute<gg_src>           bbg2008_10m      (NL_grid/domain_10m); // := BBG_1996_2015/bbg2008_10m, DisableStorage = "True";
 		attribute<gg_src>           bbg2010_10m      (NL_grid/domain_10m); // := BBG_1996_2015/bbg2010_10m, DisableStorage = "True";
 		attribute<gg_src>           bbg2012_10m      (NL_grid/domain_10m); // := BBG_1996_2015/bbg2012_10m, DisableStorage = "True"; 
-		attribute<gg_src>           bbg2015_10m      (NL_grid/domain_10m); // := BBG_1996_2015/bbg2015_10m, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2015_10m.tif";
+		attribute<gg_src>           bbg2015_10m      (NL_grid/domain_10m); // := BBG_1996_2015/bbg2015_10m, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2015_10m.tif";
 	
-		attribute<gg_src>           bbg1996_25m      (NL_grid/domain_25m); // := Make25mgrids/y1996/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_1996_25m.tif";
-		attribute<gg_src>           bbg2000_25m      (NL_grid/domain_25m); // := Make25mgrids/y2000/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2000_25m.tif";
-		attribute<gg_src>           bbg2003_25m      (NL_grid/domain_25m); // := Make25mgrids/y2003/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2003_25m.tif";
-		attribute<gg_src>           bbg2006_25m      (NL_grid/domain_25m); // := Make25mgrids/y2006/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2006_25m.tif";
-		attribute<gg_src>           bbg2008_25m      (NL_grid/domain_25m); // := Make25mgrids/y2008/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2008_25m.tif";
-		attribute<gg_src>           bbg2010_25m      (NL_grid/domain_25m); // := Make25mgrids/y2010/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2010_25m.tif";
-		attribute<gg_src>           bbg2012_25m      (NL_grid/domain_25m); // := Make25mgrids/y2012/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2012_25m.tif";
-		attribute<gg_src>           bbg2015_25m      (NL_grid/domain_25m); // := Make25mgrids/y2015/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2015_25m.tif";
+		attribute<gg_src>           bbg1996_25m      (NL_grid/domain_25m); // := Make25mgrids/y1996/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_1996_25m.tif";
+		attribute<gg_src>           bbg2000_25m      (NL_grid/domain_25m); // := Make25mgrids/y2000/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2000_25m.tif";
+		attribute<gg_src>           bbg2003_25m      (NL_grid/domain_25m); // := Make25mgrids/y2003/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2003_25m.tif";
+		attribute<gg_src>           bbg2006_25m      (NL_grid/domain_25m); // := Make25mgrids/y2006/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2006_25m.tif";
+		attribute<gg_src>           bbg2008_25m      (NL_grid/domain_25m); // := Make25mgrids/y2008/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2008_25m.tif";
+		attribute<gg_src>           bbg2010_25m      (NL_grid/domain_25m); // := Make25mgrids/y2010/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2010_25m.tif";
+		attribute<gg_src>           bbg2012_25m      (NL_grid/domain_25m); // := Make25mgrids/y2012/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2012_25m.tif";
+		attribute<gg_src>           bbg2015_25m      (NL_grid/domain_25m); // := Make25mgrids/y2015/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2015_25m.tif";
 		
-		attribute<gg_src>           bbg1996_100m     (NL_grid/domain); // := Make100mgrids/y1996/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_1996_100m.tif";
-		attribute<gg_src>           bbg2000_100m     (NL_grid/domain); // := Make100mgrids/y2000/Result_discrete; //, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2000_100m.tif";
-		attribute<gg_src>           bbg2003_100m     (NL_grid/domain); // := Make100mgrids/y2003/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2003_100m.tif";
-		attribute<gg_src>           bbg2006_100m     (NL_grid/domain); // := Make100mgrids/y2006/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2006_100m.tif";
-		attribute<gg_src>           bbg2008_100m     (NL_grid/domain); // := Make100mgrids/y2008/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2008_100m.tif";
-		attribute<gg_src>           bbg2010_100m     (NL_grid/domain); // := Make100mgrids/y2010/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2010_100m.tif";
-		attribute<gg_src>           bbg2012_100m     (NL_grid/domain); // := Make100mgrids/y2012/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2012_100m.tif";
-		attribute<gg_src>           bbg2015_100m     (NL_grid/domain); // := Make100mgrids/y2015/Result_discrete, StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2015_100m.tif";
+		attribute<gg_src>           bbg1996_100m     (NL_grid/domain); // := Make100mgrids/y1996/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_1996_100m.tif";
+		attribute<gg_src>           bbg2000_100m     (NL_grid/domain); // := Make100mgrids/y2000/Result_discrete; //, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2000_100m.tif";
+		attribute<gg_src>           bbg2003_100m     (NL_grid/domain); // := Make100mgrids/y2003/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2003_100m.tif";
+		attribute<gg_src>           bbg2006_100m     (NL_grid/domain); // := Make100mgrids/y2006/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2006_100m.tif";
+		attribute<gg_src>           bbg2008_100m     (NL_grid/domain); // := Make100mgrids/y2008/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2008_100m.tif";
+		attribute<gg_src>           bbg2010_100m     (NL_grid/domain); // := Make100mgrids/y2010/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2010_100m.tif";
+		attribute<gg_src>           bbg2012_100m     (NL_grid/domain); // := Make100mgrids/y2012/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2012_100m.tif";
+		attribute<gg_src>           bbg2015_100m     (NL_grid/domain); // := Make100mgrids/y2015/Result_discrete, StorageName = "%Redev_DataDir%/CBS/BestandBodemGebruik/Tijdreeks/BBG_2015_100m.tif";
 		
 		
 		attribute<gg_10k>    bbg2000_100m_10k  (NL_grid/domain)     := gg_src/gg_10k_rel[bbg2000_100m];
@@ -225,7 +225,7 @@ container bestand_bodem_gebruik : using = "typeringen/bbg"
 	}
 */
 	unit<uint32> src //nodig voor verdichting analyse en jaarlijkse analyse
-	:  StorageName = "%SourceDataDir%/CBS/BestandBodemGebruik/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
+	:  StorageName = "%Redev_DataDir%/Grondgebruik/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
 	,  StorageType = "gdal.vect"
 	,  StorageReadOnly = "True"
 	,  SyncMode = "AllTables"

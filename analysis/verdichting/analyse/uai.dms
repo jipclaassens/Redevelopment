@@ -31,6 +31,6 @@ container UrbanAttractivityIndex
 	attribute<float32>   UAI_smoothed              (NL_grid/domain)   := potential(UAI, geometries/potentialen/pot2000m/potrange/AbsWeight_w_center);
 	parameter<float32>   Max_UAI_smoothed                             := max(UAI_smoothed);
 	attribute<float32>   UAI_smoothed_norm        (NL_grid/domain)   := UAI_smoothed / Max_UAI_smoothed;
-	attribute<float32>   Make_Tiff                (NL_grid/domain)   := UAI_smoothed_norm, StorageName = "='%SourceDataDir%/SpatialData/UAI_'+Year+'.tif'";
+	attribute<float32>   Make_Tiff                (NL_grid/domain)   := UAI_smoothed_norm, StorageName = "='%Redev_DataDir%/SpatialData/UAI_'+Year+'.tif'";
 	
 }

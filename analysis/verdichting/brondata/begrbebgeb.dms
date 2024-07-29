@@ -3,7 +3,7 @@ container begenzing_bebouwd_gebied
 	container BBG_2000
 	{
 		unit<uint32> shapes 
-		:	StorageName     = "%SourceDataDir%/CBS/Begrenzing_Bebouwd_Gebied/bg00.shp"
+		:	StorageName     = "%Redev_DataDir%/CBS/Begrenzing_Bebouwd_Gebied/bg00.shp"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		{
@@ -21,7 +21,7 @@ container begenzing_bebouwd_gebied
 	container BBG_2003
 	{
 		unit<uint32> shapes 
-		:	StorageName     = "%SourceDataDir%/CBS/Begrenzing_Bebouwd_Gebied/BBG_2003.shp"
+		:	StorageName     = "%Redev_DataDir%/CBS/Begrenzing_Bebouwd_Gebied/BBG_2003.shp"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		{
@@ -34,7 +34,7 @@ container begenzing_bebouwd_gebied
 	container Bevolkingskern_2011
 	{
 		unit<uint32> shapes 
-		:	StorageName     = "%SourceDataDir%/CBS/bevolkingskern_2011.shp"
+		:	StorageName     = "%Redev_DataDir%/CBS/bevolkingskern_2011.shp"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		{
@@ -47,7 +47,7 @@ container begenzing_bebouwd_gebied
 	// container Begrenzing_Bebouwd_Gebied_2006
 	// {
 		// unit<uint32> shapes 
-		// :	StorageName     = "%SourceDataDir%/CBS/Begrenzing_Bebouwd_Gebied/BegrenzingBebouwdGebied2006_28okt19.shp"
+		// :	StorageName     = "%Redev_DataDir%/CBS/Begrenzing_Bebouwd_Gebied/BegrenzingBebouwdGebied2006_28okt19.shp"
 		// ,	StorageType     = "gdal.vect"
 		// ,	StorageReadOnly = "True"
 		// ,	DialogType      = "map"

@@ -62,7 +62,7 @@ container WOZ
 			//
 			
 			unit<uint32> Domain
-			:  StorageName = "= '%SourceDataDir%/Overig/190215_'+ SrcRef +'_woz.csv'"
+			:  StorageName = "= '%Redev_DataDir%/Overig/190215_'+ SrcRef +'_woz.csv'"
 			,  StorageType = "gdal.vect"
 			,  StorageReadOnly = "True"
 			{
@@ -107,7 +107,7 @@ container WOZ
 	container Y2015
 	{
 		unit<uint32> Buurten
-		:  StorageName = "%SourceDataDir%/Overig/WOZ_per_m2_2015_Buurten.csv"
+		:  StorageName = "%Redev_DataDir%/Overig/WOZ_per_m2_2015_Buurten.csv"
 		,  StorageType = "gdal.vect"
 		,  StorageReadOnly = "True"
 		,  DialogData = "geometry"
@@ -135,7 +135,7 @@ container WOZ
 		}
 		
 		unit<uint32> Wijken
-		:  StorageName = "%SourceDataDir%/Overig/WOZ_per_m2_2015_Wijken.csv"
+		:  StorageName = "%Redev_DataDir%/Overig/WOZ_per_m2_2015_Wijken.csv"
 		,  StorageType = "gdal.vect"
 		,  StorageReadOnly = "True"
 		,  DialogData = "geometry"

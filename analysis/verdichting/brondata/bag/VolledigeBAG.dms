@@ -1,7 +1,7 @@
 container VolledigeBAG : using = "typeringen/BAG"
 { 
 	parameter<string>  Snapshot_Date_Input := '20240708';
-	parameter<string>  Result_FSS_dir      := '%SourceDataDir%/BAG/VolledigeTabel_' + Snapshot_Date_Input;
+	parameter<string>  Result_FSS_dir      := '%Redev_DataDir%/BAG/VolledigeTabel_' + Snapshot_Date_Input;
 	parameter<int32>   MaxDatum            := 20500101i;
 	
 	unit<uint32>              uq_pand_bag_nr                                 := unique(vbos/vbo/pand_bag_nr); // X

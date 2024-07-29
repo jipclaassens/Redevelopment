@@ -1,178 +1,114 @@
 container Overig
 {
-	// container Huurtransacties_Maureen
+	// container Omgeving
 	// {
-		// unit<uint32> csv
-		// :  StorageName = "%SourceDataDir%/Overig/VU Amsterdam - Yanthi Timmer - Huurtransacties (Noord-Holland Zuid-Holland  Utrecht).csv"
-		// ,  StorageType = "gdal.vect"
-		// ,	StorageReadOnly = "True"
-		// ,  freedata = "false"
-		// {
-			// attribute<rdc> geometry := LatLongWgs842RD(geometry_ll, rdc);
-			
-			// attribute<float32> lat  := float32(Latitude) <= 0f ? (0f/0f) : float32(Latitude) ;
-			// attribute<float32> long := float32(Longitude) <= 0f ? (0f/0f) : float32(Longitude) ;
-			
-			// attribute<fpoint>  geometry_ll := point(long, lat, fpoint);
-			
-			// attribute<float32> x    := pointcol(geometry);
-			// attribute<float32> y    := pointrow(geometry);
-		// }
-
-		
+		// attribute<float32> AfstandLocatus_src   (NL_grid/domain) : StorageName = "%Redev_DataDir%/Overig/Omgeving/dist_locatus_centrum_2016.tif";
+		// attribute<uint32>  Kaveldichtheid_src   (NL_grid/domain) : StorageName = "%Redev_DataDir%/Overig/Omgeving/Kaveldichtheid2018.tif";
+		// attribute<float32> Reistijd5kInw        (NL_grid/domain) : StorageName = "%Redev_DataDir%/Overig/Omgeving/Reistijd5kInw.tif";
 	// }
 
-	container Omgeving
-	{
-		attribute<float32> AfstandLocatus_src   (NL_grid/domain) : StorageName = "%SourceDataDir%/Overig/Omgeving/dist_locatus_centrum_2016.tif";
-		attribute<uint32>  Kaveldichtheid_src   (NL_grid/domain) : StorageName = "%SourceDataDir%/Overig/Omgeving/Kaveldichtheid2018.tif";
-		attribute<float32> Reistijd5kInw        (NL_grid/domain) : StorageName = "%SourceDataDir%/Overig/Omgeving/Reistijd5kInw.tif";
-	}
-
-	container Bodem
-	{
-		container DraagkrachtKwel
-		{
-			parameter<string> SrcRef: ['%SourceDataDir%/Overig/Bodem/risico_draagkracht_openformat'];
-			
-			attribute<m> DraagkrachtSrc (NL_grid/domain)
-			:	StorageName     = "= SrcRef + '/DANK024a_draagkracht_totale_zetting1.tif'"
-			,	StorageType     = "gdal.grid"
-			,	StorageReadOnly = "True";
-			
-			attribute<m> Draagkracht (NL_grid/domain) := DraagkrachtSrc = -9999[m] ? (0/0)[m] : DraagkrachtSrc;
-			
-			attribute<float32> KwelSrc (NL_grid/domain)
-			:	StorageName     = "= SrcRef + '/PKS_Klimaateffecten_Wateroverlast_Kwel_en_infiltratie_Huidig_v15_t0_uit1.tif'"
-			,	StorageType     = "gdal.grid"
-			,	StorageReadOnly = "True";
-			
-			attribute<float32> Kwel (NL_grid/domain) := KwelSrc > -50f ? KwelSrc : (0/0)[float32];
-			
-			attribute<int32> RisicoklasseDikteVeenlaagFlevoland (NL_grid/domain)
-			:	StorageName     = "= SrcRef + '/DikteVeenlaag1.tif'"
-			,	StorageType     = "gdal.grid"
-			,	StorageReadOnly = "True";
-			
-			attribute<int32> RisicoklassePleistoceenFlevoland (NL_grid/domain)
-			:	StorageName     = "= SrcRef + '/TopPleistoceen.tif'"
-			,	StorageType     = "gdal.grid"
-			,	StorageReadOnly = "True";
-			
-			attribute<bool> AndersBouwen (NL_grid/domain) := 
-				Draagkracht >= 0.5[m] ||
-				Kwel <= -2f ||
-				(RisicoklassePleistoceenFlevoland <= -10i ||
-				RisicoklasseDikteVeenlaagFlevoland > 180i);
-			
-			attribute<bool> BouwenMetMaatregelen (NL_grid/domain) :=
-				(Draagkracht >= 0.1[m] && Draagkracht < 0.5[m]) ||
-				(Kwel > -2f && Kwel <= -0.5f) &&
-				!AndersBouwen;
-		}
-	
-	}
-	container NZ_bereikbaarheid_banen
-	{
-		attribute<float32> Piek_voor (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_PiekVoor_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
-		attribute<float32> Piek_na   (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_PiekNa_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
-		attribute<float32> Dal_voor  (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_DalVoor_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
-		attribute<float32> Dal_na    (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_DalNa_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
-		
-		attribute<int32> Piek_verschil_abs (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_DiffPiekAbs_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
-		attribute<int32> Dal_verschil_abs  (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_DiffDalAbs_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
-	}
-	unit<uint32> StadsDorpsGezichten_src
-	// :  StorageName = "%SourceDataDir%/Overig/Stads_en_Dorpsgezichten_2019.shp"
-	:  StorageName = "%SourceDataDir%/Overig/Stads_en_Dorpsgezichten_2020.gdb"
-	,  StorageType = "gdal.vect"
-	,	StorageReadOnly = "True"
-	,	SyncMode = "AllTables"
-	{
-		attribute<geometries/rdc>   geometry (poly);
-		attribute<string>           naam : DialogType = "LabelText";
-		attribute<string>           JURSTATUS;
-		
-	}
-	
-	unit<uint32> StadsDorpsGezichten := select_with_org_rel(StadsDorpsGezichten_src/JURSTATUS == 'rijksmonument')
-	{
-		attribute<geometries/rdc>   geometry (poly) := org_rel -> geometry;
-		attribute<string>           label           := org_rel -> naam;
-	}
-	unit<uint32> Rijksmonumenten
-	// :  StorageName = "%SourceDataDir%/Overig/rijksmonumentpunten_2020.gdb"
-	:  StorageName = "%SourceDataDir%/Overig/Rijksmonumenten_2022.shp"
-	,  StorageType = "gdal.vect"
-	,	StorageReadOnly = "True"
-	,	SyncMode = "AllTables"
-	{
-		attribute<geometries/rdc>   geometry;
-	}
-	
-	container woz_buurt
-	{
-		unit<uint32> woz_2016
-		:  StorageName = "%SourceDataDir%/BAG/xy_source/WOZ_buurt_2016.csv"
-		,  StorageType = "gdal.vect"
-		,  StorageReadOnly = "True" ;
-	}
-	
-	unit<uint32> inkomen_gemeente
-	:  StorageName = "%SourceDataDir%/SpatialData/gemeente_variables.csv"
-	,  StorageType = "gdal.vect"
-	,  StorageReadOnly = "True" ;
-	
-	// container ArcGIS_analyse
+	// container Bodem
 	// {
-		// unit<uint32> Read_CSV
-		// :  StorageName = "%SourceDataDir%/Spatialdata/Sample_BBG_dens_7.csv"
-		// ,  StorageType = "gdal.vect"
-		// ,  StorageReadOnly = "True"
-		// ,  FreeData = "False"
+		// container DraagkrachtKwel
 		// {
-		
-		// }
-		
-		// unit<uint32> Maak_FSS := Read_CSV
-		// ,  StorageName = "%SourceDataDir%/Spatialdata/Sample_BBG_dens_7.fss"
-		// {
-			// attribute<string> x;
-			// attribute<string> y;
-			// attribute<string> URB_DENS_00_06;
+			// parameter<string> SrcRef: ['%Redev_DataDir%/Overig/Bodem/risico_draagkracht_openformat'];
 			
+			// attribute<m> DraagkrachtSrc (NL_grid/domain)
+			// :	StorageName     = "= SrcRef + '/DANK024a_draagkracht_totale_zetting1.tif'"
+			// ,	StorageType     = "gdal.grid"
+			// ,	StorageReadOnly = "True";
+			
+			// attribute<m> Draagkracht (NL_grid/domain) := DraagkrachtSrc = -9999[m] ? (0/0)[m] : DraagkrachtSrc;
+			
+			// attribute<float32> KwelSrc (NL_grid/domain)
+			// :	StorageName     = "= SrcRef + '/PKS_Klimaateffecten_Wateroverlast_Kwel_en_infiltratie_Huidig_v15_t0_uit1.tif'"
+			// ,	StorageType     = "gdal.grid"
+			// ,	StorageReadOnly = "True";
+			
+			// attribute<float32> Kwel (NL_grid/domain) := KwelSrc > -50f ? KwelSrc : (0/0)[float32];
+			
+			// attribute<int32> RisicoklasseDikteVeenlaagFlevoland (NL_grid/domain)
+			// :	StorageName     = "= SrcRef + '/DikteVeenlaag1.tif'"
+			// ,	StorageType     = "gdal.grid"
+			// ,	StorageReadOnly = "True";
+			
+			// attribute<int32> RisicoklassePleistoceenFlevoland (NL_grid/domain)
+			// :	StorageName     = "= SrcRef + '/TopPleistoceen.tif'"
+			// ,	StorageType     = "gdal.grid"
+			// ,	StorageReadOnly = "True";
+			
+			// attribute<bool> AndersBouwen (NL_grid/domain) := 
+				// Draagkracht >= 0.5[m] ||
+				// Kwel <= -2f ||
+				// (RisicoklassePleistoceenFlevoland <= -10i ||
+				// RisicoklasseDikteVeenlaagFlevoland > 180i);
+			
+			// attribute<bool> BouwenMetMaatregelen (NL_grid/domain) :=
+				// (Draagkracht >= 0.1[m] && Draagkracht < 0.5[m]) ||
+				// (Kwel > -2f && Kwel <= -0.5f) &&
+				// !AndersBouwen;
 		// }
+	
+	// }
+	// container NZ_bereikbaarheid_banen
+	// {
+		// attribute<float32> Piek_voor (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_PiekVoor_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
+		// attribute<float32> Piek_na   (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_PiekNa_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
+		// attribute<float32> Dal_voor  (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_DalVoor_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
+		// attribute<float32> Dal_na    (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_DalNa_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
 		
-		// unit<uint32> Read_FSS
-		// :  StorageName = "%SourceDataDir%/Spatialdata/Sample_BBG_dens_7.fss"
-		// ,  StorageReadOnly = "True" 
-		// ,  DialogType = "map"
-		// ,  DialogData = "geometry"
-		// {
-			// attribute<string> x;
-			// attribute<string> y;
-			// attribute<string> URB_DENS_00_06;
-			// attribute<uint32> b_dens_0006 := URB_DENS_00_06 == '1' ? 0 : 1;
-			// attribute<geometries/rdc>  geometry := point(float32(x), float32(y), geometries/rdc);
-		// }		
-
+		// attribute<int32> Piek_verschil_abs (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_DiffPiekAbs_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
+		// attribute<int32> Dal_verschil_abs  (NL_grid/domain) : StorageName = "%LocalDataDir%/OVGTFS/Results/OD_30min_DiffDalAbs_W_OV_W_with_W_W_ORG-Point100m_DEST-LISA_100m_NETWERK-Amsterdam_SA-Amsterdam_TRSFdist-500.tif";
+	// }
+	// unit<uint32> StadsDorpsGezichten_src
+	// :  StorageName = "%Redev_DataDir%/Omgeving/Monumenten/Stads_en_Dorpsgezichten_2024.gdb"
+	// ,  StorageType = "gdal.vect"
+	// ,	StorageReadOnly = "True"
+	// ,	SyncMode = "AllTables"
+	// {
+		// attribute<geometries/rdc>   geometry (poly);
+		// attribute<string>           naam : DialogType = "LabelText";
+		// attribute<string>           JURSTATUS;
+		
 	// }
 	
-	unit<uint32> landprice_pc4_2007
-	:  StorageName = "%SourceDataDir%/Spatialdata/Weighted_avg_landprice_pc4_1985-2007.csv"
-	,  StorageType = "gdal.vect"
-	,  StorageReadOnly = "True" 
-	{
-		attribute<string> gemeente;
-		attribute<string> PC4Code;
-		attribute<string> p_m2_FE;
-		
-		attribute<float32> landprice  := p_m2_FE[float32];
-	}
+	// unit<uint32> StadsDorpsGezichten := select_with_org_rel(StadsDorpsGezichten_src/JURSTATUS == 'rijksmonument')
+	// {
+		// attribute<geometries/rdc>   geometry (poly) := org_rel -> geometry;
+		// attribute<string>           label           := org_rel -> naam;
+	// }
+	// unit<uint32> Rijksmonumenten
+	// :  StorageName = "%Redev_DataDir%/Omgeving/Monumenten/Rijksmonumenten_2022.shp"
+	// ,  StorageType = "gdal.vect"
+	// ,	StorageReadOnly = "True"
+	// ,	SyncMode = "AllTables"
+	// {
+		// attribute<geometries/rdc>   geometry;
+	// }
 	
-	// attribute<uint32> Verhardingsgraad (NL_grid/domain)
-	// :	StorageName     = "%SourceDataDir%/Overig/Imperviousness2012_rdc5.tif"
-	// ,	StorageType     = "gdal.grid"
-	// ,	StorageReadOnly = "True";
+	// container woz_buurt
+	// {
+		// unit<uint32> woz_2016
+		// :  StorageName = "%Redev_DataDir%/BAG/xy_source/WOZ_buurt_2016.csv"
+		// ,  StorageType = "gdal.vect"
+		// ,  StorageReadOnly = "True" ;
+	// }
+	
+	// unit<uint32> inkomen_gemeente
+	// :  StorageName = "%Redev_DataDir%/SpatialData/gemeente_variables.csv"
+	// ,  StorageType = "gdal.vect"
+	// ,  StorageReadOnly = "True" ;
+	
+	// unit<uint32> landprice_pc4_2007
+	// :  StorageName = "%Redev_DataDir%/Spatialdata/Weighted_avg_landprice_pc4_1985-2007.csv"
+	// ,  StorageType = "gdal.vect"
+	// ,  StorageReadOnly = "True" 
+	// {
+		// attribute<string> gemeente;
+		// attribute<string> PC4Code;
+		// attribute<string> p_m2_FE;
+		
+		// attribute<float32> landprice  := p_m2_FE[float32];
+	// }
 }
 

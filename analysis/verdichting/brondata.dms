@@ -14,7 +14,7 @@ container Brondata:  using = "eenheden;geometries;typeringen"
 	container EigendomStaat
 	{
 		unit<uint32> Corporatiebezit_data
-		:   StorageName     = "%SourceDataDir%/Overig/EigendomStaat/CorporatieBezit.shp"
+		:   StorageName     = "%Redev_DataDir%/Overig/EigendomStaat/CorporatieBezit.shp"
 		,   StorageType     = "gdal.vect"
 		// ,	DialogType      = "Map"
 		,	StorageReadOnly = "True"
@@ -27,7 +27,7 @@ container Brondata:  using = "eenheden;geometries;typeringen"
 		
 		// inlezen puntenbestand particuliere huur
 		unit<uint32> Particulierehuur_data
-		:   StorageName     = "%SourceDataDir%/Overig/EigendomStaat/ParticuliereHuur.shp"
+		:   StorageName     = "%Redev_DataDir%/Overig/EigendomStaat/ParticuliereHuur.shp"
 		,   StorageType     = "gdal.vect"
 		,	DialogType      = "Map"
 		,	StorageReadOnly = "True"

@@ -3,7 +3,7 @@ container RegioIndelingen : using = "geometries"
 	container impl
 	{
 		container Gebiedsindelingen_2022
-		:	StorageName     = "%SourceDataDir%/CBS/cbsgebiedsindelingen2022.gpkg"
+		:	StorageName     = "%Redev_DataDir%/CBS/cbsgebiedsindelingen2022.gpkg"
 		, 	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	SyncMode        = "alltables"
@@ -60,7 +60,7 @@ container RegioIndelingen : using = "geometries"
 		}
 		
 		unit<uint32> Read_PC4_areas_shape // CBS_pc4_2020_v1
-		:	StorageName     = "%SourceDataDir%/CBS/pc6_tm2019_shp/CBS_pc4_2020_v1.shp"
+		:	StorageName     = "%Redev_DataDir%/CBS/pc6_tm2019_shp/CBS_pc4_2020_v1.shp"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		{
@@ -70,7 +70,7 @@ container RegioIndelingen : using = "geometries"
 		
 		
 		unit<uint32> Read_PC6_areas_shape
-		:	StorageName     = "%SourceDataDir%/CBS/pc6_tm2019_shp/pc6_xy_tm2020_areas.shp"
+		:	StorageName     = "%Redev_DataDir%/CBS/pc6_tm2019_shp/pc6_xy_tm2020_areas.shp"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		{
@@ -177,7 +177,7 @@ container RegioIndelingen : using = "geometries"
 		attribute<int32>             g_woz           := CBS_kerncijfers/g_woz[int32][Kerncijfers_rel];
 		
 		unit<uint32> CBS_kerncijfers 
-		:	StorageName     = "%SourceDataDir%/CBS/2018/kerncijfers-wijken-2018.csv"
+		:	StorageName     = "%Redev_DataDir%/CBS/2018/kerncijfers-wijken-2018.csv"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	SyncMode = "all"
@@ -279,7 +279,7 @@ container RegioIndelingen : using = "geometries"
 	container MRA
 	{
 		unit<uint32> GemMRA8
-		: StorageName = "%SourceDataDir%/CBS/RegioindelingMRA2016.csv"
+		: StorageName = "%Redev_DataDir%/CBS/RegioindelingMRA2016.csv"
 		, StorageType = "gdal.vect"
 		, StorageReadOnly = "True"
 		{
@@ -298,7 +298,7 @@ container RegioIndelingen : using = "geometries"
 		}
 		
 		unit<uint32> MRA1_src: NrOfRows = 1
-		,	StorageName = "%SourceDataDir%/CBS/RegioindelingMRA2016.fss"
+		,	StorageName = "%Redev_DataDir%/CBS/RegioindelingMRA2016.fss"
 		{
 			attribute<ipoint>    geometry0 (poly) := partitioned_union_polygon(ipolygon(MRA8/geometry0), MRA8/MRA1_rel), DisableStorage = "true";
 			attribute<rdc>       geometry (poly)  := geometry0[rdc];
@@ -308,7 +308,7 @@ container RegioIndelingen : using = "geometries"
 		}
 		
 		unit<uint32> MRA1
-		:	StorageName = "%SourceDataDir%/CBS/RegioindelingMRA2016.fss"
+		:	StorageName = "%Redev_DataDir%/CBS/RegioindelingMRA2016.fss"
 		,	StorageReadOnly = "true"
 		{
 			attribute<rdc>       geometry (poly);
@@ -330,7 +330,7 @@ container RegioIndelingen : using = "geometries"
 	}
 	
 	// unit<uint32> BBG_2000
-	// :	StorageName     = "%SourceDataDir%/CBS/Begrenzing_Bebouwd_Gebied/bg00.shp"
+	// :	StorageName     = "%Redev_DataDir%/CBS/Begrenzing_Bebouwd_Gebied/bg00.shp"
 	// ,	StorageReadOnly = "true"
 	// ,	StorageType     = "gdal.vect"
 	// {
@@ -338,14 +338,14 @@ container RegioIndelingen : using = "geometries"
 	// }
 	
 	unit<uint32> BBG_2003 
-	:	StorageName     = "%SourceDataDir%/CBS/Begrenzing_Bebouwd_Gebied/BBG_2003.fss"
+	:	StorageName     = "%Redev_DataDir%/CBS/Begrenzing_Bebouwd_Gebied/BBG_2003.fss"
 	,	StorageReadOnly = "true"
 	{
 		attribute<geometries/rdc> geometry (poly);
 	}
 
 	// unit<uint32> Randstad
-	// :	StorageName     = "%SourceDataDir%/CBS/Randstad.shp"
+	// :	StorageName     = "%Redev_DataDir%/CBS/Randstad.shp"
 	// ,	StorageType     = "gdal.vect"
 	// ,	StorageReadOnly = "True"
 	// {
@@ -357,7 +357,7 @@ container RegioIndelingen : using = "geometries"
 	container grootstedelijke_agglomeratie
 	{
 		unit<uint32> j2012 
-		:	StorageName     = "%SourceDataDir%/CBS/2012/CBS_grootstedelijke_agglomeratie_2012.shp"
+		:	StorageName     = "%Redev_DataDir%/RegioIndelingen/CBS_grootstedelijke_agglomeratie_2012.shp"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		{
@@ -368,7 +368,7 @@ container RegioIndelingen : using = "geometries"
 	}
 
 	// unit<uint32> NVM
-	// :	StorageName     = "%SourceDataDir%/CBS/NVMregios.shp"
+	// :	StorageName     = "%Redev_DataDir%/CBS/NVMregios.shp"
 	// ,	StorageType     = "gdal.vect"
 	// ,	StorageReadOnly = "True"
 	// {
@@ -380,7 +380,7 @@ container RegioIndelingen : using = "geometries"
 	
 	parameter<string> JaarVanOudeGebiedsIndelingen := '2000';
 	container Gebiedsindelingen_oud
-	:	StorageName     = "='%SourceDataDir%/CBS/cbsgebiedsindelingen'+JaarVanOudeGebiedsIndelingen+'.gpkg'"
+	:	StorageName     = "='%Redev_DataDir%/RegioIndelingen/cbsgebiedsindelingen'+JaarVanOudeGebiedsIndelingen+'.gpkg'"
 	, 	StorageType     = "gdal.vect"
 	,	StorageReadOnly = "True"
 	,	SyncMode        = "alltables"

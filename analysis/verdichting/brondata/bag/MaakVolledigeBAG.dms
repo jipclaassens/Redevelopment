@@ -3,8 +3,8 @@ container MaakVolledigeBAG : using = "typeringen/BAG"
 	// te configureren
 	parameter<string>  Snapshot_Date_Input := '20240708';
 	//
-	parameter<string>  FSSDir              := '%SourceDataDir%/BAG/' + Snapshot_Date_Input + '/fss';
-	parameter<string>  Result_FSS_dir      := '%SourceDataDir%/BAG/VolledigeTabel_' + Snapshot_Date_Input;
+	parameter<string>  FSSDir              := '%BAG_DataDir%/BAG/' + Snapshot_Date_Input + '/fss';
+	parameter<string>  Result_FSS_dir      := '%BAG_DataDir%/BAG/VolledigeTabel_' + Snapshot_Date_Input;
 	parameter<string>  FileNeeded          := expand(., FSSDir) + '/pand/nr_fss.csv';
 	parameter<bool>    isValidFSSDir       := ExistingFile('missing', FileNeeded) == FileNeeded;
 

@@ -11,7 +11,7 @@ container NVM: using = "eenheden;typeringen/tijd"
 	unit<uint32>    RegioUnit_NL      := /Brondata/RegioIndelingen/nederland;
 
 	unit<uint32> ReadCommPart_coeff 
-	: StorageName     = "%SourceDataDir%/NVM/results_particulier_comm_vastgoed_wide.csv"
+	: StorageName     = "%Redev_DataDir%/NVM/results_particulier_comm_vastgoed_wide.csv"
 	, StorageType     = "gdal.vect"
 	, StorageReadOnly = "True"
 	{
@@ -59,7 +59,7 @@ container NVM: using = "eenheden;typeringen/tijd"
 	
 	container TableChopper
 	{
-		parameter<string> filename       := '%SourceDataDir%/NVM/NVM_cleaned_'+nvm_filedate+'.csv';
+		parameter<string> filename       := '%Redev_DataDir%/NVM/NVM_cleaned_'+nvm_filedate+'.csv';
 		unit<uint32>      domain         := range(uint32, 0, count_rows);
 		parameter<string> fieldseparator := ';';
 		
@@ -178,7 +178,7 @@ container NVM: using = "eenheden;typeringen/tijd"
 
 	unit<uint32> points := Subset(IsDefined(ReadFSS/nl_rel)) //ReadFSS/gem_rel == 136) // && Points_src_ReadFSS/buurt_rel == 4255)
 	// unit<uint32> points := Subset(ReadFSS/gem_rel == 192) //ReadFSS/gem_rel == 192) // && Points_src_ReadFSS/buurt_rel == 4255)
-	// ,	StorageName     = "%SourceDataDir%/NVM/NVM_cleaned_200507.fss"
+	// ,	StorageName     = "%Redev_DataDir%/NVM/NVM_cleaned_200507.fss"
 	, 	DialogType = "Map"
 	, 	DialogData = "geometry"
 	, 	FreeData = "False"
@@ -472,12 +472,12 @@ container NVM: using = "eenheden;typeringen/tijd"
 	}
 	
 	unit<uint32> Avg_prijsm2_perCOROP_in2012
-	: StorageName     = "%SourceDataDir%/NVM/Avg_pm2_perCOROP_in2012.csv"
+	: StorageName     = "%Redev_DataDir%/NVM/Avg_pm2_perCOROP_in2012.csv"
 	, StorageType     = "gdal.vect"
 	, StorageReadOnly = "True";
 	
 	attribute<uint32> Avg_prijsm2_uitWOZ_in2017 (NL_grid/domain)
-	: StorageName     = "%SourceDataDir%/SpatialData/WOZ_pm2_Woongebied_2017.tif"
+	: StorageName     = "%Redev_DataDir%/SpatialData/WOZ_pm2_Woongebied_2017.tif"
 	, Descr           = "Uit RSL_2020 cfg: /SourceData/Vastgoed/woz/Y2017/per_WOZBb/Woongebied"
 	, StorageType     = "gdal.grid"
 	, StorageReadOnly = "True";
@@ -489,7 +489,7 @@ container NVM: using = "eenheden;typeringen/tijd"
 		container MakeFSS
 		{
 			unit<uint32> src
-			: StorageName     = "%SourceDataDir%/NVM/PriceIndexPC4_export.csv"
+			: StorageName     = "%Redev_DataDir%/NVM/PriceIndexPC4_export.csv"
 			, StorageType     = "gdal.vect"
 			, StorageReadOnly = "True";
 

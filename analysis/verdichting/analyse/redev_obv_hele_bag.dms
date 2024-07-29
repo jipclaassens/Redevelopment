@@ -54,7 +54,7 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		attribute<rdc>              geometry                        := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_geometry')+')';
 		attribute<string>           site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_id')+')';
 		attribute<Redev_ObjectTypes>type_class                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_ObjectTypes/name)+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten)',',')+'), Redev_ObjectTypes/name)';
-		attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point(const('+string(id(Redev_ObjectTypes))+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten), id(FinalDomains/'+Redev_ObjectTypes/name+'_Objecten))',',')+')';
+		attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point_yx(const('+string(id(Redev_ObjectTypes))+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten), id(FinalDomains/'+Redev_ObjectTypes/name+'_Objecten))',',')+')';
 		attribute<int32>            MutatieMaand                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/MutatieMaand')+')';
 		attribute<int32>            vbo_oppervlakte                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_oppervlakte')+')';
 		attribute<jaar>             pand_bouwjaar                   := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bouwjaar')+')';
@@ -68,7 +68,7 @@ container Redev_obv_hele_bag :  using = "eenheden;typeringen;typeringen/bag;type
 		attribute<rdc>              geometry (poly)                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/geometry')+')';
 		attribute<string>           site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/site_id')+')';
 		attribute<Redev_SiteTypes>  type_class                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_SiteTypes/name)+',FinalDomains/'+Redev_SiteTypes/name+'_Sites)',',')+'), Redev_SiteTypes/name)';
-		attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point(const('+string(id(Redev_SiteTypes))+',FinalDomains/'+Redev_SiteTypes/name+'_Sites), id(FinalDomains/'+Redev_SiteTypes/name+'_Sites))',',')+')';
+		attribute<upoint>           fdom_id                         := ='union_data(., '+AsList('point_yx(const('+string(id(Redev_SiteTypes))+',FinalDomains/'+Redev_SiteTypes/name+'_Sites), id(FinalDomains/'+Redev_SiteTypes/name+'_Sites))',',')+')';
 		attribute<int32>            MutatieMaand                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/MutatieMaand')+')';
 		attribute<m2>               site_oppervlakte                := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/area')+')';
 		attribute<jaar>             avg_bouwjaar                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_SiteTypes/name+'_Sites/avg_bouwjaar')+')';

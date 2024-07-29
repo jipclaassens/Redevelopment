@@ -7,11 +7,13 @@ container Verdichting
 	}
 	container Parameters : using = "eenheden"
 	{
+		parameter<string>  BAG_Selection_Area              := 'NL'; //'MRA', 'NL', 'AMS', 'Aggl'
+		
+		
 		parameter<int32>   VBO_opp_truncation              := 500i;
 		parameter<int32>   VBO_opp_truncation_lower        := 10i;
 		parameter<int32>   VBO_opp_truncation_defaultvalue := 120i;
 		// parameter<bool>    Use_BAG_VoorraadStatussen       := true; // true false     FALSE voor de redevelopment analyse
-		parameter<string>  BAG_Selection_Area              := 'AMS'; //'MRA', 'NL', 'AMS', 'Aggl'
 		
 		parameter<mm>      supersmall_inflate_mm           := supersmall_inflate_m[mm];
 		parameter<mm>      small_inflate_mm                := small_inflate_m[mm];
@@ -33,7 +35,8 @@ container Verdichting
 		// parameter<float64> Simplify_Value                  := 500d;
 		// parameter<bool>    AfgeleidePandTyperingOntkoppeld := TRUE;
 		// parameter<bool>    UseAfgeleidePandTypering        := false;
-		parameter<string>  BAG_dir                         := 'OVSRV06'; // 'OVSRV06' 'NORMAAL'
+		
+		// parameter<string>  BAG_dir                         := 'OVSRV06'; // 'OVSRV06' 'NORMAAL'
 		
 		parameter<string> BRT_file_date  := '20220321';
 		parameter<string> BRK_file_date  := '20231206';
@@ -260,8 +263,8 @@ container Verdichting
 		container Overridable
 		{
 			parameter<String> BAG_DataDir        := 'C:/SourceData/BAG';
-			parameter<String> AltSourceDataDir   := 'E:/SourceData';
-			parameter<string> AHNDrive           := 'E:/SourceData/AHN';
+			parameter<String> Redev_DataDir      := 'C:/SourceData/RSopen';
+			// parameter<string> AHNDrive           := 'E:/SourceData/AHN';
 		}
 	}
 }

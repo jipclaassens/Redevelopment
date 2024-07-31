@@ -31,8 +31,9 @@ container PrepBAG : using = "AdditionalClassifications"
 
 		attribute<bool>                 IsMogelijkWoningCorporatiePand   := BAG_Tabel_path/IsMogelijkWoningCorporatiePand;
 		attribute<bool>                 IsMutated                        := IsDefined(rlookup(vbo_bag_nr, FinalMutationTable/vbo_bag_nr));
-		attribute<bool>                 IsOnveranderd_Woon_Voorraad      := not(IsMutated) && VBO_IsWonen && VBO_IsVoorraad;
-		attribute<bool>                 IsOnveranderd_NietWoon_Voorraad  := not(IsMutated) && not(VBO_IsWonen) && VBO_IsVoorraad;
+		attribute<bool>                 IsOnveranderd_Woon_Voorraad      := not(IsMutated) && VBO_IsWonen && VBO_IsVoorraad && EINDDATUM == /SourceData/BAG/VolledigeBAG/MaxDatum;
+		// attribute<bool>                 IsOnveranderd_Woon_Voorraad      := not(IsMutated) && VBO_IsWonen && VBO_IsVoorraad ;
+		attribute<bool>                 IsOnveranderd_NietWoon_Voorraad  := not(IsMutated) && not(VBO_IsWonen) && not(IsOverigeGebruiksfunctie) && VBO_IsVoorraad && EINDDATUM == /SourceData/BAG/VolledigeBAG/MaxDatum;
 		attribute<bool>                 LigtOpStandplaats_Start_20162017 := IsDefined(point_in_polygon(geometry, /SourceData/BAG/VolledigeBAG/Standplaatsen/src/SelectieMoment/geometry)), Descr = "Er is een sloop piek in 2016/2017, dit betrof foutieve toevoeging van stacaravans als pand. Deze zijn toen allemaal 'gesloopt'. Deze kunnen we vervolgens identiferen doordat ze als nieuwe standplaats zijn toegevoegd aan de BAG.";
 		
 		
@@ -71,6 +72,7 @@ container PrepBAG : using = "AdditionalClassifications"
 			attribute<uq>                  uq_rel               := rlookup(vbo_bag_nr, uq/values);
 			 
 			unit<uint32> uq := unique(vbo_bag_nr)
+			, DialogType = "map", DialogData = "vbo_geometry"
 			{
 				attribute<uint64>              vbo_bag_nr           := values;
 				attribute<rdc>                 vbo_geometry         := first(../geometry, uq_rel);
@@ -78,6 +80,14 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<int32>               MutatieMaand         := const(null_i,.);
 				attribute<int32>               vbo_oppervlakte      := last(../vbo_oppervlakte, uq_rel);
 				attribute<jaar>                pand_bouwjaar        := last(../pand_bouwjaar, uq_rel);
+				
+				attribute<AMS>                 Amsterdam_rel        := point_in_polygon(vbo_geometry, AMS/geometry);
+
+				//ad hoc voor kaartje paper
+				unit<uint32> Amsterdam := select_with_attr_by_cond(., IsDefined(Amsterdam_rel))
+				{
+				
+				}
 			}
 		}
 		

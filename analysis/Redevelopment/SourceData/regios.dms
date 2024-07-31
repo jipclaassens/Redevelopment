@@ -2,60 +2,60 @@ container RegioIndelingen : using = "geography"
 { 
 	container impl
 	{
-		container Gebiedsindelingen_2022
-		:	StorageName     = "%Redev_DataDir%/CBS/cbsgebiedsindelingen2022.gpkg"
+		container Gebiedsindelingen
+		:	StorageName     = "%Redev_DataDir%/RegioIndelingen/cbsgebiedsindelingen2023.gpkg"
 		, 	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	SyncMode        = "alltables"
 		,	DialogData      = "rdc";
 		
-		unit<uint32>  Buurt := Gebiedsindelingen_2022/buurt_niet_gegeneraliseerd 
+		unit<uint32>  Buurt := Gebiedsindelingen/buurt_niet_gegeneraliseerd 
 		{
-			attribute<rdc>       geometry (poly) := Gebiedsindelingen_2022/buurt_niet_gegeneraliseerd/geometry;
-			attribute<string>    statcode        := Gebiedsindelingen_2022/buurt_niet_gegeneraliseerd/statcode;
-			attribute<string>    statnaam        := Gebiedsindelingen_2022/buurt_niet_gegeneraliseerd/statnaam;
+			attribute<rdc>       geometry (poly) := Gebiedsindelingen/buurt_niet_gegeneraliseerd/geometry;
+			attribute<string>    statcode        := Gebiedsindelingen/buurt_niet_gegeneraliseerd/statcode;
+			attribute<string>    statnaam        := Gebiedsindelingen/buurt_niet_gegeneraliseerd/statnaam;
 			attribute<string>    name            := AsItemName(statnaam);
 		}
 		
-		unit<uint32>  Wijk := Gebiedsindelingen_2022/wijk_niet_gegeneraliseerd 
+		unit<uint32>  Wijk := Gebiedsindelingen/wijk_niet_gegeneraliseerd 
 		{
-			attribute<rdc>       geometry (poly)     := Gebiedsindelingen_2022/wijk_niet_gegeneraliseerd/geometry;
-			attribute<string>    statcode            := Gebiedsindelingen_2022/wijk_niet_gegeneraliseerd/statcode;
-			attribute<string>    statnaam            := Gebiedsindelingen_2022/wijk_niet_gegeneraliseerd/statnaam;
+			attribute<rdc>       geometry (poly)     := Gebiedsindelingen/wijk_niet_gegeneraliseerd/geometry;
+			attribute<string>    statcode            := Gebiedsindelingen/wijk_niet_gegeneraliseerd/statcode;
+			attribute<string>    statnaam            := Gebiedsindelingen/wijk_niet_gegeneraliseerd/statnaam;
 			attribute<string>    name                := AsItemName(statnaam);
 		}
 		
-		unit<uint32>  Gemeente := Gebiedsindelingen_2022/gemeente_niet_gegeneraliseerd 
+		unit<uint32>  Gemeente := Gebiedsindelingen/gemeente_niet_gegeneraliseerd 
 		{
-			attribute<rdc>       geometry (poly) := Gebiedsindelingen_2022/gemeente_niet_gegeneraliseerd/geometry;
-			attribute<string>    statcode        := Gebiedsindelingen_2022/gemeente_niet_gegeneraliseerd/statcode;
-			attribute<string>    statnaam        := Gebiedsindelingen_2022/gemeente_niet_gegeneraliseerd/statnaam;
-			attribute<string>    GM_NAAM         := Gebiedsindelingen_2022/gemeente_niet_gegeneraliseerd/statnaam;
+			attribute<rdc>       geometry (poly) := Gebiedsindelingen/gemeente_niet_gegeneraliseerd/geometry;
+			attribute<string>    statcode        := Gebiedsindelingen/gemeente_niet_gegeneraliseerd/statcode;
+			attribute<string>    statnaam        := Gebiedsindelingen/gemeente_niet_gegeneraliseerd/statnaam;
+			attribute<string>    GM_NAAM         := Gebiedsindelingen/gemeente_niet_gegeneraliseerd/statnaam;
 			attribute<string>    name            := AsItemName(statnaam);
 		}
 		
-		unit<uint32>  Arbeidsregio := Gebiedsindelingen_2022/arbeidsmarktregio_gegeneraliseerd
+		unit<uint32>  Arbeidsregio := Gebiedsindelingen/arbeidsmarktregio_gegeneraliseerd
 		{
-			attribute<rdc>       geometry (poly) := Gebiedsindelingen_2022/arbeidsmarktregio_gegeneraliseerd/geometry;
-			attribute<string>    statcode        := Gebiedsindelingen_2022/arbeidsmarktregio_gegeneraliseerd/statcode;
-			attribute<string>    statnaam        := Gebiedsindelingen_2022/arbeidsmarktregio_gegeneraliseerd/statnaam;
+			attribute<rdc>       geometry (poly) := Gebiedsindelingen/arbeidsmarktregio_gegeneraliseerd/geometry;
+			attribute<string>    statcode        := Gebiedsindelingen/arbeidsmarktregio_gegeneraliseerd/statcode;
+			attribute<string>    statnaam        := Gebiedsindelingen/arbeidsmarktregio_gegeneraliseerd/statnaam;
 			attribute<string>    name            := AsItemName(statnaam);
 		}
 		
-		unit<uint32>  Corop := Gebiedsindelingen_2022/coropgebied_gegeneraliseerd
+		unit<uint32>  Corop := Gebiedsindelingen/coropgebied_gegeneraliseerd
 		{
-			attribute<rdc>       geometry (poly) := Gebiedsindelingen_2022/coropgebied_gegeneraliseerd/geometry;
-			attribute<string>    statcode        := Gebiedsindelingen_2022/coropgebied_gegeneraliseerd/statcode;
-			attribute<string>    statnaam        := Gebiedsindelingen_2022/coropgebied_gegeneraliseerd/statnaam;
+			attribute<rdc>       geometry (poly) := Gebiedsindelingen/coropgebied_gegeneraliseerd/geometry;
+			attribute<string>    statcode        := Gebiedsindelingen/coropgebied_gegeneraliseerd/statcode;
+			attribute<string>    statnaam        := Gebiedsindelingen/coropgebied_gegeneraliseerd/statnaam;
 			attribute<string>    name            := AsItemName(statnaam);
 		}
 		
-		unit<uint32>  Provincie := Gebiedsindelingen_2022/provincie_gegeneraliseerd
+		unit<uint32>  Provincie := Gebiedsindelingen/provincie_gegeneraliseerd
 		{
-			attribute<rdc>       geometry (poly) := Gebiedsindelingen_2022/provincie_gegeneraliseerd/geometry;
-			attribute<string>    statcode        := Gebiedsindelingen_2022/provincie_gegeneraliseerd/statcode;
-			attribute<string>    statnaam        := Gebiedsindelingen_2022/provincie_gegeneraliseerd/statnaam;
-			attribute<uint32>    prvnr           := Gebiedsindelingen_2022/provincie_gegeneraliseerd/id[uint32];
+			attribute<rdc>       geometry (poly) := Gebiedsindelingen/provincie_gegeneraliseerd/geometry;
+			attribute<string>    statcode        := Gebiedsindelingen/provincie_gegeneraliseerd/statcode;
+			attribute<string>    statnaam        := Gebiedsindelingen/provincie_gegeneraliseerd/statnaam;
+			attribute<uint32>    prvnr           := Gebiedsindelingen/provincie_gegeneraliseerd/id[uint32];
 			attribute<string>    prvnm           := statnaam;
 		}
 		

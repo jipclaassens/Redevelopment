@@ -1,0 +1,379 @@
+container RedevelopmentOptionValue
+{
+	unit<uint8>     WP2                  := /classifications/bag/type_woonpand_2;
+	unit<uint8>     WP4                  := /classifications/bag/type_woonpand_4;
+	unit<uint8>     WP5                  := /classifications/bag/type_woonpand;
+	unit<uint8>     HouseCharacteristics     := classifications/NVM/HouseCharacteristics;
+	unit<uint8>     HouseCharacteristics_src := classifications/NVM/HouseCharacteristics_src;
+	unit<uint32>    HousetypeHouseChar       := classifications/NVM/HouseTypeHouseChar;
+	
+	container Parameters 
+	{
+		parameter<string> grondproductie_kosten_variant := 'Nominaal_High';
+		
+		container Verwervingskosten
+		{
+			parameter<Eur_m2> NietWoningen := 10000[Eur_m2]; // hack om bebouwing op werklocaties te voorkomen, waarvan de verwervingskosten nu nog niet duidelijk zijn.Wat doet dit precies?
+		}
+		
+		container Sloopkosten
+		{
+			parameter<Eur_m2> Rijtjeswoning     := 22[Eur_m2];
+			parameter<Eur_m2> Twee_onder_1_kap  := 40[Eur_m2];
+			parameter<Eur_m2> Vrijstaand        := 57[Eur_m2];
+			parameter<Eur_m2> Appartement       := 22[Eur_m2];
+			parameter<Eur_m2> Kantoor           := 25[Eur_m2];
+		}
+		
+		container Bouwkosten 
+		{
+			parameter<Eur_m2> Rijtjeswoning     :=  859[Eur_m2];
+			parameter<Eur_m2> Twee_onder_1_kap  := 1017[Eur_m2];
+			parameter<Eur_m2> Vrijstaand        :=  984[Eur_m2];
+			parameter<Eur_m2> Appartement       := 1126[Eur_m2];
+		}
+	}
+	
+	unit<uint32> Years := range(uint32, 2012, 2023)
+	{
+		attribute<string> name := 'Y'+string(id(.));
+		attribute<uint32> year := id(.);
+	}
+	
+	#include <PrijsIndex.dms>
+	#include <Sloopkosten.dms>
+	#include <Bouwkosten.dms>
+	
+	unit<uint8> OP
+	:  StorageName = "%Redev_DataDir%/RSL/Vastgoed/OntwikkelOptieSamenstellingen_jan2022.csv"
+	,  StorageType = "gdal.vect"
+	,  StorageReadOnly = "True"
+	,  SyncMode = "none"
+	{
+		attribute<string> type_class;
+		attribute<string> process                      := /classifications/Redev/Redev_Types/name[uint8(type_class)[classifications/Redev/Redev_Types]];
+		attribute<string> Cluster;
+		attribute<string> pand_hoogte_m;
+		attribute<string> far_edit;
+		attribute<string> fractie_n_vrij;
+		attribute<string> fractie_n_2o1;
+		attribute<string> fractie_n_rij;
+		attribute<string> fractie_n_app;
+		attribute<string> n_dens_ha_edit;
+		// attribute<string> n_avg_opp_woon_cens;
+		
+		attribute<string> n_vbo_opp_vrijstaand_edit;
+		attribute<string> n_vbo_opp_twee_onder_1_kap_edit;
+		attribute<string> n_vbo_opp_rijtjeswoning_edit;
+		attribute<string> n_vbo_opp_appartement_edit;
+		
+		attribute<string>  name                        := process + '_' + cluster;
+		attribute<string>  label                       := name, DialogType = "LabelText";
+		
+		attribute<float32> Number_of_terraced          := n_dens_ha_edit[float32] * fractie_n_rij[float32];
+		attribute<float32> Number_of_semi_detached     := n_dens_ha_edit[float32] * fractie_n_2o1[float32];
+		attribute<float32> Number_of_detached          := n_dens_ha_edit[float32] * fractie_n_vrij[float32];
+		attribute<float32> Number_of_apartment         := n_dens_ha_edit[float32] * fractie_n_app[float32];
+		
+		attribute<float32> size_detached               := n_vbo_opp_vrijstaand_edit[float32];
+		attribute<float32> size_semi_detached          := n_vbo_opp_twee_onder_1_kap_edit[float32];
+		attribute<float32> size_terraced               := n_vbo_opp_rijtjeswoning_edit[float32];
+		attribute<float32> size_apartment              := n_vbo_opp_appartement_edit[float32];
+		
+		attribute<float32> FAR                         := far_edit[float32];
+		attribute<bool>    IsHighrise                  := pand_hoogte_m[float32] >= /Parameters/highrise_threshold;
+		
+		unit<uint16> x_WP4 := combine_uint16(., WP4) 
+		{
+			attribute<string> name  := ../name[nr_1] + '/' + WP4/name[nr_2]; 
+			attribute<string> name_english  := ../name[nr_1] + '/' + WP4/name_english[nr_2]; 
+			attribute<string> WP4_name_english  := WP4/name_english[nr_2]; 
+			attribute<string> label := replace(name, '/', '_');
+			container V := for_each_nedv(label, string(id(.))+'[..]', void, .);
+			
+			attribute<string> WP  := WP4/name_english[nr_2];
+			// attribute<string> OP  := ../name[nr_1];
+			
+			// attribute<bool> IsHR := ../IsHR[nr_1];
+			attribute<woning_ha> Density                 := WP == 'detached' 
+															? rjoin(nr_1, id(OP), OP/Number_of_detached)[woning_ha]
+															: WP == 'semidetached'
+																? rjoin(nr_1, id(OP), OP/Number_of_semi_detached)[woning_ha]
+																: WP == 'terraced'
+																	? rjoin(nr_1, id(OP), OP/Number_of_terraced)[woning_ha]
+																	: WP == 'apartment'
+																		? rjoin(nr_1, id(OP), OP/Number_of_apartment)[woning_ha]
+																		: 0[woning_ha];
+			attribute<m2_woning> Size                   := MakeDefined(WP == 'detached' 
+															? rjoin(nr_1, id(OP), OP/size_detached)[m2_woning]
+															: WP == 'semidetached'
+																? rjoin(nr_1, id(OP), OP/size_semi_detached)[m2_woning]
+																: WP == 'terraced'
+																	? rjoin(nr_1, id(OP), OP/size_terraced)[m2_woning]
+																	: WP == 'apartment'
+																		? rjoin(nr_1, id(OP), OP/size_apartment)[m2_woning]
+																		: 1[m2_woning], 1[m2_woning]);
+			// attribute<float32> LogArea               := log(max_elem(Size[float32], 1f));
+			attribute<float32> IsHighrise            := ../IsHighrise[nr_1][float32];
+		}
+	}
+	
+	
+	
+	container PerYear :=
+		for_each_ne(
+			Years/name
+			,'PerYear_T('+string(Years/year)+')'
+		);
+	
+	Template PerYear_T
+	{
+		parameter<uint32> Year;
+		
+		unit<uint32>    pand              := ='/SourceData/BAG/Snapshots/Panden/Y'+string(Year)+'01/pand';
+		unit<uint32>    Vbo_woon          := ='/SourceData/BAG/Snapshots/VBOs/Y'+string(Year)+'01/vbo/GebruiksdoelSets/woon/GebruiksdoelSet';
+		unit<uint32>    Vbo_niet_woon     := ='/SourceData/BAG/Snapshots/VBOs/Y'+string(Year)+'01/vbo/GebruiksdoelSets/niet_woon';
+		
+		container Opbrengsten := 
+			for_each_ind(
+				'nedvc'
+				, OP/name
+				,	replace(
+						'add('+
+							AsItemList(
+								replace(
+									'PerWP4/@P@/@W@  * OP/x_WP4/density[OP/x_WP4/V/@X@[OP/x_WP4]]',
+									'@W@', WP4/name,
+									'@X@', '@P@_' + WP4/name
+								)
+							)+
+						')'
+						, '@P@', OP/name
+					)
+				, NL_grid/domain
+				, Eur_ha
+				, 'Classified_per_OP/'+OP/name+'/Target_9K/ClassBreaks'
+			)
+		{
+			container Classified_per_OP := 
+				for_each_ne(
+					OP/name
+					, 'Classify_9K_EurHa(Opbrengsten/'+OP/name+', NL_grid/domain)'
+				);
+			
+			container PerWP4 := 
+				for_each_nedv(
+					OP/x_WP4/name
+					,replace(
+						'(exp('
+							'@C@/constant'
+							
+			//				Woonpand
+							'+ @HR@                                      * @C@/d_highrise' // kenmerk uit ontwikkeloptie
+							'+ log(@sWP@)                                * @C@/lnsize'     // kenmerk uit ontwikkeloptie
+							'+ log(@RAT@/@W@_lotsize)                    * @C@/lnlotsize'  // perceeloppervlak gemiddeld in NL voor betreffend woningtype
+							'+ @RAT@/@W@_nrooms                          * @C@/nrooms'     // idem voor aantal kamers etc.
+							'+ @RAT@/@W@_nbadk                           * @C@/nbadk'
+							'+ 1f                                        * @C@/d_maintgood' // wordt 100% voorondersteld bij nieuw te bouwen woningen
+							'+ @RAT@/@W@_d_kk                            * @C@/d_kk'
+							'+ 1f                                        * @C@/d_cv' //wordt aanwezig voorondersteld bij nieuw te bouwen woningen
+							'+ @RAT@/@W@_d_erfpacht                      * @C@/d_erfpacht'
+							'+ 1f                                        * @C@/d_isol_compl' // wordt 100% voorondersteld bij nieuw te bouwen woningen
+							'+ @RAT@/@W@_d_privparkNewHouses             * @C@/d_privpark'   
+							'+ 1[EUR]                                    * @C@/@Y@' // in alle gevallen gaat het om nieuwbouw
+							
+			//				Locatie
+							'+ RegionalAvgCharacteristics/Overige_vars/impl/uai_2021               * @C@/uai_2021'
+							'+ log(RegionalAvgCharacteristics/Overige_vars/Reistijd_500k_inw_2020_NL_edit) * @C@/lnreistijd_500k_inw_2020_NL'
+							'+ RegionalAvgCharacteristics/Overige_vars/Reistijd_stations_edit      * @C@/reistijd_stations_2006'
+							'+ RegionalAvgCharacteristics/Overige_vars/bbg2015_groen_100mbuff_100m * @C@/groennabij_2015'
+						')[Eur_woning])'
+						,
+						
+						'@WID@', 'WP4/V/@W@',
+						'@W@', WP4/name[OP/x_WP4/nr_2],
+						'@RAT@', '/Analyse/RedevelopmentOptionValue/RegionalAvgCharacteristics/RegionalAvgCharacteristics',
+						'@C@', 'PrijsIndex/ReadCoefficients/'+WP4/name[OP/x_WP4/nr_2]+'/Result',
+						'@P@', OP/name[OP/x_WP4/nr_1],
+						'@xWPi@', string(id(OP/x_WP4)),
+						'@HR@', 'OP/x_WP4/IsHighrise['+string(id(OP/x_WP4))+'[OP/x_WP4]]',
+						'@sWP@', 'OP/x_WP4/Size['+string(id(OP/x_WP4))+'[OP/x_WP4]]',
+						'@Y@',Year == 2021 ? 'Y2020' : 'Y'+string(Year)
+					)
+					, NL_grid/domain
+					, Eur_Woning
+			);
+		}
+		
+		container Sloopkosten :=
+			for_each_nedv(WP4/name,
+				'RedevelopmentOptionValue/Sloopkosten/Regionaal/'+WP4/name+' * vbo_woon/Oppervlakte_WP4/'+WP4/name+' / 1[ha]',
+				NL_grid/domain, Eur_ha
+			)
+		{
+			attribute<Eur_ha> Totaal  (NL_grid/domain) := ='add_list('+asItemList(WP4/name)+')';
+		}
+		
+		container Bouwkosten
+			:= for_each_ind(
+				'nedvc'
+				, OP/name
+				, replace('add('+AsItemList('PerWP4/@P@/'+WP4/name)+')', '@P@', OP/name)
+				, NL_grid/domain
+				, EUR_ha
+				, 'Classified_per_OP/'+OP/name+'/Target_9K/ClassBreaks'
+			)
+		{
+			container Classified_per_OP := 
+				for_each_ne(
+					OP/name
+					, 'Classify_9K_EurHa(Bouwkosten/'+OP/name+', NL_grid/domain)'
+				);
+			
+			container PerWP4 := 
+				for_each_nedv(
+					OP/x_WP4/name
+					, OP/x_WP4/nr_2 == WP4/v/appartement && OP/x_WP4/IsHighrise == 1f
+						? 	replace(
+								'(OP/x_WP4/density[@xWPi@[OP/x_WP4]]' //won ha
+								'* RegionalAvgCharacteristics/NationalAvgCharacteristics/size[WP4/V/@W@][m2_woning]' //m2 won
+								'* Analyse/RedevelopmentOptionValue/Bouwkosten/PerWP4/Appartement_HR/bouwkosten_grid)' //eur m2
+								, '@W@', WP4/name[OP/x_WP4/nr_2]
+								, '@P@', OP/name[OP/x_WP4/nr_1]
+								, '@xWPi@', string(id(OP/x_WP4))
+							)
+						: 	replace(
+								'(OP/x_WP4/density[@xWPi@[OP/x_WP4]]' //won ha
+								'* RegionalAvgCharacteristics/NationalAvgCharacteristics/size[WP4/V/@W@][m2_woning]' //m2 won
+								'* Analyse/RedevelopmentOptionValue/Bouwkosten/PerWP4/'+WP4/name[OP/x_WP4/nr_2]+'/bouwkosten_grid)' //eur m2
+								, '@W@', WP4/name[OP/x_WP4/nr_2]
+								, '@P@', OP/name[OP/x_WP4/nr_1]
+								, '@xWPi@', string(id(OP/x_WP4))
+							)
+					, NL_grid/domain
+					, EUR_ha
+				);
+		}	
+		
+		#include <Verwervingskosten.dms>
+		
+		container Verwervingskosten := ='Verwervingskosten_T(SourceData/BAG/Snapshots/VBOs/Y'+string(year)+'01/vbo/Voorraad, FALSE)';
+		
+		container Verwervingskosten_Redev := Verwervingskosten_T(RedevelopmentPaper/Objecten_export/InRedevSites, TRUE);
+
+		
+		container ResidueleWaarde :=
+			for_each_ind(
+				'nedvc'
+				, OP/name
+				, 'Opbrengsten/'+OP/name+' - Grondproductiekosten/Results/Totaal/'+Parameters/grondproductie_kosten_variant+' - Bouwkosten/'+OP/name
+				, NL_grid/domain
+				, EUR_ha
+				, 'Classified_per_OP/'+OP/name+'/Target_9K/ClassBreaks'
+			)
+		{
+			container Classified_per_OP := 
+				for_each_ne(
+					OP/name
+					, 'Classify_9K_EurHa(ResidueleWaarde/'+OP/name+', NL_grid/domain)'
+				);
+				
+			attribute<OP> argmax (NL_grid/domain) := ='argmax('+AsItemList(OP/name+'')+')[OP]';
+		}
+			
+		container ExploitatieSaldo :=
+			for_each_ind(
+				'nedvc'
+				, OP/name
+				, 'ResidueleWaarde/'+OP/name+' -  Verwervingskosten/Totaal'
+				, NL_grid/domain
+				, EUR_ha
+				, 'Classified_per_OP/'+OP/name+'/Target_9K/ClassBreaks'
+			)
+		{
+			container Classified_per_OP := 
+				for_each_ne(
+					OP/name
+					, 'Classify_9K_EurHa(ExploitatieSaldo/'+OP/name+', NL_grid/domain)'
+				);
+		}
+		
+		unit<uint32> RealisedProfits := RedevelopmentPaper/Objecten_export/InRedevSites
+		{
+
+			container PerWP4 := 
+				for_each_ne(
+					WP4/name
+					, 'PerWP4_T('+quote(WP4/name)+')'
+				);
+			
+			Template PerWP4_T
+			{
+				parameter<string> WP4_name;
+				///
+				attribute<Eur_woning> Prijs_perWoning (RealisedProfits) := = 
+									replace(
+										'(exp('
+											'@C@/constant'
+											
+							//				Woonpand
+											'+ '+iif(WP4_name == 'appartement', 'float32(pand_IsHoogbouw)* @C@/d_highrise + ',  '')+
+											'  log(vbo_opp)                                                        * @C@/lnsize'
+											'+ 1f                                                                    * @C@/d_maintgood'
+											'+ 1f                                                                    * @C@/d_cv'
+											'+ 1f                                                                    * @C@/d_isol_compl'
+											'+ 1[EUR]                                                                * @C@/@Y@'
+											
+							//				Locatie
+											'+ @LOC@/impl/uai_2021[impl/NL_grid_domain_rel]                                         * @C@/uai_2021'
+											'+ log(value(@LOC@/Reistijd_500k_inw_2020_NL_edit [impl/NL_grid_domain_rel],float32))   * @C@/lnreistijd_500k_inw_2020_NL'
+											'+ value(@LOC@/Reistijd_stations_edit [impl/NL_grid_domain_rel],float32)                * @C@/reistijd_stations_2006'
+											'+ value(@LOC@/bbg2015_groen_100mbuff_100m [impl/NL_grid_domain_rel],float32)           * @C@/groennabij_2015'
+										')[Eur_woning])'
+										
+										,'@C@', 'PrijsIndex/ReadCoefficients_WP_limit/'+WP4_name+'/Result'
+										,'@LOC@', 'RegionalAvgCharacteristics/Overige_vars'
+										,'@Y@',year == 2021 ? 'Y2020' : 'Y'+string(year)
+										
+									);
+			}
+		}
+	}
+
+	#include <RegionalAvgCharacteristics.dms>
+	#include <Grondproductiekosten.dms>
+	
+	Template Classify_9K_EurHA
+	{
+		//
+		attribute<Eur_ha> target (grid);
+		unit<spoint> grid;
+		//
+		
+		attribute<Eur_ha> classifyJf (Target_9K)  := ClassifyJenksFisher(target, Target_9K);
+		
+		parameter<int32> max        := max(classifyJf)[int32];
+		parameter<uint32> max_strlen := strlen(string(max));
+		parameter<int64> power      := (10d^(max_strlen[float64]-4d))[int64];
+		
+		attribute<Eur_ha> classifyJf_rounded         (Target_9K) := ((classifyJf[int64] / power) * power)[Eur_ha];
+		attribute<int32> classifyJf_rounded_integer (Target_9K) := ((classifyJf[int64] / power) * power)[int32];
+		
+		unit<uint8> Target_9K : nrofrows = 9
+		{
+			parameter<string> dash      := ' - ';
+			parameter<string> comma     := ',';
+			attribute<string> label_src := id(.) == (#target_9K[uint8] - 1b) ? string(classifyJf_rounded_integer) + ' or more' : string(classifyJf_rounded_integer) + dash + string(classifyJf_rounded_integer)[id(.) + 1b];
+			attribute<string> label     := label_src, DialogType = "LabelText";
+			attribute<uint32> PenColor  := Brushcolor, DialogType = "PenColor";
+			attribute<uint32> BrushColor:
+			[
+				rgb(255,255,229),rgb(255,247,188),rgb(254,227,145),
+				rgb(254,196,79) ,rgb(254,153,41) ,rgb(236,112,20),
+				rgb(204,76,2)   ,rgb(153,52,4)   ,rgb(102,37,6)
+			], DialogType = "BrushColor";
+			
+			attribute<Eur_ha> ClassBreaks := classifyJf_rounded , DialogType = "Classification";
+		}
+	}
+}

@@ -1,0 +1,86 @@
+Template Verwervingskosten_T
+{ 
+	unit<uint32> domain0;
+	parameter<bool> NeedsAlternativeNames;
+	///
+	unit<uint32> domain := domain0
+	{
+		attribute<uint32>  site_rel := point_in_polygon(geometry, RedevelopmentPaper/ReadExport/Geometry);
+		attribute<WP4>     wp4_rel  := =NeedsAlternativeNames ? 'rlookup(pand_WP_naam, WP4/name)' : 'domain0/wp4_rel';
+		attribute<float32> woz      := =NeedsAlternativeNames ? 'WOZ_nietwoningen' : 'domain0/woz';
+	}
+	
+	container Woningen
+	{
+		
+		container PerWP4 := 
+			for_each_ne(
+				WP4/name
+				, 'PerWP4_T('+quote(WP4/name)+')'
+			);
+		
+		Template PerWP4_T
+		{
+			parameter<string> WP4_name;
+			///
+			
+			attribute<Eur> Prijs_perWoning (domain) := = 
+								replace(
+									'(exp('
+										'@C@/constant'
+										
+						//				Woonpand
+										'+ '+iif(WP4_name == 'appartement', 'float32(domain/pand_IsHoogbouw)* @C@/d_highrise + ',  '')+
+										'  log(domain/vbo_opp)                                                            * @C@/lnsize'
+										'+ log(@WS@_lotsize[float32])[domain/NL_grid_domain_rel]                          * @C@/lnlotsize'
+										'+ @WS@_nrooms[float32][domain/NL_grid_domain_rel]                                * @C@/nrooms'
+										'+ @WS@_nbathrooms[float32][domain/NL_grid_domain_rel]                            * @C@/nbadk'
+										'+ @WS@_d_maintgood[float32][domain/NL_grid_domain_rel]                           * @C@/d_maintgood'
+										'+ @WS@_d_kk[float32][domain/NL_grid_domain_rel]                                  * @C@/d_kk'
+										'+ @WS@_d_centralheating[float32][domain/NL_grid_domain_rel]                      * @C@/d_cv'
+										'+ @WS@_d_erfpacht[float32][domain/NL_grid_domain_rel]                            * @C@/d_erfpacht'
+										'+ @WS@_d_isol_compl[float32][domain/NL_grid_domain_rel]                          * @C@/d_isol_compl'
+										'+ @WS@_d_privpark[float32][domain/NL_grid_domain_rel]                            * @C@/d_privpark'
+										'+ 1[EUR]                                     * @C@/@Y@'
+										
+						//				Locatie
+										'+ @LOC@/impl/uai_2021[domain/NL_grid_domain_rel]                                         * @C@/uai_2021'
+										'+ log(value(@LOC@/Reistijd_500k_inw_2020_NL_edit [domain/NL_grid_domain_rel],float32))   * @C@/lnreistijd_500k_inw_2020_NL'
+										'+ value(@LOC@/Reistijd_stations_edit [domain/NL_grid_domain_rel],float32)                * @C@/reistijd_stations_2006'
+										'+ value(@LOC@/bbg2015_groen_100mbuff_100m [domain/NL_grid_domain_rel],float32)           * @C@/groennabij_2015'
+									')[Eur])'
+									
+									,'@C@', 'PrijsIndex/ReadCoefficients/'+WP4_name+'/Result'
+									,'@LOC@', 'RegionalAvgCharacteristics/Overige_vars'
+									,'@Y@',year == 2021 ? 'Y2020' : 'Y'+string(year)
+									,'@WS@', 'RegionalAvgCharacteristics/RegionalAvgCharacteristics/'+WP4/name
+									
+								);
+		}
+		attribute<Eur>  Verwervingskosten       (domain) := ='merge(domain/wp4_rel, Eur, '+AsList('PerWP4/'+WP4/name+'/Prijs_perWoning',',')+')';
+	}
+	
+	container Niet_woningen
+	{
+		// attribute<eur_ha> WOZ_totaal_2017 (NL_grid/domain) := SourceData/WOZ/Y2017/Niet_woningen/Sum_domain_grid / 1[ha];
+		
+		// parameter<Eur_m2> prijs := Parameters/Verwervingskosten/NietWoningen;
+		
+		// attribute<m2>         oppervlakte (Pand)     := Pand/sum_vbo_pand_opp_niet_woon;
+		// attribute<uint32>     per_rdc_10m                     (NL_grid/domain_10m)             := poly2grid(Pand/geometry, NL_grid/domain_10m);
+		// attribute<float32>    count_10m_per_pand              (NL_grid/domain_10m)             := (pcount(per_rdc_10m)[per_rdc_10m])[float32];
+		// attribute<m2>         opp_uitgesmeerd_op_grid         (NL_grid/domain_10m)             := oppervlakte[per_rdc_10m] / count_10m_per_pand;
+		// attribute<m2_ha>      opp_per_domain_grid             (NL_grid/domain)         := = 'sum(opp_uitgesmeerd_op_grid, NL_grid/domain_10m/grid_100m_rel)[m2] / 1[Ha]';
+		
+		// attribute<Eur_ha>     kental_totaal (NL_grid/domain) := max_elem(opp_per_domain_grid * prijs);
+		
+		// attribute<Eur_ha>     Totaal (NL_grid/domain) := max_elem(WOZ_totaal_2017, kental_totaal);
+		
+		attribute<eur>        WOZ_perVBO (domain)               := domain/woz;
+	}
+	
+	attribute<eur> Totaal_perVBO_src    (domain) := MakeDefined(Woningen/Verwervingskosten, 0f) + MakeDefined(Niet_woningen/WOZ_perVBO, 0f), FreeData = "False";
+	attribute<eur> Totaal_perVBO        (domain) := Totaal_perVBO_src == 0f ? (0/0)[eur] : Totaal_perVBO_src;
+	
+	// attribute<Eur_ha> Totaal    (NL_grid/domain) := Woningen/totaal + Niet_woningen/totaal, FreeData = "False"  ;
+}

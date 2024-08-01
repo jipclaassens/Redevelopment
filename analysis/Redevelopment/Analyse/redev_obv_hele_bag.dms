@@ -74,10 +74,10 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 		unit<uint32> Onveranderd_Objecten           := PrepDomains/Onveranderd/domain;
 		
 		// unit<uint32> Nieuwbouw_OpOnbebouwd_Sites    := AdditionalOperations/Nieuwbouw_Panden_OpOnbebouwd/result;
-		unit<uint32> Nieuwbouw_OpOnbebouwd_Objecten := AdditionalOperations/Nieuwbouw_Panden_OpOnbebouwd/result/Objecten;
+		unit<uint32> Nieuwbouw_OpOnbebouwd_Objecten := AdditionalOperations/Nieuwbouw_Panden_OpOnbebouwd/Nieuwbouw_Panden/result/Objecten;
 		
 		// unit<uint32> Nieuwbouw_OpBebouwd_Sites      := AdditionalOperations/Nieuwbouw_Panden_OpBebouwd/result;
-		unit<uint32> Nieuwbouw_OpBebouwd_Objecten   := AdditionalOperations/Nieuwbouw_Panden_OpBebouwd/result/Objecten;
+		unit<uint32> Nieuwbouw_OpBebouwd_Objecten   := AdditionalOperations/Nieuwbouw_Panden_OpBebouwd/Nieuwbouw_Panden/result/Objecten;
 	}
 	
 	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'

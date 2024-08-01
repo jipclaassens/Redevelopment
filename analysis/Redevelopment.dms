@@ -7,7 +7,7 @@ container Redevelopment
 	}
 	container Parameters : using = "units"
 	{
-		parameter<string>  BAG_Selection_Area              := 'NL'; //'MRA', 'NL', 'AMS', 'Aggl'
+		parameter<string>  BAG_Selection_Area              := 'AMS'; //'NL', 'AMS'
 		parameter<bool>    Use_Ontkoppelde_FinalMutations  := FALSE; // TRUE FALSE
 		
 		parameter<int32>   VBO_opp_truncation              := 500i;

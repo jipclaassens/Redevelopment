@@ -1,5 +1,7 @@
 container AdditionalOperations
 {
+	unit<uint32>              Nieuwbouw_src                       := PrepDomains/N/domain;
+	
 	//welke woon en nietwoon panden stonden er al in 2012?
 	unit<uint32>  BestaandeBouwIn2012        := PrepBAG/BeginVoorraad
 	{
@@ -13,132 +15,113 @@ container AdditionalOperations
 	}
 	
 	//Subset van percelen waarop sloop van woningen of niet-woningen plaats vindt
-	unit<uint32> Sloop_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/S/domain/overlay_metPercelen/first_rel)) || IsDefined(invert(PrepDomains/S_nw/domain/overlay_metPercelen/first_rel))) 
-	{
-		attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry[rdc];
-	}
+	// unit<uint32> Sloop_perceel := select_with_org_rel(IsDefined(invert(Nieuwbouw_src/overlay_metPercelen/first_rel)) || IsDefined(invert(PrepDomains/S_nw/domain/overlay_metPercelen/first_rel))) 
+	// {
+		// attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry[rdc];
+	// }
 	
 	//Subset van percelen waarop nieuwbouw woningen komen
-	unit<uint32> Nieuwbouw_perceel := select_with_org_rel(IsDefined(invert(PrepDomains/N/domain/overlay_metPercelen/first_rel)))
+	unit<uint32> Percelen_met_Nieuwbouw := select_with_org_rel(IsDefined(invert(Nieuwbouw_src/overlay_metPercelen/first_rel)))
 	{
-		attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry[rdc];
-		
+		attribute<rdc>            perceel_geometry (poly)                   := org_rel -> geometry[rdc];
 		
 		// Stonden er al panden op dit perceel waar nieuwbouw woningen komen?
-		attribute<bool>           IsNieuwbouw_OpBebouwd                    := IsDefined(rlookup(id(.),Nieuwbouw_OpBebouwd/second_rel)); 
-		unit<uint32>              Nieuwbouw_OpBebouwd                      := bg_overlay_polygon(BestaandeBouwIn2012/pand_geometry, perceel_geometry); //is er overlap tussen dit perceel met nieuwbouw en bestaand gebouwen?
+		unit<uint32>              NBPercelen_metBebouwing                   := bg_overlay_polygon(BestaandeBouwIn2012/pand_geometry, perceel_geometry); //is er overlap tussen dit perceel met nieuwbouw en bestaand gebouwen?
+		attribute<bool>           Is_NBPerceel_metBebouwing                 := IsDefined(rlookup(id(.),NBPercelen_metBebouwing/second_rel)); 
 
-		unit<uint32>                   Nieuwbouw_src                       := PrepDomains/N/domain //nieuwbouw panden/objecten
+		unit<uint32>              Nieuwbouw_OpOnbebouwd_perceel             := select_with_org_rel(!./Is_NBPerceel_metBebouwing)
+		{        
+			attribute<rdc>        perceel_geometry (poly)                   := org_rel -> perceel_geometry;
+		}
+		unit<uint32>              Nieuwbouw_OpBebouwd_perceel               := select_with_org_rel(./Is_NBPerceel_metBebouwing)
+		{        
+			attribute<rdc>        perceel_geometry (poly)                   := org_rel -> perceel_geometry;
+		}
+		unit<uint32>              Nieuwbouw_ObjectenPanden                  := Nieuwbouw_src 
 		{
-			attribute<bool>            IsNieuwbouw_OpOnbebouwd             := IsDefined(point_in_polygon(vbo_geometry, Nieuwbouw_OpOnbebouwd_perceel/perceel_geometry));
-			attribute<bool>            IsNieuwbouw_OpBebouwd               := IsDefined(point_in_polygon(vbo_geometry, Nieuwbouw_OpBebouwd_perceel/perceel_geometry));
-		}
-		unit<uint32>                   Nieuwbouw_OpOnbebouwd_perceel       := select_with_org_rel(!./IsNieuwbouw_OpBebouwd)
-		{        
-			attribute<rdc>  perceel_geometry (poly)                     := org_rel -> perceel_geometry;
-		}
-		unit<uint32>                   Nieuwbouw_OpBebouwd_perceel         := select_with_org_rel(./IsNieuwbouw_OpBebouwd)
-		{        
-			attribute<rdc>  perceel_geometry (poly)                     := org_rel -> perceel_geometry;
+			attribute<bool>       IsNieuwbouw_OpOnbebouwd                   := IsDefined(point_in_polygon(vbo_geometry, Nieuwbouw_OpOnbebouwd_perceel/perceel_geometry));
+			attribute<bool>       IsNieuwbouw_OpBebouwd                     := IsDefined(point_in_polygon(vbo_geometry, Nieuwbouw_OpBebouwd_perceel/perceel_geometry));
 		}
 	}
 	
-	// afgevallen percelen uit SN analyse omdat ze te klein zijn? of fractie S te klein?
-	unit<uint32>  Nieuwbouw_Panden_OpOnbebouwd  := select_with_org_rel(Nieuwbouw_perceel/Nieuwbouw_src/IsNieuwbouw_OpOnbebouwd)
+	container Nieuwbouw_Panden_OpOnbebouwd := Cluster_NB_Onbeb_Beb_T(Percelen_met_Nieuwbouw/Nieuwbouw_ObjectenPanden/IsNieuwbouw_OpOnbebouwd);
+	container Nieuwbouw_Panden_OpBebouwd   := Cluster_NB_Onbeb_Beb_T(Percelen_met_Nieuwbouw/Nieuwbouw_ObjectenPanden/IsNieuwbouw_OpBebouwd);
+	
+	Template Cluster_NB_Onbeb_Beb_T
 	{
-		attribute<rdc>                   pand_geometry (poly)               := Nieuwbouw_perceel/Nieuwbouw_src/pand_geometry[org_rel];
-		attribute<rdc>                   vbo_geometry                       := Nieuwbouw_perceel/Nieuwbouw_src/vbo_geometry[org_rel];
-		attribute<int32>                 MutatieMaand                       := Nieuwbouw_perceel/Nieuwbouw_src/MutatieMaand[org_rel];
-		attribute<int32>                 vbo_oppervlakte                    := Nieuwbouw_perceel/Nieuwbouw_src/vbo_oppervlakte[org_rel];
-		attribute<jaar>                  pand_bouwjaar                      := Nieuwbouw_perceel/Nieuwbouw_src/pand_bouwjaar[org_rel];
-		attribute<bool>                  GeenOverlapmet_SN                  := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
-		unit<uint32>                     intersect_met_SN                   := bg_overlay_polygon(pand_geometry, SN/Result/geometry);
-		
-		unit<uint32>  Cluster   := select_with_attr_by_cond(., GeenOverlapmet_SN)
+		attribute<bool> condition (Nieuwbouw_src);
+		///
+	
+		unit<uint32>  Nieuwbouw_Panden  := select_with_org_rel(condition)
 		{
-			unit<uint32> Step1 := bp_split_union_polygon(pand_geometry[rdc_cm])
+			attribute<rdc>                   pand_geometry (poly)               := Nieuwbouw_src/pand_geometry[org_rel];
+			attribute<rdc>                   vbo_geometry                       := Nieuwbouw_src/vbo_geometry[org_rel];
+			attribute<int32>                 MutatieMaand                       := Nieuwbouw_src/MutatieMaand[org_rel];
+			attribute<int32>                 vbo_oppervlakte                    := Nieuwbouw_src/vbo_oppervlakte[org_rel];
+			attribute<jaar>                  pand_bouwjaar                      := Nieuwbouw_src/pand_bouwjaar[org_rel];
+			attribute<m2>                    pand_area                          := area(pand_geometry, m2);
+			
+			unit<uint32>                     intersect_met_SN                   := bg_overlay_polygon(pand_geometry, SN/Result/geometry);
+			attribute<bool>                  GeenOverlapmet_SN                  := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
+			
+			unit<uint32>  Zonder_SN_Overlap   := select_with_attr_by_cond(., GeenOverlapmet_SN)
 			{
-				attribute<rdc> inflate (poly) := bg_buffer_multi_polygon(geometry[rdc], parameters/big_inflate_m[float64], 16b);
+				attribute<rdc> panden_inflate                       (poly) := bg_buffer_multi_polygon(pand_geometry,  parameters/big_inflate_m[float64], 16b);
+				
+				//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
+				unit<uint32> PandenBuffer_x_WegSpoor                := bg_overlay_polygon(panden_inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+				unit<uint32> PandenBuffer_x_WegSpoor_Split          := bp_split_union_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_cm])
+				{
+					attribute<rdc> geometry_rd               (poly) := geometry[rdc];
+				}
+				
+				//De bufferdelen die door een weg zijn afgesneden, moeten eruit worden gefilterd.
+				unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden   := bg_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry_rd, pand_geometry)
+				{
+					//dit zijn dan de panden buffers, zonder de door de wegafgesneden stukken.
+					attribute<rdc> Cleaned                   (poly) := PandenBuffer_x_WegSpoor_Split/geometry_rd[first_rel];
+				}
+				
+				//opschonen van de geometry
+				unit<uint32>   Site_Dissolve                                         := bp_split_union_polygon(PandenBuffer_Minus_WegSpoor_x_Panden/Cleaned[rdc_cm]), DialogData = "Site_Deflate", DialogType = "map";
+				attribute<rdc> Site_Outer                      (poly, Site_Dissolve) := bg_outer_multi_polygon(Site_Dissolve/geometry[rdc]);
+				attribute<rdc> Site_Inflate                    (poly, Site_Dissolve) := bg_buffer_multi_polygon(Site_Outer, parameters/big_inflate_m[float64], 16b);
+				attribute<rdc> Site_Deflate                    (poly, Site_Dissolve) := bg_buffer_multi_polygon(Site_Inflate, -parameters/big_inflate_m[float64], 16b);
+				
+				attribute<m2>                Site_Area               (Site_Dissolve) := area(Site_Deflate, m2);
+				attribute<m2>                Site_Pand_Area          (Site_Dissolve) := sum(x_Panden/area_pand, x_Panden/second_rel);
+				attribute<float32>           Share_N_pand_op_site    (Site_Dissolve) := Site_Pand_Area / Site_Area;
+				
+				attribute<bool>              HasLargeEnough_shares   (Site_Dissolve) := Share_N_pand_op_site > Parameters/minimum_site_area;
+				
+				unit<uint32>   x_Panden            := bg_overlay_polygon(pand_geometry, Site_Deflate)
+				{
+					attribute<m2> area_pand                         := Zonder_SN_Overlap/pand_area[first_rel];
+				}
 			}
 			
-			unit<uint32> Step2 := bp_split_polygon(Step1/inflate[rdc_cm])
+			unit<uint32>  Result   := select_with_org_rel(Zonder_SN_Overlap/HasLargeEnough_shares)
 			{
-				attribute<rdc>    deflate (poly)                      := bg_buffer_multi_polygon(geometry[rdc], -parameters/big_inflate_m[float64], 16b);
-				attribute<rdc>    geometry_rd (poly)                  := deflate;
-				attribute<m2>     area                                := area(geometry_rd, m2);
-			}
-		}
-		
-		unit<uint32>  Result   := select_with_org_rel(Cluster/Step2/area >= Parameters/minimum_site_area)
-		{
-			attribute<rdc>    geometry (poly)                  := org_rel -> geometry_rd;
-			attribute<string> Site_ID                          := 'NB_Onbeb_'+string(id(.));
-			attribute<jaar>   Avg_bouwjaar                     := mean(../pand_bouwjaar, Objecten_rel);
-			attribute<jaar>   SD_bouwjaar                      := sd(../pand_bouwjaar, Objecten_rel);
-			attribute<int32>  MutatieMaand                     := min(../MutatieMaand, Objecten_rel) > 21000000i || min(../MutatieMaand, Objecten_rel) < 0i
-																				? null_i 
-																				: min(../MutatieMaand, Objecten_rel);
-			attribute<m2>     area                             := area(geometry, m2);
-			
-			attribute<.>      Objecten_rel     (..)            := point_in_polygon(../vbo_geometry, geometry);
-			
-			unit<uint32>      Objecten                         := select_with_org_rel(IsDefined(Objecten_rel))
-			{
-				attribute<rdc>    pand_geometry (poly) := .../pand_geometry[org_rel];
-				attribute<rdc>    vbo_geometry         := .../vbo_geometry[org_rel];
-				attribute<int32>  vbo_oppervlakte      := .../vbo_oppervlakte[org_rel];
-				attribute<jaar>   pand_bouwjaar        := .../pand_bouwjaar[org_rel];
-				attribute<int32>  MutatieMaand         := .../MutatieMaand[org_rel];
-				attribute<string> Site_ID              := 'NB_Onbeb_'+string(Objecten_rel[org_rel]);
-			}
-			
-		}
-	}
-	unit<uint32>  Nieuwbouw_Panden_OpBebouwd    := select_with_org_rel(Nieuwbouw_perceel/Nieuwbouw_src/IsNieuwbouw_OpBebouwd)
-	{
-		attribute<rdc>                   pand_geometry (poly)               := Nieuwbouw_perceel/Nieuwbouw_src/pand_geometry[org_rel];
-		attribute<rdc>                   vbo_geometry                       := Nieuwbouw_perceel/Nieuwbouw_src/vbo_geometry[org_rel];
-		attribute<jaar>                  pand_bouwjaar                      := Nieuwbouw_perceel/Nieuwbouw_src/pand_bouwjaar[org_rel];
-		attribute<int32>                 MutatieMaand                       := Nieuwbouw_perceel/Nieuwbouw_src/MutatieMaand[org_rel];
-		attribute<int32>                 vbo_oppervlakte                    := Nieuwbouw_perceel/Nieuwbouw_src/vbo_oppervlakte[org_rel];
-		attribute<bool>                  GeenOverlapmet_SN                  := !IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
-		unit<uint32>                     intersect_met_SN                   := bg_overlay_polygon(pand_geometry, SN/Result/geometry);
-		
-		unit<uint32>  Cluster   := select_with_attr_by_cond(., GeenOverlapmet_SN)
-		{
-			unit<uint32> Step1 := bp_split_union_polygon(pand_geometry[rdc_cm])
-			{
-				attribute<rdc> inflate (poly) := bg_buffer_multi_polygon(geometry[rdc], parameters/big_inflate_m[float64], 16b);
-			}
-			
-			unit<uint32> Step2 := bp_split_polygon(Step1/inflate[rdc_cm])
-			{
-				attribute<rdc>    deflate (poly)                      := bg_buffer_multi_polygon(geometry[rdc], -parameters/big_inflate_m[float64], 16b);
-				attribute<rdc>    geometry_rd (poly)                  := deflate;
-				attribute<m2>     area                                := area(geometry_rd, m2);
-			}
-		}
-		
-		unit<uint32>  Result   := select_with_org_rel(Cluster/Step2/area >= Parameters/minimum_site_area)
-		{
-			attribute<rdc>    geometry (poly)                  := org_rel -> geometry_rd;
-			attribute<string> Site_ID                          := 'NB_Beb_'+string(id(.));
-			attribute<jaar>   Avg_bouwjaar                     := mean(../pand_bouwjaar, Objecten_rel);
-			attribute<jaar>   SD_bouwjaar                      := sd(../pand_bouwjaar, Objecten_rel);
-			attribute<int32>  MutatieMaand                     := min(../MutatieMaand, Objecten_rel) > 21000000i || min(../MutatieMaand, Objecten_rel) < 0i
-																				? null_i 
-																				: min(../MutatieMaand, Objecten_rel);
-			
-			attribute<m2>     area                             := area(geometry, m2);
-			attribute<.>      Objecten_rel     (..)            := point_in_polygon(../vbo_geometry, geometry);
-			unit<uint32>      Objecten                         := select_with_org_rel(IsDefined(Objecten_rel))
-			{
-				attribute<rdc>    pand_geometry (poly) := .../pand_geometry[org_rel];
-				attribute<rdc>    vbo_geometry         := .../vbo_geometry[org_rel];
-				attribute<int32>  MutatieMaand         := .../MutatieMaand[org_rel];
-				attribute<int32>  vbo_oppervlakte      := .../vbo_oppervlakte[org_rel];
-				attribute<jaar>   pand_bouwjaar        := .../pand_bouwjaar[org_rel];
-				attribute<string> Site_ID              := 'NB_Beb_'+string(Objecten_rel[org_rel]);
+				attribute<rdc>    geometry (poly)                  := org_rel -> Site_Deflate;
+				attribute<string> Site_ID                          := 'NB_Onbeb_'+string(id(.));
+				attribute<jaar>   Avg_bouwjaar                     := mean(../pand_bouwjaar, Objecten_rel);
+				attribute<jaar>   SD_bouwjaar                      := sd(../pand_bouwjaar, Objecten_rel);
+				attribute<int32>  MutatieMaand                     := min(../MutatieMaand, Objecten_rel) > 21000000i || min(../MutatieMaand, Objecten_rel) < 0i
+																					? null_i 
+																					: min(../MutatieMaand, Objecten_rel);
+				attribute<m2>     area                             := area(geometry, m2);
+				
+				attribute<.>      Objecten_rel     (..)            := point_in_polygon(../vbo_geometry, geometry);
+				
+				unit<uint32>      Objecten                         := select_with_org_rel(IsDefined(Objecten_rel))
+				{
+					attribute<rdc>    pand_geometry (poly) := .../pand_geometry[org_rel];
+					attribute<rdc>    vbo_geometry         := .../vbo_geometry[org_rel];
+					attribute<int32>  vbo_oppervlakte      := .../vbo_oppervlakte[org_rel];
+					attribute<jaar>   pand_bouwjaar        := .../pand_bouwjaar[org_rel];
+					attribute<int32>  MutatieMaand         := .../MutatieMaand[org_rel];
+					attribute<string> Site_ID              := 'NB_Onbeb_'+string(Objecten_rel[org_rel]);
+				}
 			}
 		}
 	}
@@ -366,35 +349,35 @@ container AdditionalOperations
 			}
 		}
 		
-		Template Cluster_Polygonen_T
-		{
-			unit<uint32>                 src;
-			attribute<rdc>               geometry (poly, src);
-			//
-			attribute<rdc>               inflate (poly, src)                := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 8b);   
+		// Template Cluster_Polygonen_T
+		// {
+			// unit<uint32>                 src;
+			// attribute<rdc>               geometry (poly, src);
 			
-			unit<uint32> dissolve := split_union_polygon(inflate[rdc_mm])
-			{
-				attribute<rdc>           deflate (poly)                     := bg_buffer_multi_polygon(geometry[rdc],  -parameters/big_inflate_m[float64], 8b);  
-				attribute<rdc>           outer   (poly)                     := bg_outer_multi_polygon(deflate);
-			}
-			attribute<rdc>               clustered (poly, dissolve)         := dissolve/outer;
-		}
+			// attribute<rdc>               inflate (poly, src)                := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 8b);   
+			
+			// unit<uint32> dissolve := split_union_polygon(inflate[rdc_mm])
+			// {
+				// attribute<rdc>           deflate (poly)                     := bg_buffer_multi_polygon(geometry[rdc],  -parameters/big_inflate_m[float64], 8b);  
+				// attribute<rdc>           outer   (poly)                     := bg_outer_multi_polygon(deflate);
+			// }
+			// attribute<rdc>               clustered (poly, dissolve)         := dissolve/outer;
+		// }
  		
 	}
 	
-	unit<uint32> TeClusterenTypes : nrofrows = 5
-	{
-		attribute<string> name : ['TC','OC','S','TMplus', 'Onveranderd'];
-	}
+	// unit<uint32> TeClusterenTypes : nrofrows = 5
+	// {
+		// attribute<string> name : ['TC','OC','S','TMplus', 'Onveranderd'];
+	// }
 	
-	container Clustering :=
-		for_each_ne(
-			TeClusterenTypes/name
-			, 'Clustering_T('+quote(TeClusterenTypes/name)+')'
-		);
+	// container Clustering :=
+		// for_each_ne(
+			// TeClusterenTypes/name
+			// , 'Clustering_T('+quote(TeClusterenTypes/name)+')'
+		// );
 	
-	Template Clustering_T
+/* 	Template Clustering_T
 	{
 		parameter<string> RedevType;
 		///
@@ -436,4 +419,5 @@ container AdditionalOperations
 			}
 		}
 	}
+ */
 }

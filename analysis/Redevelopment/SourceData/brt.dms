@@ -66,12 +66,12 @@ container BRT
 	}
 	
 	unit<uint32>       Write_Relevant_Tiles_x_WegSpoor := Relevant_Tiles_x_WegSpoor
-	, StorageName = "%LocalDataProjDir%/Temp/TiledNonWegSpoor.fss"
+	, StorageName = "%LocalDataProjDir%/Temp/BRT/TiledNonWegSpoor.fss"
 	{
 		attribute<rdc> TiledNonWegSpoor (poly) := Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor;
 	}
 	unit<uint32>       Read_Relevant_Tiles_x_WegSpoor 
-	: StorageName = "%LocalDataProjDir%/Temp/TiledNonWegSpoor.fss", StorageReadOnly = "true"
+	: StorageName = "%LocalDataProjDir%/Temp/BRT/TiledNonWegSpoor.fss", StorageReadOnly = "true"
 	{
 		attribute<rdc> TiledNonWegSpoor  (poly);
 	}

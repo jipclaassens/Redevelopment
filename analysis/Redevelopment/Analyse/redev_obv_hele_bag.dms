@@ -189,41 +189,41 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 				Redev_ObjectTypes/name
 				, replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Totalen_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
 				, Verslagmaanden
-				, int32
+				, uint32
 			)
 		{
 			attribute<string> Label (Verslagmaanden) := Verslagmaanden/label;
 		}
 		
-		container Count_Urban_PerRedevType_PerVerslagMaand :=
-			for_each_nedv(
-				Redev_ObjectTypes/name
-				, replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Count_Urban_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
-				, Verslagmaanden
-				, int32
-			);
-		container Count_PeriUrban_PerRedevType_PerVerslagMaand :=
-			for_each_nedv(
-				Redev_ObjectTypes/name
-				, replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Count_PeriUrban_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
-				, Verslagmaanden
-				, int32
-			);
-		container Count_Peripheral_PerRedevType_PerVerslagMaand :=
-			for_each_nedv(
-				Redev_ObjectTypes/name
-				, replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Count_Peripheral_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
-				, Verslagmaanden
-				, int32
-			);
+		// container Count_Urban_PerRedevType_PerVerslagMaand :=
+			// for_each_nedv(
+				// Redev_ObjectTypes/name
+				// , replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Count_Urban_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
+				// , Verslagmaanden
+				// , uint32
+			// );
+		// container Count_PeriUrban_PerRedevType_PerVerslagMaand :=
+			// for_each_nedv(
+				// Redev_ObjectTypes/name
+				// , replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Count_PeriUrban_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
+				// , Verslagmaanden
+				// , uint32
+			// );
+		// container Count_Peripheral_PerRedevType_PerVerslagMaand :=
+			// for_each_nedv(
+				// Redev_ObjectTypes/name
+				// , replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Count_Peripheral_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
+				// , Verslagmaanden
+				// , int32
+			// );
 		
-		container AvgObjectSize_PerRedevType_PerVerslagMaand :=
-			for_each_nedv(
-				Redev_ObjectTypes/name
-				, replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/AvgObjectSize_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
-				, Verslagmaanden
-				, int32
-			);
+		// container AvgObjectSize_PerRedevType_PerVerslagMaand :=
+			// for_each_nedv(
+				// Redev_ObjectTypes/name
+				// , replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/AvgObjectSize_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
+				// , Verslagmaanden
+				// , int32
+			// );
 		
 		container AvgObjectSize_PerRedevType :=
 			for_each_nedv(
@@ -232,18 +232,19 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 				, void
 				, int32
 			);
-		container AvgSiteSize_PerRedevType :=
-			for_each_nedv(
-				Redev_ObjectTypes/name
-				, 'mean(type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' ? site_oppervlakte : null_f)'
-				, void
-				, m2
-			);
+			
+		// container AvgSiteSize_PerRedevType :=
+			// for_each_nedv(
+				// Redev_ObjectTypes/name
+				// , 'mean(type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' ? site_oppervlakte : null_f)'
+				// , void
+				// , m2
+			// );
 			
 		container Count_PerUrbanK_PerRedevType :=
 			for_each_nedv(
 				Redev_ObjectTypes/name
-				, replace('union_data(UrbanisationK, '+AsList('sum(type_class == Redev_ObjectTypes/v/@OT@ && UrbanisationK_rel == UrbanisationK/v/'+UrbanisationK/label+'? 1 : 0)', ',')+')', '@OT@', Redev_ObjectTypes/name)
+				, replace('union_data(UrbanisationK, '+AsList('sum_uint32(type_class == Redev_ObjectTypes/v/@OT@ && UrbanisationK_rel == UrbanisationK/v/'+UrbanisationK/label+')', ',')+')', '@OT@', Redev_ObjectTypes/name)
 				, UrbanisationK
 				, uint32
 			)
@@ -266,28 +267,28 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 			container Totalen_PerRedevType := 
 				for_each_nedv(
 					Redev_ObjectTypes/name
-					, 'sum((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' ? 1i : 0i)'
+					, 'sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+')'
 					, void
-					, int32
+					, uint32
 				);
 			container Count_Urban_PerRedevType := 
 				for_each_nedv(
 					Redev_ObjectTypes/name
-					, 'sum((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' && UrbanisationK_rel == UrbanisationK/v/urban ? 1i : 0i)'
+					, 'sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' && UrbanisationK_rel == UrbanisationK/v/urban)'
 					, void
-					, int32
+					, uint32
 				);
 			container Count_PeriUrban_PerRedevType := 
 				for_each_nedv(
 					Redev_ObjectTypes/name
-					, 'sum((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' && UrbanisationK_rel == UrbanisationK/v/PeriUrban ? 1i : 0i)'
+					, 'sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' && UrbanisationK_rel == UrbanisationK/v/PeriUrban)'
 					, void
-					, int32
+					, uint32
 				);
 			container Count_Peripheral_PerRedevType := 
 				for_each_nedv(
 					Redev_ObjectTypes/name
-					, 'sum((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' && UrbanisationK_rel == UrbanisationK/v/Peripheral ? 1i : 0i)'
+					, 'sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' && UrbanisationK_rel == UrbanisationK/v/Peripheral)'
 					, void
 					, int32
 				);
@@ -300,7 +301,30 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 				);
 		}
 	}
-
+	
+	unit<uint32> Analyse_PerWijk := RegioUnit_Wijk
+	, using = "AdditionalClassifications"
+	{
+		attribute<string> WK_CODE             := RegioUnit_Wijk/WK_CODE;
+		attribute<km2>    area                := area(geometry, km2);
+		attribute<uint32> count_SN_Sloop      := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop, Read_PerObject_Export/wijk_rel);
+		attribute<uint32> count_SN_Nieuwbouw  := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Nieuwbouw, Read_PerObject_Export/wijk_rel);
+		attribute<uint32> count_Toevoeging    := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Toevoeging, Read_PerObject_Export/wijk_rel);
+		attribute<uint32> count_Transformatie := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/transformatie, Read_PerObject_Export/wijk_rel);
+		attribute<uint32> count_Onttrekking   := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, Read_PerObject_Export/wijk_rel);
+		attribute<uint32> count_Onveranderd   := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd, Read_PerObject_Export/wijk_rel);
+		attribute<uint32> count_NB_opBeb      := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw_OpBebouwd, Read_PerObject_Export/wijk_rel);
+		attribute<uint32> count_NB_opOnbeb    := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw_OpOnbebouwd, Read_PerObject_Export/wijk_rel);
+		attribute<uint32> count_total_process := sum_uint32(IsDefined(Read_PerObject_Export/geometry), Read_PerObject_Export/wijk_rel);
+		
+		// % restricties opp van regio area (opzoek naar 2012 versie?)
+		// hoeveelheid beschikbare ruimte (landbouw zonder restrictie)
+		// addressendichtheid
+		// nabijheid stadskern
+		// gemiddelde gebouw ouderdom categorie
+		// mate eenvormigheid (zie Dani 2015 urban expansion verhaal)
+	}
+	
 	
 	// unit<uint32> AMS 
 	// : StorageName = "%LocalDataProjDir%/Temp/Amsterdam.shp"
@@ -312,7 +336,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 	
 	// }
 	
-	unit<uint32> Read_PerSite_Export
+/* 	unit<uint32> Read_PerSite_Export
 	: StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
 	, StorageReadOnly = "true"
 	, using = "AdditionalClassifications"
@@ -372,7 +396,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 		container Count_PerRedevType :=
 			for_each_nedv(
 				Redev_SiteTypes/name
-				, 'sum(type_class == Redev_SiteTypes/v/'+Redev_SiteTypes/name+' ? 1 : 0)'
+				, 'sum_uint32(type_class == Redev_SiteTypes/v/'+Redev_SiteTypes/name+')'
 				, void
 				, uint32
 			);
@@ -384,7 +408,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 			container Totalen_PerRedevType := 
 				for_each_nedv(
 					Redev_SiteTypes/name
-					, 'sum((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_SiteTypes/v/'+Redev_SiteTypes/name+' ? 1i : 0i)'
+					, 'sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_SiteTypes/v/'+Redev_SiteTypes/name+')'
 					, void
 					, int32
 				);
@@ -397,30 +421,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 				);
 		}
 	}
-	
-	unit<uint32> Analyse_PerWijk := RegioUnit_Wijk
-	, using = "AdditionalClassifications"
-	{
-		attribute<string> WK_CODE             := RegioUnit_Wijk/WK_CODE;
-		attribute<km2>    area                := area(geometry, km2);
-		attribute<uint32> count_SN_Sloop      := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop, Read_PerObject_Export/wijk_rel);
-		attribute<uint32> count_SN_Nieuwbouw  := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Nieuwbouw, Read_PerObject_Export/wijk_rel);
-		attribute<uint32> count_Toevoeging    := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Toevoeging, Read_PerObject_Export/wijk_rel);
-		attribute<uint32> count_Transformatie := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/transformatie, Read_PerObject_Export/wijk_rel);
-		attribute<uint32> count_Onttrekking   := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, Read_PerObject_Export/wijk_rel);
-		attribute<uint32> count_Onveranderd   := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd, Read_PerObject_Export/wijk_rel);
-		attribute<uint32> count_NB_opBeb      := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw_OpBebouwd, Read_PerObject_Export/wijk_rel);
-		attribute<uint32> count_NB_opOnbeb    := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw_OpOnbebouwd, Read_PerObject_Export/wijk_rel);
-		attribute<uint32> count_total_process := sum_uint32(IsDefined(Read_PerObject_Export/geometry), Read_PerObject_Export/wijk_rel);
-		
-		// % restricties opp van regio area (opzoek naar 2012 versie?)
-		// hoeveelheid beschikbare ruimte (landbouw zonder restrictie)
-		// addressendichtheid
-		// nabijheid stadskern
-		// gemiddelde gebouw ouderdom categorie
-		// mate eenvormigheid (zie Dani 2015 urban expansion verhaal)
-	}
-	
+ */	
 	#include<AdditionalClassifications.dms>
 	
 	Template PrepDomains_T

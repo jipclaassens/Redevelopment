@@ -7,26 +7,26 @@ container Redevelopment
 	}
 	container Parameters : using = "units"
 	{
-		parameter<string>  BAG_Selection_Area              := 'AMS'; //'NL', 'AMS'
-		parameter<bool>    Use_Ontkoppelde_FinalMutations  := FALSE; // TRUE FALSE
+		parameter<string>  BAG_Selection_Area              := 'NL'; //'NL', 'AMS'
+		parameter<bool>    Use_Ontkoppelde_FinalMutations  := TRUE; // TRUE FALSE
 		
-		parameter<int32>   VBO_opp_truncation              := 500i;
-		parameter<int32>   VBO_opp_truncation_lower        := 10i;
-		parameter<int32>   VBO_opp_truncation_defaultvalue := 120i;
+		// parameter<int32>   VBO_opp_truncation              := 500i;
+		// parameter<int32>   VBO_opp_truncation_lower        := 10i;
+		// parameter<int32>   VBO_opp_truncation_defaultvalue := 120i;
 		
-		parameter<mm>      supersmall_inflate_mm           := supersmall_inflate_m[mm];
-		parameter<mm>      small_inflate_mm                := small_inflate_m[mm];
-		parameter<mm>      big_inflate_mm                  := big_inflate_m[mm];
-		parameter<mm>      superbig_inflate_mm             := superbig_inflate_m[mm];
+		// parameter<mm>      supersmall_inflate_mm           := supersmall_inflate_m[mm];
+		// parameter<mm>      small_inflate_mm                := small_inflate_m[mm];
+		// parameter<mm>      big_inflate_mm                  := big_inflate_m[mm];
+		// parameter<mm>      superbig_inflate_mm             := superbig_inflate_m[mm];
 		
-		parameter<m>       supersmall_inflate_m            := 1[m]; //1m
-		parameter<m>       small_inflate_m                 := 5[m]; //5m
+		// parameter<m>       supersmall_inflate_m            := 1[m]; //1m
+		// parameter<m>       small_inflate_m                 := 5[m]; //5m
 		parameter<m>       big_inflate_m                   := 10[m]; //10m
-		parameter<m>       superbig_inflate_m              := 20[m]; //20m
+		// parameter<m>       superbig_inflate_m              := 20[m]; //20m
 		
 		parameter<string>  bouwjaar_truncation_expr        := 'bouwjaar <= 1005s || bouwjaar > @YYYY@[jaar] ? (0/0)[int16] : bouwjaar < 1500s ? 1500s : bouwjaar';
 		parameter<m>       highrise_threshold              := 30[m];
-		parameter<m>       verdiepinghoogte                := 2.8[m];
+		// parameter<m>       verdiepinghoogte                := 2.8[m];
 		parameter<m2>      minimum_site_area               := 25[m2];
 		parameter<float32> minimum_SN_area_share           := 0.01f;
 		

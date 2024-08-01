@@ -123,36 +123,35 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 		attribute<jaar>             pand_bouwjaar;
 		attribute<UrbanisationK>    UrbanisationK_rel;
 		// attribute<m2>               site_oppervlakte     := rjoin(site_id, Read_PerSite_Export/site_id, Read_PerSite_Export/site_oppervlakte);
-		attribute<bool>             IsWithinUrbanContour := IsDefined(point_in_polygon(geometry, /SourceData/begenzing_bebouwd_gebied/Bevolkingskern_2011/shapes/geometry));
+		// attribute<bool>             IsWithinUrbanContour := IsDefined(point_in_polygon(geometry, /SourceData/begenzing_bebouwd_gebied/Bevolkingskern_2011/shapes/geometry));
 		
 		attribute<RegioUnit_Wijk>   Wijk_rel             := point_in_polygon(geometry, RegioUnit_Wijk/geometry);
 		attribute<string>           WK_CODE_2022         := RegioUnit_Wijk/WK_CODE[Wijk_rel];
 		
-		attribute<NL_grid/domain>   per_grid := geometry[NL_grid/domain];
+		// attribute<NL_grid/domain>   per_grid := geometry[NL_grid/domain];
 		
-		unit<uint8> DensK : nrofrows = 6
-		{
-			attribute<string> name : ['B_dens','B_grey','B_green','N_dens','N_grey','N_green'];
-			attribute<string> label := name;
-		}
+		// unit<uint8> DensK : nrofrows = 6
+		// {
+			// attribute<string> name : ['B_dens','B_grey','B_green','N_dens','N_grey','N_green'];
+			// attribute<string> label := name;
+		// }
 		
-		// /SourceData/bestand_bodem_gebruik/BBG/Dominant/bbg2012_100m_3k
-		container GridAnalysis :=
-			for_each_ne(
-				Redev_ObjectTypes/name
-				, 'GridAnalysis_T('+quote(Redev_ObjectTypes/name)+')'
-			)
-		{
-			container Transform :=
-				for_each_nedv(
-					Redev_ObjectTypes/name
-					, replace('union_data(DensK, '+AsList('GridAnalysis/@OT@/Total/'+DensK/name,',')+')','@OT@', Redev_ObjectTypes/name)
-					, DensK
-					, uint32
-				);
-		}
+		// container GridAnalysis :=
+			// for_each_ne(
+				// Redev_ObjectTypes/name
+				// , 'GridAnalysis_T('+quote(Redev_ObjectTypes/name)+')'
+			// )
+		// {
+			// container Transform :=
+				// for_each_nedv(
+					// Redev_ObjectTypes/name
+					// , replace('union_data(DensK, '+AsList('GridAnalysis/@OT@/Total/'+DensK/name,',')+')','@OT@', Redev_ObjectTypes/name)
+					// , DensK
+					// , uint32
+				// );
+		// }
 		
-		Template GridAnalysis_T
+/* 		Template GridAnalysis_T
 		{
 			parameter<string> RedevType;
 			///
@@ -178,7 +177,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 				parameter<uint32>  N_green    := sum(PerGrid/N_green);
 			}
 		}
-		
+ */		
 		container Per_VerslagMaand := 
 			for_each_ne(
 				Verslagmaanden/label
@@ -252,13 +251,13 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 			attribute<string> Label (UrbanisationK) := UrbanisationK/label;
 		}
 			
-		container Count_BegrBebGeb_PerRedevType :=
-			for_each_nedv(
-				Redev_ObjectTypes/name
-				, 'sum(type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' ? IsWithinUrbanContour[uint32] : 0)'
-				, void
-				, uint32
-			);
+		// container Count_BegrBebGeb_PerRedevType :=
+			// for_each_nedv(
+				// Redev_ObjectTypes/name
+				// , 'sum(type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' ? IsWithinUrbanContour[uint32] : 0)'
+				// , void
+				// , uint32
+			// );
 			
 		Template Per_VerslagMaand_T
 		{
@@ -303,18 +302,17 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 	}
 
 	
-	unit<uint32> AMS 
-	: StorageName = "%LocalDataProjDir%/Temp/Amsterdam.shp"
-	, StorageType = "gdal.vect"
-	, DialogData = "rdc";
+	// unit<uint32> AMS 
+	// : StorageName = "%LocalDataProjDir%/Temp/Amsterdam.shp"
+	// , StorageType = "gdal.vect"
+	// , DialogData = "rdc";
 	
-	unit<uint32> PerSite_Amsterdam := select_with_attr_by_cond(Read_PerSite_Export, IsDefined(Read_PerSite_Export/Amsterdam_rel))
-	{
+	// unit<uint32> PerSite_Amsterdam := select_with_attr_by_cond(Read_PerSite_Export, IsDefined(Read_PerSite_Export/Amsterdam_rel))
+	// {
 	
-	}
+	// }
 	
 	unit<uint32> Read_PerSite_Export
-	// : StorageName = "= propvalue(PerSite_Export, 'StorageName')"
 	: StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
 	, StorageReadOnly = "true"
 	, using = "AdditionalClassifications"
@@ -330,7 +328,6 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;classificatio
 		
 		attribute<AMS>              Amsterdam_rel := point_in_polygon(centroid_or_mid(geometry), AMS/geometry);
 		
-		unit<uint32> test := select_with_attr_by_cond(., type_class == Redev_SiteTypes/v/transformatie);
   		container Per_VerslagMaand := 
 			for_each_ne(
 				Verslagmaanden/label

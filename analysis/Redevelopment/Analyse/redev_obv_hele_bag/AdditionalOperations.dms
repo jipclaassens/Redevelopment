@@ -13,13 +13,7 @@ container AdditionalOperations
 		attribute<rdc> geometry (poly) := org_rel -> geometry;
 		attribute<m2>  area_vlak       := area(geometry, m2);
 	}
-	
-	//Subset van percelen waarop sloop van woningen of niet-woningen plaats vindt
-	// unit<uint32> Sloop_perceel := select_with_org_rel(IsDefined(invert(Nieuwbouw_src/overlay_metPercelen/first_rel)) || IsDefined(invert(PrepDomains/S_nw/domain/overlay_metPercelen/first_rel))) 
-	// {
-		// attribute<rdc>            perceel_geometry (poly)                  := org_rel -> geometry[rdc];
-	// }
-	
+
 	//Subset van percelen waarop nieuwbouw woningen komen
 	unit<uint32> Percelen_met_Nieuwbouw := select_with_org_rel(IsDefined(invert(Nieuwbouw_src/overlay_metPercelen/first_rel)))
 	{
@@ -133,8 +127,7 @@ container AdditionalOperations
 		//Daarnaast wil ik graag ruimtelijk clusteren. Gesloopte panden die naast elkaar staan zijn onderdeel van hetzelfde SN-project. Dus Sloop pand (wonen of niet wonen) inflaten, dissolven, deflaten.
 		//Nieuwbouw percelen (perceel dat NB panden bevat) clusteren: inflate, dissolve, deflate.
 		//Sloop percelen (perceel dat sloop panden bevat) clusteren: inflate, dissolve, deflate.
-		
-		
+				
 		// sloop panden + buffer - wegen
 		// nieuwbouw panden + buffer - wegen
 		
@@ -145,7 +138,6 @@ container AdditionalOperations
 		
 		//samenvoegen van sloop en nieuwbouw sites
 		//check of sloop en nieuwbouw plaatsvindt, en of het aandeel voldoende is
-		
 	
 		unit<uint32> SloopPanden_FromPrep := union_unit(PrepDomains/S/domain, PrepDomains/S_nw/domain)
 		{
@@ -213,11 +205,6 @@ container AdditionalOperations
 		, DialogData = "pand_geometry", DialogType = "map"
 		{
 			attribute<m2>      area_pand                    := NieuwbouwPanden/area_pand[first_rel];
-			// attribute<m2>      area_bbgvlak                 := BestaandWoongebiedIn2000/area_vlak[second_rel];
-			
-			// attribute<float32> Share_N_pand_op_BBG_vlak     := area_pand / area_bbgvlak;
-			// attribute<bool>    HasLargeEnoughSN_shares      := Share_N_pand_op_BBG_vlak > Parameters/minimum_SN_area_share;
-			
 			attribute<rdc>     pand_geometry (poly)         := NieuwbouwPanden/geometry[first_rel];
 			
 			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de sloop panden.
@@ -236,10 +223,6 @@ container AdditionalOperations
 				//dit zijn dan de panden buffers, zonder de door de wegafgesneden stukken.
 				attribute<rdc> Cleaned                   (poly) := PandenBuffer_x_WegSpoor_Split/geometry_rd[first_rel];
 			}
-			
-			// attribute<m2>                Nieuwbouw_Pand_x_BBG_Pand_Area(dissolve) := sum(BBGWoon_x_NieuwbouwPanden/area_pand, BBGWoon_x_NieuwbouwPanden/second_rel);
-			// attribute<m2>                Nieuwbouw_Pand_x_BBG_Vlak_Area(dissolve) := sum(BBGWoon_x_NieuwbouwPanden/area_pand, BBGWoon_x_NieuwbouwPanden/second_rel);
-			
 		}
 		
 		// merge de sloop en nb gebufferde panden, zonder de afgesneden stukken.
@@ -348,76 +331,5 @@ container AdditionalOperations
 				attribute<string> Site_ID              := ../Site_ID[../Nieuwbouw_rel][org_rel];
 			}
 		}
-		
-		// Template Cluster_Polygonen_T
-		// {
-			// unit<uint32>                 src;
-			// attribute<rdc>               geometry (poly, src);
-			
-			// attribute<rdc>               inflate (poly, src)                := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 8b);   
-			
-			// unit<uint32> dissolve := split_union_polygon(inflate[rdc_mm])
-			// {
-				// attribute<rdc>           deflate (poly)                     := bg_buffer_multi_polygon(geometry[rdc],  -parameters/big_inflate_m[float64], 8b);  
-				// attribute<rdc>           outer   (poly)                     := bg_outer_multi_polygon(deflate);
-			// }
-			// attribute<rdc>               clustered (poly, dissolve)         := dissolve/outer;
-		// }
- 		
 	}
-	
-	// unit<uint32> TeClusterenTypes : nrofrows = 5
-	// {
-		// attribute<string> name : ['TC','OC','S','TMplus', 'Onveranderd'];
-	// }
-	
-	// container Clustering :=
-		// for_each_ne(
-			// TeClusterenTypes/name
-			// , 'Clustering_T('+quote(TeClusterenTypes/name)+')'
-		// );
-	
-/* 	Template Clustering_T
-	{
-		parameter<string> RedevType;
-		///
-		unit<uint32> domain := ='PrepDomains/'+RedevType+'/domain';
-		
-		unit<uint32> Step1 := bp_split_union_polygon(domain/pand_geometry[rdc_cm])
-		{
-			attribute<rdc> inflate (poly) := bg_buffer_multi_polygon(geometry[rdc], parameters/small_inflate_m[float64], 16b);
-		}
-		
-		unit<uint32> Step2 := bp_split_union_polygon(Step1/inflate[rdc_cm])
-		{
-			attribute<rdc>    deflate     (poly) := bg_buffer_multi_polygon(geometry[rdc], -parameters/small_inflate_m[float64], 16b);
-			attribute<rdc>    geometry_rd (poly) := deflate;
-			attribute<m2>     area               := area(geometry_rd, m2);
-		}
-		
-		unit<uint32> CleanUp := select_with_org_rel(Step2/area >= Parameters/minimum_site_area)
-		{
-			attribute<rdc>               geometry (poly)                    := org_rel -> Step2/geometry_rd;
-			attribute<string>            Site_ID                            := RedevType+'_'+string(id(.));
-			attribute<jaar>              Avg_bouwjaar                       := mean(domain/pand_bouwjaar, Objecten_rel);
-			attribute<jaar>              SD_bouwjaar                        := sd(domain/pand_bouwjaar, Objecten_rel);
-			attribute<int32>             MutatieMaand                       := min(domain/MutatieMaand, Objecten_rel) > 21000000i || min(domain/MutatieMaand, Objecten_rel) < 0i
-																				? null_i 
-																				: min(domain/MutatieMaand, Objecten_rel);
-			attribute<m2>                area                               := area(geometry, m2);
-			
-			attribute<.>                 Objecten_rel     (domain)          := point_in_polygon(domain/vbo_geometry, geometry);
-			
-			unit<uint32>                 Objecten                           := select_with_org_rel(IsDefined(Objecten_rel))
-			{
-				attribute<rdc>    pand_geometry (poly) := domain/pand_geometry[org_rel];
-				attribute<rdc>    vbo_geometry         := domain/vbo_geometry[org_rel];
-				attribute<int32>  MutatieMaand         := domain/MutatieMaand[org_rel];
-				attribute<int32>  vbo_oppervlakte      := domain/vbo_oppervlakte[org_rel];
-				attribute<jaar>   pand_bouwjaar        := domain/pand_bouwjaar[org_rel];
-				attribute<string> Site_ID              := RedevType+'_'+string(Objecten_rel[org_rel]);
-			}
-		}
-	}
- */
 }

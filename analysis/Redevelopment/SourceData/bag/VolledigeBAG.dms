@@ -175,16 +175,47 @@ container VolledigeBAG : using = "classifications/BAG"
 				attribute<float32>                      lower_y := pointRow(NW);
 				attribute<float32>                      upper_y := pointRow(SE);
 				
+				//adhoc
+				attribute<RegioUnit_AMS>                AMS_rel                   := point_in_polygon(centroid_or_mid(geometry), RegioUnit_AMS/geometry);
+				attribute<SourceData/RegioIndelingen/Provincie/GR>                GR_rel                    := point_in_polygon(centroid_or_mid(geometry), /SourceData/RegioIndelingen/Provincie/GR/geometry);
+			
 				attribute<bool>                         pand_selection_condition     := ='X_ext < 1000f && Y_ext < 1000f' //panden met een grotere x/y range dan 1km eruit
 																						'&& lower_x < 300000f && lower_x > 0f'
 																						'&& upper_x < 300000f && upper_x > 0f'
 																						'&& lower_y < 620000f && lower_y > 300000f'
-																						'&& upper_y < 620000f && upper_y > 300000f'; //binnen NL
+																						'&& upper_y < 620000f && upper_y > 300000f' //binnen NL
+																						'&& IsDefined(GR_rel)';
 			}
 		}  
 			
-		// unit<uint32> pand := select_with_attr_by_org_rel(src, src/Impl/pand_selection_condition);
-		unit<uint32> pand := select_with_attr_by_org_rel(src, const(TRUE,src));
+		unit<uint32> pand := select_with_org_rel(src/Impl/pand_selection_condition)
+		, StorageName = "%LocalDataProjDir%/pand_test_ams.fss"
+		{
+			attribute<rdc> geometry (poly) := src/geometry[org_rel], DisableStorage = "true";
+			//ad hoc tbv tests
+			attribute<rdc> inflate                       (poly) := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+		}
+		
+		unit<uint32> readpand 
+		: StorageName = "%LocalDataProjDir%/pand_test_ams.fss"
+		, StorageReadOnly = "true"
+		{
+			attribute<rdc> inflate (poly);
+			attribute<rdc> geometry (poly) := inflate;
+			//ad hoc tbv tests
+			unit<uint32> BoxedConnectivity := box_connectivity(Lower_Bound(geometry), Upper_Bound(geometry));
+			unit<uint32> ConnectParts      := connected_parts(BoxedConnectivity/F1, BoxedConnectivity/F2);
+		
+			unit<uint32> SplitUnion_BoxedPartition := bp_split_union_polygon(geometry[rdc_cm], ConnectParts/PartNr)
+			{
+				attribute<rdc> geometry_rd               (poly) := geometry[rdc];
+			}
+			unit<uint32> SplitUnion := bp_split_union_polygon(geometry[rdc_cm])
+			{
+				attribute<rdc> geometry_rd               (poly) := geometry[rdc];
+			}
+		}
+		// unit<uint32> pand := select_with_attr_by_org_rel(src, const(TRUE,src));
 	}
 	
 	container VBOs

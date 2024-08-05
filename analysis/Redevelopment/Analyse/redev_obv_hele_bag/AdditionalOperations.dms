@@ -156,7 +156,16 @@ container AdditionalOperations
 			attribute<rdc> inflate                       (poly) := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
-			unit<uint32> PandenBuffer_x_WegSpoor                := bg_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+			unit<uint32> PandenBuffer_x_WegSpoor                := bg_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor)
+			{
+				unit<uint32> BoxedConnectivity := box_connectivity(Lower_Bound(geometry), Upper_Bound(geometry));
+				unit<uint32> ConnectParts      := connected_parts(BoxedConnectivity/F1, BoxedConnectivity/F2);
+			}
+			unit<uint32> PandenBuffer_x_WegSpoor_Split_BoxedPartition := bp_split_union_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_cm], PandenBuffer_x_WegSpoor/ConnectParts/PartNr)
+			{
+				attribute<rdc> geometry_rd               (poly) := geometry[rdc];
+			}
+			
 			unit<uint32> PandenBuffer_x_WegSpoor_Split          := bp_split_union_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_cm])
 			{
 				attribute<rdc> geometry_rd               (poly) := geometry[rdc];
@@ -185,7 +194,16 @@ container AdditionalOperations
 			attribute<rdc> inflate                       (poly) := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
-			unit<uint32> PandenBuffer_x_WegSpoor                := bg_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+			unit<uint32> PandenBuffer_x_WegSpoor                := bg_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor)
+			{
+				unit<uint32> BoxedConnectivity := box_connectivity(Lower_Bound(geometry), Upper_Bound(geometry));
+				unit<uint32> ConnectParts      := connected_parts(BoxedConnectivity/F1, BoxedConnectivity/F2);
+			}
+			unit<uint32> PandenBuffer_x_WegSpoor_Split_BoxedPartition := bp_split_union_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_cm], PandenBuffer_x_WegSpoor/ConnectParts/PartNr)
+			{
+				attribute<rdc> geometry_rd               (poly) := geometry[rdc];
+			}
+			
 			unit<uint32> PandenBuffer_x_WegSpoor_Split          := bp_split_union_polygon(PandenBuffer_x_WegSpoor/geometry[rdc_cm])
 			{
 				attribute<rdc> geometry_rd               (poly) := geometry[rdc];

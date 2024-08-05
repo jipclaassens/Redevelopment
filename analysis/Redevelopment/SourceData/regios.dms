@@ -256,16 +256,21 @@ container RegioIndelingen : using = "geography"
 		attribute<String>    Label           := name;
 	}
 	
-	unit<uint32>  Provincie
-	: StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/provincie.fss"
-	, StorageReadOnly = "true"
+	unit<uint32>  Provincie := impl/Provincie
+	// : StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/provincie.fss"
+	// , StorageReadOnly = "true"
 	{
-		attribute<rdc>       geometry (poly);
-		attribute<string>    name;
-		attribute<string>    PROV_CODE;
-		attribute<uint32>    prvnr;
-		attribute<string>    prvnm        := name;
+		// attribute<rdc>       geometry (poly);
+		// attribute<string>    name;
+		// attribute<string>    PROV_CODE;
+		// attribute<uint32>    prvnr;
+		// attribute<string>    prvnm        := name;
 		attribute<string>    label        := replace(AsItemName(prvnm), 'Fryslân', 'Friesland');
+		
+		unit<uint32> GR := select_with_org_rel(label == 'Groningen')
+		{
+			attribute<rdc>       geometry (poly) := org_rel -> geometry;
+		}
 	}
 	
 	unit<uint32> Nederland := range(uint32, 0, 1) 

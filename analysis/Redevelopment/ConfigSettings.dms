@@ -2,8 +2,10 @@ container ConfigSettings
 {
 	container Overridable
 	{
-		parameter<String> BAG_DataDir        := 'C:/SourceData/BAG';  //OVSRV09=c OVSRV06=D
-		parameter<String> Redev_DataDir      := 'C:/SourceData/RSopen'; //OVSRV09=c OVSRV06=D
+		// parameter<String> BAG_DataDir        := 'C:/SourceData/BAG';  //OVSRV09=c OVSRV06=D
+		parameter<String> BAG_DataDir        := 'd:/SourceData/BAG';  //OVSRV09=c OVSRV06=D
+		// parameter<String> Redev_DataDir      := 'C:/SourceData/RSopen'; //OVSRV09=c OVSRV06=D
+		parameter<String> Redev_DataDir      := 'D:/SourceData/RSopen'; //OVSRV09=c OVSRV06=D
 		parameter<String> Alt_DataDir        := '%SourceDataDir%';
 		// parameter<string> AHNDrive           := 'E:/SourceData/AHN';
 	}

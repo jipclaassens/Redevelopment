@@ -109,23 +109,28 @@ container DetermineUrbanisationK
 			|| id(RegioUnit_gem_oud) == RegioUnit_gem_oud/V/Delft
 			|| id(RegioUnit_gem_oud) == RegioUnit_gem_oud/V/Born
 			|| id(RegioUnit_gem_oud) == RegioUnit_gem_oud/V/Nootdorp
-
 		)
 	{
 		attribute<rdc>      geometry (poly) := org_rel -> geometry;
 		attribute<string>   label           := org_rel -> statnaam;
+		attribute<km2>      area            := area(geometry, m2)[km2];
+		parameter<km2>      sum_area        := sum(area);
 	}
 	
 	unit<uint32> PeriUrban := select_with_org_rel(Impl/IsPeriUrban_orgdom)
 	{
 		attribute<rdc>      geometry (poly) := org_rel -> geometry;
 		attribute<string>   label           := org_rel -> statnaam;
+		attribute<km2>      area            := area(geometry, m2)[km2];
+		parameter<km2>      sum_area        := sum(area);
 	}
 	
 	unit<uint32> Peripheral := select_with_org_rel(!Impl/IsPeriUrban_orgdom && !Impl/IsUrban_orgdom)
 	{
 		attribute<rdc>      geometry (poly) := org_rel -> geometry;
 		attribute<string>   label           := org_rel -> statnaam;
+		attribute<km2>      area            := area(geometry, m2)[km2];
+		parameter<km2>      sum_area        := sum(area);
 	}
 	
 	unit<uint32> Impl := polygon_connectivity(RegioUnit_gem_oud/geometry[rdc_mm])

@@ -2,16 +2,16 @@ container SourceData :  using = "units;geography;classifications"
 {
 	#include <bag.dms>
 	#include <bbg.dms>
-	#include <begrbebgeb.dms>
-	#include <brk.dms>
+	// #include <begrbebgeb.dms>
+	// #include <brk.dms>
 	#include <brt.dms>
-	#include <nvm.dms>
-	#include <overig.dms>
+	// #include <nvm.dms>
+	// #include <overig.dms>
 	#include <regios.dms>
-	#include <spatial_data.dms>
-	#include <woz.dms>
+	// #include <spatial_data.dms>
+	// #include <woz.dms>
 	
-	container EigendomStaat
+/* 	container EigendomStaat
 	{
 		unit<uint32> Corporatiebezit_data
 		:   StorageName     = "%Redev_DataDir%/Vastgoed/EigendomStaat/CorporatieBezit.shp"
@@ -58,7 +58,9 @@ container SourceData :  using = "units;geography;classifications"
 			// attribute<classifications/Eigendom> Eigendom_rel := makedefined(modus(EigendomStaat_data/Eigendom_rel, EigendomStaat_data/Pand_rel), classifications/Eigendom/V/Koop);
 		// }
 	}
-	container Zones : using = "/classifications/BBG"
+ */	
+ 
+/* 	container Zones : using = "/classifications/BBG"
 	{
 		container gg_zones_bbg2000_begr2000
 		{
@@ -92,4 +94,5 @@ container SourceData :  using = "units;geography;classifications"
 				);
 		} 
 	}
+ */
 }

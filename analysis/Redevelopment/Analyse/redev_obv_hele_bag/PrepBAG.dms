@@ -398,8 +398,10 @@ container PrepBAG : using = "AdditionalClassifications"
 		parameter<int32>  datum;
 		unit<uint32>      src;
 		///
-		// unit<uint32> SelectieMoment := select_with_org_rel(src/begindatum >= datum && src/begindatum < (datum + 100i) && src/functie_rel == FunctieK/v/wonen)
-		unit<uint32> SelectieMoment := select_with_org_rel(src/begindatum >= datum && src/begindatum < (datum + 100i))
+		// alle nieuwe mutaties van nieuwe objecten identificeer je door de begindatum >= datum en de begindatum < (datum + 100) te nemen. E.g. datum=20130801: begindatum= 20130805
+		unit<uint32> SelectieMoment := select_with_org_rel(
+																src/begindatum >= datum && src/begindatum < (datum + 100i)                            //identificatie van nieuwe (vervangende) objecten
+															)
 		{
 			attribute<rdc>                     geometry              := src/geometry[org_rel];
 			attribute<rdc>                     pand_geometry (poly)  := src/pand_geometry[org_rel];
@@ -818,7 +820,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<MutatieTypen>            MutatieTypen_rel;
 		
 		attribute<Read_PerObject_Export>   Read_PerObject_Export_rel := rlookup(vbo_bag_nr, Read_PerObject_Export/vbo_bag_nr);
-		attribute<bool>                    IsNotCategorised          := IsNull(Read_PerObject_Export_rel) && NOT(MutatieTypen_rel == MutatieTypen/v/S || MutatieTypen_rel == MutatieTypen/v/S_nw);
+		attribute<bool>                    IsNotCategorised          := IsNull(Read_PerObject_Export_rel) ;
 		
 		// attribute<bool>                    LigtInLigplaats                 := IsDefined(point_in_polygon(geometry, /SourceData/BAG/VolledigeBAG/Standplaatsen/standplaats/geometry));
 		// attribute<bool>                    LigtInLigplaats_start_2016_2017 := IsDefined(point_in_polygon(geometry, /SourceData/BAG/VolledigeBAG/Standplaatsen/src/SelectieMoment/geometry));

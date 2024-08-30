@@ -1,8 +1,8 @@
 container AdditionalClassifications
 {
-	unit<uint8> Redev_ObjectTypes : nrofrows = 8
+	unit<uint8> Redev_ObjectTypes : nrofrows = 10
 	{
-		attribute<string> name : ['SN_Sloop','SN_Nieuwbouw','Nieuwbouw','Toevoeging','Onttrekking','Transformatie','Sloop','Onveranderd'];
+		attribute<string> name : ['SN_Sloop','SN_Sloop_nw','SN_Nieuwbouw','Nieuwbouw','Toevoeging','Onttrekking','Transformatie_Plus','Transformatie_Min','Sloop','Onveranderd'];
 		attribute<string> label := name;
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}

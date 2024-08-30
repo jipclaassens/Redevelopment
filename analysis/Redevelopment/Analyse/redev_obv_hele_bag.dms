@@ -59,6 +59,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	{
 		// unit<uint32> SN_Sites                       := AdditionalOperations/SN/Result;
 		unit<uint32> SN_Sloop_Objecten              := AdditionalOperations/SN/Result/Sloop_Objecten;
+		unit<uint32> SN_Sloop_nw_Objecten           := AdditionalOperations/SN/Result/Sloop_NW_Objecten;
 		unit<uint32> SN_Nieuwbouw_Objecten          := AdditionalOperations/SN/Result/Nieuwbouw_Objecten;
 		
 		// unit<uint32> Nieuwbouw_OpOnbebouwd_Sites    := AdditionalOperations/Nieuwbouw_Panden_OpOnbebouwd/result;
@@ -71,7 +72,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		unit<uint32> Onttrekking_Objecten           := PrepDomains/OC/domain;
 		
 		// unit<uint32> Transformatie_Sites            := AdditionalOperations/Clustering/TMplus/CleanUp;
-		unit<uint32> Transformatie_Objecten         := PrepDomains/TMplus/domain;
+		unit<uint32> Transformatie_Plus_Objecten         := PrepDomains/TMplus/domain;
+		unit<uint32> Transformatie_Min_Objecten     := PrepDomains/TMmin/domain;
 		
 		// unit<uint32> Sloop_Sites                    := AdditionalOperations/Clustering/S/CleanUp;
 		unit<uint32> Sloop_Objecten                 := AdditionalOperations/Sloop/Result;
@@ -81,7 +83,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	}
 	
 	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
-	, StorageName = "%LocalDataProjDir%/Temp/PerObject_Export.fss"
+	, StorageName = "='%LocalDataProjDir%/Temp/PerObject_Export_'+/Parameters/BAG_Selection_Area+'.fss'"
 	, using = "AdditionalClassifications"
 	{
 		attribute<rdc>              geometry                        := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_geometry')+')';
@@ -468,13 +470,13 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			
 			unit<uint32>           zonder_afwijkende_pand_geometrieen          := select_with_attr_by_cond(., impl/pand_selection_condition), DialogType = "map", DialogData = "vbo_geometry";
 
-			unit<uint32>           overlay_metPercelen                         := bg_overlay_polygon(perceel/geometry, zonder_afwijkende_pand_geometrieen/pand_geometry) 
-			{
-				attribute<m2> area_percelen := area(perceel/geometry, m2)[first_rel];
-				attribute<m2> area_panden   := area(zonder_afwijkende_pand_geometrieen/pand_geometry, m2)[second_rel];
+			// unit<uint32>           overlay_metPercelen                         := bg_overlay_polygon(perceel/geometry, zonder_afwijkende_pand_geometrieen/pand_geometry) 
+			// {
+				// attribute<m2> area_percelen := area(perceel/geometry, m2)[first_rel];
+				// attribute<m2> area_panden   := area(zonder_afwijkende_pand_geometrieen/pand_geometry, m2)[second_rel];
 				
-				attribute<float32> share_pand_op_perceel := area_panden / area_percelen;
-			}
+				// attribute<float32> share_pand_op_perceel := area_panden / area_percelen;
+			// }
 		} 
 	}
 }

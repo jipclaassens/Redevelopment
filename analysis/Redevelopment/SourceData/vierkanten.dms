@@ -1,0 +1,42 @@
+container CBS_vierkanten
+{
+	unit<uint32> Jaren := range(uint32, 2000, 2024)
+	{
+		attribute<.> jaar := id(.);
+		attribute<string> name := 'Y'+string(jaar);
+	}
+	
+	container Read :=
+		for_each_ne(
+			Jaren/name
+			, 'Read_GPKG_T('+quote(string(jaren/jaar))+')'
+		);
+	
+	Template Read_GPKG_T
+	{
+		parameter<string> jaar;
+		//
+		
+		container GPKG
+		:	StorageName     = "='%SourceDataDir%/CBS/cbs_vk100_'+jaar+'_vol.gpkg'"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		,	DialogData      = "rdc"
+		,	SyncMode        = "AllTables";
+		
+		unit<uint32>         domain                         := =jaar == '2023' ? 'GPKG/cbs_vk100_'+jaar : 'GPKG/vierkant_100m_'+jaar;
+		attribute<int32>     aantal_woningen_src   (domain) := domain/aantal_woningen[int32];
+		attribute<int32>     aantal_woningen       (domain) := aantal_woningen_src != int32(-99998) && aantal_woningen_src != int32(-99997) ? aantal_woningen_src : int32(0);
+		
+		attribute<domain>    grid_rel      (NL_grid/domain) := poly2grid(domain/geometry, NL_grid/domain);
+		attribute<int32>     per_grid      (NL_grid/domain) := aantal_woningen[grid_rel];
+	}
+	
+	container aantal_woningen :=
+		for_each_nedv(
+			Jaren/name
+			, 'read/'+Jaren/name+'/per_grid'
+			, NL_grid/domain
+			, int32
+		);
+}

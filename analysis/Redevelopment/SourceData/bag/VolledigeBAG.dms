@@ -301,8 +301,44 @@ container VolledigeBAG : using = "classifications/BAG"
 		}
 
 		// We only select valid records. We omit for example all records that have a geometry outside of the bounding box of Netherlands 
-		unit<uint32> vbo := select_with_attr_by_org_rel(src, src/impl/vbo_selection_condition);
 		// unit<uint32> vbo := select_with_attr_by_org_rel(src, const(TRUE,src));
+		unit<uint32> vbo := select_with_attr_by_org_rel(src, src/impl/vbo_selection_condition)
+		{
+			container Stand_per_Jaar := 
+				for_each_ne(
+					classifications/Tijd/jaren12_24/name
+					, 'Stand_Per_Jaar_T('+string(classifications/Tijd/jaren12_24/value)+'[int32])'
+				);
+				
+			Template Stand_Per_Jaar_T
+			{
+				parameter<int32> Year;
+				//
+				
+				attribute<bool> vbo_selection_date   (vbo) := vbo/begindatum < int32(string(Year)+'0101') && vbo/einddatum >= int32(string(Year)+'0101');
+				attribute<bool> vbo_selection_status (vbo) := vbo_status/isVoorraad[vbo/status_rel];
+				attribute<bool> vbo_selection_wonen  (vbo) := vbo/gebruiksdoelen/woon;
+
+				
+				unit<uint32> select := select_with_org_rel(vbo_selection_date && vbo_selection_status && vbo_selection_wonen)
+				{
+					attribute<rdc>                  geometry                      := vbo/geometry[org_rel];
+					attribute<int32>                vbo_oppervlakte               := vbo/oppervlakte[org_rel];
+					attribute<vbo_status>           vbo_status_rel                := vbo/status_rel[org_rel]; 
+					
+					attribute<NL_grid/domain>       NL_grid_domain_rel            := geometry[NL_grid/domain];
+					attribute<uint32>               count_ha     (NL_grid/domain) := count(geometry, NL_grid_domain_rel);
+				}
+			}
+			
+			container gebruiksdoelen :=
+				for_each_nedv(
+					vbo_gebruiksdoel/name
+					, 'bitand(functie_code,vbo_gebruiksdoel/V/'+vbo_gebruiksdoel/name+'->functie_code) > 0w' 
+					, .
+					, bool
+				);
+		}
 	}
 	
 	

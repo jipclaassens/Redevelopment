@@ -113,18 +113,17 @@ container Redev: isHidden = "True", using = "units"
 		}
 	}
 	
-	unit<uint8> Redev_Types : nrofrows = 13
+	unit<uint8> Redev_Types : nrofrows = 111
 	{
 		attribute<string> name : ['SN_Woon_Woon','SN_NietWoon_Woon','SN_Mixed_Woon'
 									, 'Toevoeging_Woon', 'Onttrekking_Woon'
 									, 'Onveranderd_Woon','Onveranderd_NietWoon','Onveranderd_Mixed'
-									, 'Nieuwbouw_Wonen_OpOnbebouwd', 'Nieuwbouw_Mixed_OpOnbebouwd'
-									, 'Nieuwbouw_Wonen_OpBebouwd', 'Nieuwbouw_Mixed_OpBebouwd'
+									, 'Nieuwbouw_Wonen', 'Nieuwbouw_Mixed'
 									, 'Transformatie_Woon'
 								];
 		attribute<string> Label    := name, DialogType = "LabelText";
 		attribute<bool>   IsRedeveloped := name != 'Onveranderd_Woon' && name != 'Onveranderd_NietWoon' && name != 'Onveranderd_Mixed';
-		attribute<bool>   IsNieuwbouw   := name == 'SN_Woon_Woon' || name == 'SN_NietWoon_Woon' || name == 'SN_Mixed_Woon' || name == 'Nieuwbouw_Wonen_OpOnbebouwd' || name == 'Nieuwbouw_Mixed_OpOnbebouwd' || name == 'Nieuwbouw_Wonen_OpBebouwd' || name == 'Nieuwbouw_Mixed_OpBebouwd';
+		attribute<bool>   IsNieuwbouw   := name == 'SN_Woon_Woon' || name == 'SN_NietWoon_Woon' || name == 'SN_Mixed_Woon' || name == 'Nieuwbouw_Mixed' || name == 'Nieuwbouw_Wonen';
 		
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}

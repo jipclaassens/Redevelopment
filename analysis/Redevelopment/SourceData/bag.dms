@@ -4,14 +4,14 @@ container BAG : using = "classifications;units"
 	unit<uint32>    RegioUnit_wijk    := /SourceData/RegioIndelingen/wijk;
 	unit<uint32>    RegioUnit_PC6     := /SourceData/RegioIndelingen/PC6_vlakken;
 	unit<uint32>    RegioUnit_gem     := /SourceData/RegioIndelingen/gemeente;
-	unit<uint32>    RegioUnit_aggl    := /SourceData/RegioIndelingen/gemeente/UrbanCores;
+	// unit<uint32>    RegioUnit_aggl    := /SourceData/RegioIndelingen/gemeente/UrbanCores;
 	unit<uint32>    RegioUnit_corop   := /SourceData/RegioIndelingen/corop;
 	unit<uint32>    RegioUnit_prov    := /SourceData/RegioIndelingen/provincie;
 	unit<uint32>    RegioUnit_NL      := /SourceData/RegioIndelingen/nederland;
 	unit<uint32>    RegioUnit_MRA     := SourceData/RegioIndelingen/MRA/MRA1;
 	unit<uint32>    RegioUnit_AMS     := SourceData/RegioIndelingen/Gemeente/Amsterdam;
 	unit<uint32>    RegioUnit_Utrecht := SourceData/RegioIndelingen/Gemeente/Utrecht;
-	unit<uint32>    Perceel           := SourceData/BRK/Perceel;
+	// unit<uint32>    Perceel           := SourceData/BRK/Perceel;
 	
 	unit<uint8>     WP2               := classifications/bag/type_woonpand_2;
 	unit<uint8>     WP3               := classifications/bag/type_woonpand_3;

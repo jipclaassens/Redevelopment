@@ -1,26 +1,14 @@
 container AdditionalClassifications
 {
-	unit<uint8> Redev_ObjectTypes : nrofrows = 9
+	unit<uint8> Redev_ObjectTypes : nrofrows = 10
 	{
-		attribute<string> name : ['SN_Sloop','SN_Nieuwbouw','Toevoeging','Transformatie','Onttrekking','Onveranderd','Nieuwbouw_OpBebouwd','Nieuwbouw_OpOnbebouwd','Sloop'];
-		attribute<string> label := name;
-		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-	}
-	// unit<uint8> Redev_ObjectTypes : nrofrows = 8
-	// {
-		// attribute<string> name : ['SN_Sloop','SN_Nieuwbouw','Toevoeging','Transformatie','Onttrekking','Nieuwbouw_OpBebouwd','Nieuwbouw_OpOnbebouwd','Sloop'];
-		// attribute<string> label := name;
-		// container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-	// }
-	unit<uint8> Redev_SiteTypes : nrofrows = 8
-	{
-		attribute<string> name : ['SN','Toevoeging','Transformatie','Onttrekking','Onveranderd','Nieuwbouw_OpBebouwd','Nieuwbouw_OpOnbebouwd','Sloop'];
+		attribute<string> name : ['SN_Sloop','SN_Sloop_nw','SN_Nieuwbouw','Nieuwbouw','Toevoeging','Onttrekking','Transformatie_Plus','Transformatie_Min','Sloop','Onveranderd'];
 		attribute<string> label := name;
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	// unit<uint8> Redev_SiteTypes : nrofrows = 7
 	// {
-		// attribute<string> name : ['SN','Toevoeging','Transformatie','Onttrekking','Nieuwbouw_OpBebouwd','Nieuwbouw_OpOnbebouwd','Sloop'];
+		// attribute<string> name : ['SN','Toevoeging','Transformatie','Onttrekking','Onveranderd','Nieuwbouw','Sloop'];
 		// attribute<string> label := name;
 		// container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	// }

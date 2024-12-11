@@ -436,16 +436,16 @@ container MaakVolledigeBAG : using = "classifications/BAG"
 
 				container meta := meta_src_template(src, nummeraanduiding_status);
 			}
-			unit<uint32> result := src
-			{
+			// unit<uint32> result := src
+			// {
 				// attribute<uint32> count := pcount(impl/selectie/result_rel), DisableStorage = "True";
-			}
-			unit<uint32> result_fss := select_with_attr_by_org_rel(result, const(true,result)),  StorageName = "= Result_FSS_dir + '/nummeraanduiding.fss'"
+			// }
+			unit<uint32> result_fss := select_with_attr_by_org_rel(src, const(true,src)),  StorageName = "= Result_FSS_dir + '/nummeraanduiding.fss'"
 			{
 				// attribute<uint32> key: DisableStorage = "True";
-				attribute<result> org_rel:   DisableStorage = "True";
+				attribute<src> org_rel:   DisableStorage = "True";
 
-				container meta := collect_attr_by_org_rel(result/meta, result_fss, org_rel);
+				container meta := collect_attr_by_org_rel(src/meta, result_fss, org_rel);
 			}
 		}
 

@@ -279,6 +279,7 @@ container PrepBAG : using = "AdditionalClassifications"
 			, Descr = "stand op 1 januari"
 			{
 				attribute<rdc>                  geometry                      := BAG_Tabel/geometry[org_rel];
+				attribute<rdc>                  pand_geometry (poly)          := BAG_Tabel/pand_geometry[org_rel];
 				attribute<uint64>               pand_bag_nr                   := BAG_Tabel/pand_bag_nr[org_rel];
 				attribute<uint64>               vbo_bag_nr                    := BAG_Tabel/vbo_bag_nr[org_rel];
 				attribute<PrevDomain>           PrevDomain_vbo_rel            := =PrevYear == 2011i ? 'const(null_u[PrevDomain],.)' : 'rlookup(vbo_bag_nr, PrevDomain/vbo_bag_nr)';
@@ -299,7 +300,39 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<bool>                 VBO_WasOverigeGebruiksfunctie := prev_gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks;
 				attribute<bool>                 VBO_IsOverigeGebruiksfunctie  := gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks;
 		
-				unit<uint32>                    uq_pand_nr                    := unique(pand_bag_nr);
+				unit<uint32>       Wijk12                 := /SourceData/RegioIndelingen/impl/CBS/Y2012/Wijk;
+				attribute<Wijk12>  wijk12_rel             := point_in_polygon(geometry, Wijk12/geometry);
+					
+				unit<uint32>                    uq_pand_nr                    := unique(pand_bag_nr)
+				{
+					// tbv per wijk regressie analyse
+					attribute<jaar>    pand_bouwjaar          := modus(../pand_bouwjaar, uq_pand_nr_rel);
+					attribute<rdc>     pand_geometry  (poly)  := first(../pand_geometry, uq_pand_nr_rel);
+					attribute<rdc>     pand_centroid          := centroid_or_mid(pand_geometry);
+					attribute<Wijk12>  wijk12_rel             := point_in_polygon(pand_centroid, Wijk12/geometry);
+					attribute<jaar>    mean_bouwjaar (wijk12) := mean(pand_bouwjaar, wijk12_rel);
+					attribute<jaar>    pand_mean_bouwjaar     := mean_bouwjaar[wijk12_rel];
+					unit<uint8>        WP4                    := /classifications/BAG/type_woonpand_4;
+					attribute<WP4>     pand_type              := AfleidingPandtype/results/WP4_rel;
+					
+					attribute<float32> chi_square    (wijk12) := sum(sqr(pand_bouwjaar[float32] - pand_mean_bouwjaar[float32]) / pand_mean_bouwjaar[float32], wijk12_rel), Descr = "Pearson's chi-square om de mate van uniformiteit te bepalen", URL = "https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test";
+					// attribute<float32> diversity              := ='1f - add('+asList( + 'sqr(' + Grondgebruik/CBS2010Klasse/gg_12K_wo_OSA/name + ')',',')+')';
+					
+					attribute<float32> count_vrijstaand           (wijk12) := sum(float32(pand_type == WP4/v/vrijstaand), wijk12_rel);
+					attribute<float32> count_twee_onder_1_kap     (wijk12) := sum(float32(pand_type == WP4/v/twee_onder_1_kap), wijk12_rel);
+					attribute<float32> count_rijtjeswoning        (wijk12) := sum(float32(pand_type == WP4/v/rijtjeswoning), wijk12_rel);
+					attribute<float32> count_appartement          (wijk12) := sum(float32(pand_type == WP4/v/appartement), wijk12_rel);
+					attribute<float32> count_all                  (wijk12) := count_vrijstaand + count_twee_onder_1_kap + count_rijtjeswoning + count_appartement;
+					
+					attribute<float32> rel_voork_vrijstaand       (wijk12) := count_vrijstaand / count_all;
+					attribute<float32> rel_voork_twee_onder_1_kap (wijk12) := count_twee_onder_1_kap / count_all;
+					attribute<float32> rel_voork_rijtjeswoning    (wijk12) := count_rijtjeswoning / count_all;
+					attribute<float32> rel_voork_appartement      (wijk12) := count_appartement / count_all;
+					
+					attribute<float32> shanning_index_WP          (wijk12) := ='- add('+AsList('rel_voork_'+WP4/name+' * log(rel_voork_'+WP4/name+')',',')+')';
+					
+					#include<AfleidingPandtype.dms>
+				}
 				attribute<uq_pand_nr>           uq_pand_nr_rel                := rlookup(pand_bag_nr, uq_pand_nr/values);
 				
 				//transformatie identificatie (Goedhuys, M. & van der Wal, E. (2020) Transformaties in de woningvoorraad 2018-2019)

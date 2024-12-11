@@ -1,6 +1,6 @@
 container UrbanAttractivityIndex
 {	
-	parameter<string> Year := '2023'; //2018 2021
+	parameter<string> Year := '2012'; //2018 2021
 	unit<uint32>      vbo  := ='SourceData/BAG/Snapshots/VBOs/Y'+Year+'01/vbo';
 	unit<uint32>      pand := ='SourceData/BAG/Snapshots/Panden/Y'+Year+'01/Pand';
 	

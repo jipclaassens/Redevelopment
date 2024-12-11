@@ -4,6 +4,6 @@ container Analyse : using = "units;classifications;geography"
 	#include<DetermineUrbanisationK.dms>
 	// #include <RedevelopmentOptionValue.dms>
 	// #include <sloop_nieuwbouw_snapshots_kwartalen.dms>
-	// #include <UAI.dms>
+	#include <UAI.dms>
 	#include <verschil_per_ha.dms> // jaarlijkse verdichting analyse en paper 1
 }

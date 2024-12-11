@@ -264,6 +264,8 @@ container VolledigeBAG : using = "classifications/BAG"
 			attribute<RegioUnit_AMS>              AMS_rel                   := point_in_polygon(geometry, RegioUnit_AMS/geometry);
 			attribute<RegioUnit_Utrecht>          Utrecht_rel               := point_in_polygon(geometry, RegioUnit_Utrecht/geometry);
 			
+			attribute<string>                     postcode                  := rjoin(nummeraanduiding_id, Nummeraanduiding/import/identificatie, Nummeraanduiding/import/postcode);
+			
 			attribute<bool>                       VBO_IsVoorraad            := vbo_status/isVoorraad[status_rel];
 			
 			//adhoc
@@ -424,6 +426,53 @@ container VolledigeBAG : using = "classifications/BAG"
 		}
 
 		unit<uint32> ligplaats := select_with_attr_by_org_rel(src, const(TRUE,src));
+	}
+	
+	container Nummeraanduiding
+	{
+		//import the source BAG files
+		unit<uint32> import
+		:	StorageName = "= Result_FSS_dir + '/Nummeraanduiding.fss'"
+		,	StorageReadOnly = "True"
+		{
+			attribute<string> identificatie;
+			attribute<int32>  huisnummer;
+			attribute<string> huisletter;
+			attribute<string> toevoeging;
+			attribute<string> postcode;
+			attribute<string> typeAdresseerbaarObject;
+			attribute<string> openbareruimte_id;
+			attribute<string> woonplaats_id;
+			container meta := meta_src_template(., nummeraanduiding_status);
+		}
+		
+		unit<uint32> src := import
+		{
+			attribute<rdc>                             geometry                := rjoin(identificatie, VBOs/src/nummeraanduiding_id, VBOs/src/geometry);
+			attribute<string>                          postcode4               := substr(postcode, 0, 4);
+			attribute<nummeraanduiding_status>         status_rel              := import/meta/status_rel;
+		}
+		
+		unit<uint32> Nummeraanduiding := select_with_attr_by_org_rel(src, src/status_rel == nummeraanduiding_status/v/naamgeving_uitgegeven)
+		{
+			// attribute<rdc>                             geometry                := org_rel -> geometry;
+			// attribute<string>                          postcode4               := org_rel -> postcode4;
+			attribute<uint32>                          PC4_uq_rel              := rlookup(postcode4, pc4_uq/PC4);
+			unit<uint32> pc4_uq := unique(postcode4)
+			{
+				attribute<float32>  x_mean   := mean(pointcol(../geometry), PC4_uq_rel);
+				attribute<float32>  y_mean   := mean(pointrow(../geometry), PC4_uq_rel);
+				attribute<rdc>      geometry := point_xy(x_mean, y_mean, rdc);
+				attribute<string>   PC4      := values;
+			}
+			
+			unit<uint32> PC4_centroids := select_with_attr_by_cond(pc4_uq, IsDefined(pc4_uq/geometry) && pc4_uq/PC4 != '')
+			{
+				attribute<string>   name       := PC4;
+				attribute<string>   label      := PC4;
+				attribute<float32>  landprice  := rjoin(pc4, /SourceData/overig/landprice_pc4_2007/PC4Code, float32(/SourceData/overig/landprice_pc4_2007/Landprice));
+			}
+		}
 	}
 	
 	

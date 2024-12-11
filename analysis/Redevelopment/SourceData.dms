@@ -12,6 +12,56 @@ container SourceData :  using = "units;geography;classifications"
 	// #include <woz.dms>
 	#include <vierkanten.dms>
 	
+	container overig
+	{
+		unit<uint32> landprice_pc4_2007
+		:  StorageName = "%SourceDataDir%/Overig/Weighted_avg_landprice_pc4_1985-2007.csv"
+		,  StorageType = "gdal.vect"
+		,  StorageReadOnly = "True" 
+		{
+			attribute<string> gemeente;
+			attribute<string> PC4Code;
+			attribute<string> p_m2_FE;
+			
+			attribute<float32> landprice  := p_m2_FE[float32];
+		}
+	}
+	
+	container Kerncijfer_WijkBuurt
+	{
+		unit<uint32> jaren := range(uint32, 2012, 2025)
+		{
+			attribute<uint32> jaar            := id(.);
+			attribute<string> name            := 'Y'+string(jaar);
+			attribute<string> code_veld       := jaar >= 2019 ? 'gwb_code' : 'wkcode';
+		}
+		
+		container Read :=
+			for_each_ne(
+				jaren/name
+				, 'Read_xlsx_T('+quote(string(jaren/jaar))+','+quote(jaren/code_veld)+')'
+			)
+		{
+			container Last := =last(jaren/name);
+		}
+
+		Template Read_xlsx_T
+		{
+			parameter<string> jaar;
+			parameter<string> code_veld;
+			//
+	
+			unit<uint32> XLSX 
+			:   StorageName     = "='%SourceDataDir%/Overig/CBS_Kerncijfers_WijkBuurt/kwb-'+jaar+'.xlsx'"
+			,   StorageType     = "gdal.vect"
+			,	StorageReadOnly = "True"
+			{
+				attribute<string> WKCODE := IsNUll(BU_CODE) ? 'WK'+GM_CODE+WK_CODE : Null_str; 
+				attribute<string> CODE   := =code_veld; 
+			}
+		}
+	}
+	
  	container EigendomStaat
 	{
 		unit<uint32> Corporatiebezit_data

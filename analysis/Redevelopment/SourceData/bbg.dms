@@ -3,7 +3,7 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 	container BBG 
 	{
 		unit<uint32> BBG_Reeks_1996_2017
-		:	StorageName     = "%Redev_DataDir%/Grondgebruik/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
+		:	StorageName     = "%Redev_DataDir%/Grondgebruik/BBG/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	Source          = "https:\//geodata.cbs.nl/files/Bodemgebruik/BBG2017/CBS_MutatiebestandBBG1996_2017_v1_GPKG.zip"
@@ -224,8 +224,9 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 		
 	}
 */
+/*
 	unit<uint32> src //nodig voor verdichting analyse en jaarlijkse analyse
-	:  StorageName = "%Redev_DataDir%/Grondgebruik/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
+	:  StorageName = "%Redev_DataDir%/Grondgebruik/BBG/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
 	,  StorageType = "gdal.vect"
 	,  StorageReadOnly = "True"
 	,  SyncMode = "AllTables"
@@ -352,4 +353,5 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 				attribute<float32>   diversity        (NL_grid/domain)    := = 'add('+asList( + 'sqr(' + gg_10k_anders/name + ')',',')+')';
 		}
 	}
+*/
 }

@@ -311,6 +311,7 @@ container PrepBAG : using = "AdditionalClassifications"
 					attribute<rdc>     pand_centroid          := centroid_or_mid(pand_geometry);
 					attribute<Wijk12>  wijk12_rel             := point_in_polygon(pand_centroid, Wijk12/geometry);
 					attribute<jaar>    mean_bouwjaar (wijk12) := mean(pand_bouwjaar, wijk12_rel);
+					attribute<jaar>    modus_bouwjaar (wijk12) := modus(pand_bouwjaar, wijk12_rel);
 					attribute<jaar>    pand_mean_bouwjaar     := mean_bouwjaar[wijk12_rel];
 					unit<uint8>        WP4                    := /classifications/BAG/type_woonpand_4;
 					attribute<WP4>     pand_type              := AfleidingPandtype/results/WP4_rel;

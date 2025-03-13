@@ -25,6 +25,24 @@ container SourceData :  using = "units;geography;classifications"
 			
 			attribute<float32> landprice  := p_m2_FE[float32];
 		}
+		
+		unit<uint32> StadsDorpsGezichten_src
+		:  StorageName = "%SourceDataDir%/Overig/Stads_en_Dorpsgezichten_2020.gdb"
+		,  StorageType = "gdal.vect"
+		,	StorageReadOnly = "True"
+		,	SyncMode = "AllTables"
+		{
+			attribute<rdc>              geometry (poly);
+			attribute<string>           naam : DialogType = "LabelText";
+			attribute<string>           JURSTATUS;
+			
+		}
+		
+		unit<uint32> StadsDorpsGezichten := select_with_org_rel(StadsDorpsGezichten_src/JURSTATUS == 'rijksmonument')
+		{
+			attribute<rdc>              geometry (poly) := org_rel -> geometry;
+			attribute<string>           label           := org_rel -> naam;
+		}
 	}
 	
 	container Kerncijfer_WijkBuurt

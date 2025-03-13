@@ -50,21 +50,27 @@ container RegioIndelingen : using = "geography"
 			}
 			unit<uint32> Wijk      := ='gpkg/wijk'+gegeneraliseerd_str
 			{
-				attribute<rdc> geometry                                 (poly) := ='gpkg/wijk'+gegeneraliseerd_str+'/geometry[rdc]';
-				attribute<string>    code                                            := statcode;
-				attribute<string>    WK_CODE                                            := statcode;
-				attribute<string>    label                                           := statnaam;
-				attribute<string>    name                                            := AsItemName(statnaam);
-				// attribute<.>         per_AdminDomain                   (AdminDomain) := per_AllocDomain[AdminDomain/AllocDomain_rel];
-				// attribute<.>         per_AllocDomain                   (AllocDomain) := poly2grid(geometry, AllocDomain);
-				
-				attribute<uint32>    OAD                                             := uint32(Kerncijfers/OAD[kerncijfers_rel]);
-				attribute<float32>   P_HUURCORP                                      := float32(Kerncijfers/P_HUURCORP[kerncijfers_rel]);
-				attribute<float32>   Landprice                                       := mean(SourceData/BAG/VolledigeBAG/nummeraanduiding/nummeraanduiding/PC4_centroids/Landprice, point_in_polygon(SourceData/BAG/VolledigeBAG/nummeraanduiding/nummeraanduiding/PC4_centroids/geometry, geometry));
-				unit<uint32> Kerncijfers := ='SourceData/Kerncijfer_WijkBuurt/read/Y'+jaar+'/XLSX'; 
-				attribute<Kerncijfers> kerncijfers_rel := rlookup(code, Kerncijfers/code);
-				
+				attribute<rdc>         geometry                                 (poly) := ='gpkg/wijk'+gegeneraliseerd_str+'/geometry[rdc]';
+				attribute<string>      code                                            := statcode;
+				attribute<string>      WK_CODE                                         := statcode;
+				attribute<string>      label                                           := statnaam;
+				attribute<string>      name                                            := AsItemName(statnaam);
+				attribute<uint32>      OAD                                             := uint32(Kerncijfers/OAD[kerncijfers_rel]);
+				attribute<float32>     P_HUURCORP                                      := float32(Kerncijfers/P_HUURCORP[kerncijfers_rel]);
+				attribute<float32>     Landprice                                       := mean(SourceData/BAG/VolledigeBAG/nummeraanduiding/nummeraanduiding/PC4_centroids/Landprice, point_in_polygon(SourceData/BAG/VolledigeBAG/nummeraanduiding/nummeraanduiding/PC4_centroids/geometry, geometry));
+				unit<uint32>           Kerncijfers                                     := ='SourceData/Kerncijfer_WijkBuurt/read/Y'+jaar+'/XLSX'; 
+				attribute<Kerncijfers> kerncijfers_rel                                 := rlookup(code, Kerncijfers/code);
+				attribute<Provincie>   provincie_rel                                   := point_in_polygon(centroid_or_mid(geometry), provincie/geometry);
+				attribute<.>           per_NL_grid_domain             (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+				attribute<m2>          opp_BeschermdeStadDorpgezichten                 := sum(x_BeschermdeStadDorpgezichten/area, x_BeschermdeStadDorpgezichten/first_rel);
 				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+				
+				unit<uint32> x_BeschermdeStadDorpgezichten := bp_overlay_polygon(geometry[rdc_cm], SourceData/overig/StadsDorpsGezichten/geometry[rdc_cm])
+				{
+					attribute<rdc> geometry_rd (poly) := geometry[rdc];
+					attribute<m2>  area := area(geometry_rd, m2);
+				}
+				
 			}
 			unit<uint32> Gemeente  := ='gpkg/gemeente'+gegeneraliseerd_str
 			{

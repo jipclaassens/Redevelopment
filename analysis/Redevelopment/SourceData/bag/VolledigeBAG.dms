@@ -177,45 +177,52 @@ container VolledigeBAG : using = "classifications/BAG"
 				
 				//adhoc
 				attribute<RegioUnit_AMS>                AMS_rel                   := point_in_polygon(centroid_or_mid(geometry), RegioUnit_AMS/geometry);
-				// attribute<SourceData/RegioIndelingen/Provincie/GR>                GR_rel                    := point_in_polygon(centroid_or_mid(geometry), /SourceData/RegioIndelingen/Provincie/GR/geometry);
 			
 				attribute<bool>                         pand_selection_condition     := ='X_ext < 1000f && Y_ext < 1000f' //panden met een grotere x/y range dan 1km eruit
 																						'&& lower_x < 300000f && lower_x > 0f'
 																						'&& upper_x < 300000f && upper_x > 0f'
 																						'&& lower_y < 620000f && lower_y > 300000f'
 																						'&& upper_y < 620000f && upper_y > 300000f'; //binnen NL
-																						// '&& IsDefined(GR_rel)';
 			}
 		}  
 			
-		unit<uint32> pand := select_with_attr_by_cond(src, src/Impl/pand_selection_condition);
-		// , StorageName = "%LocalDataProjDir%/pand_test_ams.fss"
-		// {
-			// attribute<rdc> geometry (poly) := src/geometry[org_rel], DisableStorage = "true";
-			//ad hoc tbv tests
-			// attribute<rdc> inflate                       (poly) := bg_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
-		// }
+		unit<uint32> pand := select_with_attr_by_cond(src, src/Impl/pand_selection_condition)
+		{
+			container Stand_per_Jaar := 
+				for_each_ne(
+					classifications/Tijd/jaren12_24/name
+					, 'Stand_Per_Jaar_T('+string(classifications/Tijd/jaren12_24/value)+'[int32])'
+				);
+				
+			Template Stand_Per_Jaar_T
+			{
+				parameter<int32> Year;
+				//
+				
+				attribute<bool> pand_selection_date   (pand) := pand/begindatum < int32(string(Year)+'0101') && pand/einddatum >= int32(string(Year)+'0101');
+				attribute<bool> pand_selection_status (pand) := pand_status/isVoorraad[pand/status_rel];
+
+				unit<uint32> select := select_with_org_rel(pand_selection_date && pand_selection_status)
+				, Descr = "selectie vooraad alle gebruiksdoelen"
+				{
+					attribute<rdc>                  geometry (poly)                := pand/geometry[org_rel];
+					attribute<jaar>                 bouwjaar                       := pand/bouwjaar_trunc[org_rel];
+					attribute<pand_status>          pand_status_rel                := pand/status_rel[org_rel]; 
+					attribute<bool>                 HasVBO                         := ='IsDefined(invert(point_in_polygon(VBOs/vbo/Stand_per_Jaar/Y'+string(Year)+'/select_alle_doelen/geometry, geometry)))';
+				}
+				unit<uint32> select_metVBO := select_with_org_rel(select/HasVBO)
+				, Descr = "selectie vooraad alle gebruiksdoelen"
+				{
+					attribute<rdc>                  geometry (poly)                := org_rel -> geometry;
+					attribute<pand_status>          pand_status_rel                := org_rel -> pand_status_rel;
+					attribute<jaar>                 bouwjaar                       := org_rel -> bouwjaar;
+					attribute<float32>              monumentale_panden  (NL_grid/domain) := sum_uint32(bouwjaar <= 1900s, NL_grid_domain_rel)[float32];
+					attribute<float32>              count_ha            (NL_grid/domain) := pcount(NL_grid_domain_rel)[float32];
+					attribute<NL_grid/domain>       NL_grid_domain_rel                   := centroid_or_mid(geometry)[NL_grid/domain];
+				}
+			}
 		
-		// unit<uint32> readpand 
-		// : StorageName = "%LocalDataProjDir%/pand_test_ams.fss"
-		// , StorageReadOnly = "true"
-		// {
-			// attribute<rdc> inflate (poly);
-			// attribute<rdc> geometry (poly) := inflate;
-			// ad hoc tbv tests
-			// unit<uint32> BoxedConnectivity := box_connectivity(Lower_Bound(geometry), Upper_Bound(geometry));
-			// unit<uint32> ConnectParts      := connected_parts(BoxedConnectivity/F1, BoxedConnectivity/F2);
-		
-			// unit<uint32> SplitUnion_BoxedPartition := bp_split_union_polygon(geometry[rdc_cm], ConnectParts/PartNr)
-			// {
-				// attribute<rdc> geometry_rd               (poly) := geometry[rdc];
-			// }
-			// unit<uint32> SplitUnion := bp_split_union_polygon(geometry[rdc_cm])
-			// {
-				// attribute<rdc> geometry_rd               (poly) := geometry[rdc];
-			// }
-		// }
-		// unit<uint32> pand := select_with_attr_by_cond(src, const(TRUE,src));
+		}
 	}
 	
 	container VBOs
@@ -323,6 +330,18 @@ container VolledigeBAG : using = "classifications/BAG"
 
 				
 				unit<uint32> select := select_with_org_rel(vbo_selection_date && vbo_selection_status && vbo_selection_wonen)
+				, Descr = "selectie voorraad woon gebruiksdoel"
+				{
+					attribute<rdc>                  geometry                      := vbo/geometry[org_rel];
+					attribute<int32>                vbo_oppervlakte               := vbo/oppervlakte[org_rel];
+					attribute<vbo_status>           vbo_status_rel                := vbo/status_rel[org_rel]; 
+					
+					attribute<NL_grid/domain>       NL_grid_domain_rel            := geometry[NL_grid/domain];
+					attribute<float32>              oppervlakte_ha (NL_grid/domain) := sum(vbo_oppervlakte, NL_grid_domain_rel);
+					attribute<uint32>               count_ha       (NL_grid/domain) := count(geometry, NL_grid_domain_rel);
+				}
+				unit<uint32> select_alle_doelen := select_with_org_rel(vbo_selection_date && vbo_selection_status)
+				, Descr = "selectie vooraad alle gebruiksdoelen"
 				{
 					attribute<rdc>                  geometry                      := vbo/geometry[org_rel];
 					attribute<int32>                vbo_oppervlakte               := vbo/oppervlakte[org_rel];
@@ -330,6 +349,14 @@ container VolledigeBAG : using = "classifications/BAG"
 					
 					attribute<NL_grid/domain>       NL_grid_domain_rel            := geometry[NL_grid/domain];
 					attribute<uint32>               count_ha     (NL_grid/domain) := count(geometry, NL_grid_domain_rel);
+					
+					container gebruiksdoelen_cbs := collect_attr_by_cond(..../gebruiksdoelen_cbs, ., vbo_selection_date && vbo_selection_status);
+					
+					container GebruiksdoelSets :=
+						for_each_ne(
+							vbo_gebruiksdoel_ext/name
+							, 'MaakGebruiksdoelSets_templ(' + quote(vbo_gebruiksdoel_ext/name) +')'
+						);
 				}
 			}
 			
@@ -340,6 +367,45 @@ container VolledigeBAG : using = "classifications/BAG"
 					, .
 					, bool
 				);
+				
+			container gebruiksdoelen_cbs
+			{
+				attribute<bool>   utiliteit         (..) := ='('+AsList('gebruiksdoelen/'+vbo_gebruiksdoel/Utiliteiten/name, ' || ')+') && !woon';
+				attribute<uint32> Count_Utiliteiten (..) := =AsList('gebruiksdoelen/'+vbo_gebruiksdoel/Utiliteiten/name+'[uint32]', ' + ');
+				
+				attribute<bool>   bijeenkomst       (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/bijeenkomst;
+				attribute<bool>   cel               (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/cel;
+				attribute<bool>   gezondheidszorg   (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/gezondheidszorg;
+				attribute<bool>   industrie         (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/industrie;
+				attribute<bool>   kantoor           (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/kantoor;
+				attribute<bool>   logies            (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/logies;
+				attribute<bool>   onderwijs         (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/onderwijs;
+				attribute<bool>   overige_gebruiks  (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/overige_gebruiks;
+				attribute<bool>   sport             (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/sport;
+				attribute<bool>   winkel            (..) := !woon && Count_Utiliteiten == 1 && gebruiksdoelen/winkel;
+				attribute<bool>   woon              (..) := gebruiksdoelen/woon;
+				attribute<bool>   utiliteit_combi   (..) := !woon && Count_Utiliteiten > 1;
+			}
+
+			Template MaakGebruiksdoelSets_templ
+			{ 
+				/// 
+				parameter<string> name;
+				///
+				
+				unit<uint32> GebruiksdoelSet := ='select_with_org_rel(gebruiksdoelen_cbs/' + name + ')'
+				{
+					attribute<rdc>                    geometry                             := org_rel -> geometry;
+					attribute<vbo_status>             status_rel                           := org_rel -> status_rel;
+					attribute<int32>                  vbo_oppervlakte                      := vbo/oppervlakte[org_rel];
+					attribute<int32>                  oppervlakte_ha      (NL_grid/domain) := sum(vbo_oppervlakte, NL_grid_domain_rel);
+					attribute<uint32>                 count_ha            (NL_grid/domain) := count(geometry, NL_grid_domain_rel);
+					attribute<NL_grid/domain>         NL_grid_domain_rel                   := geometry[NL_grid/domain];
+					// attribute<bool>                   IsVoorraad                           := = vbo_voorraad_status_str;
+					// attribute<jaar>                   bouwjaar_trunc                       := org_rel -> bouwjaar_trunc;
+					// attribute<NL_grid/domain>         NL_grid_domain_rel                   := org_rel -> NL_grid_domain_rel;
+				}
+			}
 		}
 	}
 	

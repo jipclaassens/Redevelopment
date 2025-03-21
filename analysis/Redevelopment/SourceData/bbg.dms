@@ -20,6 +20,8 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 			attribute<gg_src> CBSKlasse_rel_2015 := bbg_ek/CBSKlasseNr[value(BG15, bbg_ek)];
 			attribute<gg_src> CBSKlasse_rel_2017 := bbg_ek/CBSKlasseNr[value(BG17, bbg_ek)];
 			
+			attribute<bool>   IsWoongebied_2000  := CBSKlasse_rel_2000 == gg_src/V/woongebied;
+			
 			unit<uint32> IsWonen_1996 := select_with_org_rel(CBSKlasse_rel_1996 == gg_src/v/woongebied)
 			{
 				attribute<rdc> geometry (poly) := ../geometry[org_rel];

@@ -93,28 +93,28 @@ container PrepBAG : using = "AdditionalClassifications"
 		
 		container VoorraadWoningenPer1Jan :=
 			for_each_nedv(
-				classifications/Tijd/jaren12_24/name
-				, 'sum(VBO_IsVoorraad && VBO_IsWonen && begindatum < int32('+string(classifications/Tijd/jaren12_24/value)+'0101) && einddatum >= int32('+string(classifications/Tijd/jaren12_24/value)+'0101) ?  1 :0)'
+				classifications/Tijd/Jaren/name
+				, 'sum(VBO_IsVoorraad && VBO_IsWonen && begindatum < int32('+string(classifications/Tijd/Jaren/value)+'0101) && einddatum >= int32('+string(classifications/Tijd/Jaren/value)+'0101) ?  1 :0)'
 				, void
 				, uint32
 			);
 		container VoorraadNietWoningenPer1Jan :=
 			for_each_nedv(
-				classifications/Tijd/jaren12_24/name
-				, 'sum(VBO_IsVoorraad && !VBO_IsWonen && begindatum < int32('+string(classifications/Tijd/jaren12_24/value)+'0101) && einddatum >= int32('+string(classifications/Tijd/jaren12_24/value)+'0101) ?  1 :0)'
+				classifications/Tijd/Jaren/name
+				, 'sum(VBO_IsVoorraad && !VBO_IsWonen && begindatum < int32('+string(classifications/Tijd/Jaren/value)+'0101) && einddatum >= int32('+string(classifications/Tijd/Jaren/value)+'0101) ?  1 :0)'
 				, void
 				, uint32
 			);
 			
 		container Per1Jan :=
 			for_each_ne(
-				classifications/Tijd/jaren12_24/name
-				, 'Per1jan_T('+string(classifications/Tijd/jaren12_24/value)+'[int32], '+string(classifications/Tijd/jaren12_24/prev_value)+'[int32])'
+				classifications/Tijd/Jaren/name
+				, 'Per1jan_T('+string(classifications/Tijd/Jaren/value)+'[int32], '+string(classifications/Tijd/Jaren/prev_value)+'[int32])'
 			), Descr = "Nodig om transformatie op te kunnen sporen.";
 			
-		unit<uint32> Transformatie_Results := ='union_unit('+AsItemList('Per1Jan/'+classifications/Tijd/jaren12_24/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra')+')'
+		unit<uint32> Transformatie_Results := ='union_unit('+AsItemList('Per1Jan/'+classifications/Tijd/Jaren/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra')+')'
 		{
-			attribute<uint64> vbo_bag_nr  := ='union_data(.,'+AsItemList('Per1Jan/'+classifications/Tijd/jaren12_24/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra/vbo_bag_nr')+')';
+			attribute<uint64> vbo_bag_nr  := ='union_data(.,'+AsItemList('Per1Jan/'+classifications/Tijd/Jaren/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra/vbo_bag_nr')+')';
 		}
 		
 		attribute<bool>                 WasObjectVoorraadBijStartBAG      := sum_uint8(VBO_IsVoorraad && begindatum <= 20111201i ? 1b : 0b, uq_vbo_rel)[uq_vbo_rel] > 0b; //nodig voor bepaling 'mutatie in 2e instantie' 
@@ -822,7 +822,7 @@ container PrepBAG : using = "AdditionalClassifications"
 	}
 	
 	unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
-	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
+	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
 	{
 		attribute<rdc>                     geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
 		attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
@@ -840,7 +840,7 @@ container PrepBAG : using = "AdditionalClassifications"
 	}
 	
 	unit<uint32> Read_FinalMutationTable
-	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
+	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
 	, StorageReadOnly = "true"
 	{
 		attribute<rdc>                     geometry;

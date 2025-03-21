@@ -1,55 +1,36 @@
-container BRT
+container BRT : using = "classifications/BRT"
 { 
-	container Wegdeel
-	:	StorageName     = "='%Redev_DataDir%/Grondgebruik/BRT/'+Parameters/BRT_file_date+'/top10nl_wegdeel.gpkg'"
+// top10nl_Compleet-20240604
+
+
+	container Compleet
+	:	StorageName     = "='%Redev_DataDir%/Grondgebruik/BRT/top10nl_Compleet-'+Parameters/BRT_file_date+'.gpkg'"
 	,	StorageType     = "gdal.vect"
 	,	StorageReadOnly = "True"
 	, 	DialogData      = "rdc"
 	, 	SyncMode        = "AllTables"
 	, 	Descr           = "Download from PDOK"
 	{
-		unit<uint32> top10nl_wegdeel_vlak
-		{
-			attribute<string>                                    label                := classifications/BRT/visualisatiecodes/label[visualisatiecode_rel];
-			attribute<classifications/BRT/visualisatiecodes>          visualisatiecode_rel := rlookup(int32(visualisatiecode), classifications/BRT/visualisatiecodes/code);
-			attribute<classifications/BRT/visualisatiecodes/label_uq> label_uq_rel         := rlookup(label, classifications/BRT/visualisatiecodes/label_uq/values);
-		}
-	}
-	
-	container Terrein
-	:	StorageName     = "='%Redev_DataDir%/Grondgebruik/BRT/'+Parameters/BRT_file_date+'/top10nl_Terrein.gpkg'"
-	,	StorageType     = "gdal.vect"
-	,	StorageReadOnly = "True"
-	, 	DialogData      = "rdc"
-	, 	SyncMode        = "AllTables"
-	, 	Descr           = "Download from PDOK"
-	{
-		unit<uint32> top10nl_terrein_vlak
-		{
-			attribute<string>                                    label                := classifications/BRT/visualisatiecodes/label[visualisatiecode_rel];
-			attribute<classifications/BRT/visualisatiecodes>          visualisatiecode_rel := rlookup(int32(visualisatiecode), classifications/BRT/visualisatiecodes/code);
-			attribute<classifications/BRT/visualisatiecodes/label_uq> label_uq_rel         := rlookup(label, classifications/BRT/visualisatiecodes/label_uq/values);
-		}
 	}
 	
 	unit<uint32>       Spoor := select_with_org_rel(
-									Terrein/top10nl_terrein_vlak/label_uq_rel == classifications/BRT/visualisatiecodes/label_uq/V/spoor_vlak_spoorbaanlichaam
-									|| Terrein/top10nl_terrein_vlak/label_uq_rel == classifications/BRT/visualisatiecodes/label_uq/V/spoor_vlak_brug
+									rlookup(visualisatiecodes/label[rlookup(int32(Compleet/top10nl_terrein_vlak/visualisatiecode), visualisatiecodes/code)], visualisatiecodes/label_uq/values) == visualisatiecodes/label_uq/V/spoor_vlak_spoorbaanlichaam
+									|| rlookup(visualisatiecodes/label[rlookup(int32(Compleet/top10nl_terrein_vlak/visualisatiecode), visualisatiecodes/code)], visualisatiecodes/label_uq/values) == visualisatiecodes/label_uq/V/spoor_vlak_brug
 								)
 	{
-		attribute<rdc> geometry (poly) := Terrein/top10nl_terrein_vlak/geometry[org_rel];
+		attribute<rdc> geometry (poly) := Compleet/top10nl_terrein_vlak/geometry[org_rel];
 	}
 	
 	unit<uint32>       Weg := select_with_org_rel(
-									Wegdeel/top10nl_wegdeel_vlak/label_uq_rel == classifications/BRT/visualisatiecodes/label_uq/V/weg_vlak_autosnelweg
-									|| Wegdeel/top10nl_wegdeel_vlak/label_uq_rel == classifications/BRT/visualisatiecodes/label_uq/V/weg_vlak_autosnelweg_boven_weg
-									|| Wegdeel/top10nl_wegdeel_vlak/label_uq_rel == classifications/BRT/visualisatiecodes/label_uq/V/weg_vlak_hoofdweg
-									|| Wegdeel/top10nl_wegdeel_vlak/label_uq_rel == classifications/BRT/visualisatiecodes/label_uq/V/weg_vlak_lokale_weg
-									|| Wegdeel/top10nl_wegdeel_vlak/label_uq_rel == classifications/BRT/visualisatiecodes/label_uq/V/weg_vlak_regionale_weg
-									|| Wegdeel/top10nl_wegdeel_vlak/label_uq_rel == classifications/BRT/visualisatiecodes/label_uq/V/weg_vlak_straat
+									rlookup(visualisatiecodes/label[rlookup(int32(Compleet/top10nl_wegdeel_vlak/visualisatiecode), visualisatiecodes/code)], visualisatiecodes/label_uq/values) == visualisatiecodes/label_uq/V/weg_vlak_autosnelweg
+									|| rlookup(visualisatiecodes/label[rlookup(int32(Compleet/top10nl_wegdeel_vlak/visualisatiecode), visualisatiecodes/code)], visualisatiecodes/label_uq/values) == visualisatiecodes/label_uq/V/weg_vlak_autosnelweg_boven_weg
+									|| rlookup(visualisatiecodes/label[rlookup(int32(Compleet/top10nl_wegdeel_vlak/visualisatiecode), visualisatiecodes/code)], visualisatiecodes/label_uq/values) == visualisatiecodes/label_uq/V/weg_vlak_hoofdweg
+									|| rlookup(visualisatiecodes/label[rlookup(int32(Compleet/top10nl_wegdeel_vlak/visualisatiecode), visualisatiecodes/code)], visualisatiecodes/label_uq/values) == visualisatiecodes/label_uq/V/weg_vlak_lokale_weg
+									|| rlookup(visualisatiecodes/label[rlookup(int32(Compleet/top10nl_wegdeel_vlak/visualisatiecode), visualisatiecodes/code)], visualisatiecodes/label_uq/values) == visualisatiecodes/label_uq/V/weg_vlak_regionale_weg
+									|| rlookup(visualisatiecodes/label[rlookup(int32(Compleet/top10nl_wegdeel_vlak/visualisatiecode), visualisatiecodes/code)], visualisatiecodes/label_uq/values) == visualisatiecodes/label_uq/V/weg_vlak_straat
 								)
 	{
-		attribute<rdc> geometry (poly) := Wegdeel/top10nl_wegdeel_vlak/geometry[org_rel];
+		attribute<rdc> geometry (poly) := Compleet/top10nl_wegdeel_vlak/geometry[org_rel];
 	}
 	
 	unit<uint32>       WegSpoor := union_unit(Spoor, Weg)
@@ -66,12 +47,13 @@ container BRT
 	}
 	
 	unit<uint32>       Write_Relevant_Tiles_x_WegSpoor := Relevant_Tiles_x_WegSpoor
-	, StorageName = "%LocalDataProjDir%/Temp/BRT/TiledNonWegSpoor.fss"
+	, StorageName = "='%LocalDataProjDir%/Temp/BRT/TiledNonWegSpoor_'+Parameters/BRT_file_date+'.fss'"
 	{
 		attribute<rdc> TiledNonWegSpoor (poly) := Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor;
 	}
 	unit<uint32>       Read_Relevant_Tiles_x_WegSpoor 
-	: StorageName = "%LocalDataProjDir%/Temp/BRT/TiledNonWegSpoor.fss", StorageReadOnly = "true"
+	: StorageName = "='%LocalDataProjDir%/Temp/BRT/TiledNonWegSpoor_'+Parameters/BRT_file_date+'.fss'"
+	, StorageReadOnly = "true"
 	{
 		attribute<rdc> TiledNonWegSpoor  (poly);
 	}

@@ -109,7 +109,7 @@ container AdditionalOperations
 			}
 		}
 		
-		unit<uint32>  BestaandWoongebiedIn2000   := select_with_org_rel(/SourceData/bestand_bodem_gebruik/src/IsWoongebied_2000)
+		unit<uint32>  BestaandWoongebiedIn2000   := select_with_org_rel(/SourceData/bestand_bodem_gebruik/BBG/BBG_Reeks_1996_2017/IsWoongebied_2000)
 		{
 			attribute<rdc> geometry (poly) := org_rel -> geometry;
 			attribute<m2>  area_vlak       := area(geometry, m2);

@@ -1,4 +1,4 @@
-container AdditionalClassifications
+container AdditionalClassifications : using = "classifications/tijd"
 {
 	unit<uint8> Redev_ObjectTypes : nrofrows = 10
 	{
@@ -20,16 +20,18 @@ container AdditionalClassifications
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	
-	unit<uint32> Verslagmaanden0 := combine(Jaren, Maanden)
+	unit<uint32> Verslagmaanden0 := combine(JarenMin1, Maanden)
 	{
-		attribute<string> jaar  := Jaren/name[first_rel];
+		attribute<string> jaar  := string(JarenMin1/value)[first_rel];
 		attribute<string> maand := Maanden/name[second_rel];
 	}
 	
-	unit<uint32> Verslagmaanden_additional : nrofrows = 7
+	unit<uint32> Verslagmaanden_additional : nrofrows = 1 //7
 	{
-		attribute<string> jaar  : ['2024','2024','2024','2024','2024','2024','2024'];
-		attribute<string> maand : ['01','02','03','04','05','06','07'];
+		// attribute<string> jaar  : ['2024','2024','2024','2024','2024','2024','2024'];
+		// attribute<string> maand : ['01','02','03','04','05','06','07'];
+		attribute<string> jaar  : ['2025'];
+		attribute<string> maand : ['01'];
 	}
 	
 	unit<uint32> Verslagmaanden := union_unit(Verslagmaanden0, Verslagmaanden_additional)
@@ -43,15 +45,6 @@ container AdditionalClassifications
 		attribute<string> prev_name := MakeDefined(name[sub_or_null(id(.), 1)], 'Start');
 	}
 	
-	unit<uint32> Maanden := range(uint32, 1, 13)
-	{
-		attribute<string> name := id(.) < 10 ? '0'+string(id(.)) : string(id(.));
-	}
-	unit<uint32> Jaren := range(uint32, 2012, 2024)
-	{
-		attribute<string> name := string(id(.));
-		attribute<string> label := 'Y'+name;
-	}
 
 	unit<uint8> Overgangen_Vbo := combine_uint8(vbo_status, vbo_status) 
 	{	

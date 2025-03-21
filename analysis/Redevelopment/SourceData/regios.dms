@@ -62,7 +62,9 @@ container RegioIndelingen : using = "geography"
 				attribute<Kerncijfers> kerncijfers_rel                                 := rlookup(code, Kerncijfers/code);
 				attribute<Provincie>   provincie_rel                                   := point_in_polygon(centroid_or_mid(geometry), provincie/geometry);
 				attribute<.>           per_NL_grid_domain             (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+				attribute<m2>          area                                            := area(geometry, m2);
 				attribute<m2>          opp_BeschermdeStadDorpgezichten                 := sum(x_BeschermdeStadDorpgezichten/area, x_BeschermdeStadDorpgezichten/first_rel);
+				attribute<float32>     share_opp_BeschermdeStadDorpsgezichten          := opp_BeschermdeStadDorpgezichten / area;
 				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
 				
 				unit<uint32> x_BeschermdeStadDorpgezichten := bp_overlay_polygon(geometry[rdc_cm], SourceData/overig/StadsDorpsGezichten/geometry[rdc_cm])
@@ -301,8 +303,8 @@ container RegioIndelingen : using = "geography"
 		attribute<string>         label     := GM_NAAM, DialogType = "LabelText";
 		attribute<string>         name                              := AsItemName(GM_NAAM); //replace(label, '/', '_', '-', '_', ' ', '_','(','',')','','â','a','ú','','''','',',','');
 		attribute<.>              per_grid (NL_grid/domain)         := poly2grid(geometry, NL_grid/domain);
-		attribute<bool>           IsUrbanCore                       := IsDefined(rlookup(GM_CODE, UrbanCores/GM_CODE));
-		attribute<bool>           IsUrbanCore_grid (NL_grid/domain) := IsUrbanCore[per_grid];
+		// attribute<bool>           IsUrbanCore                       := IsDefined(rlookup(GM_CODE, UrbanCores/GM_CODE));
+		// attribute<bool>           IsUrbanCore_grid (NL_grid/domain) := IsUrbanCore[per_grid];
 		attribute<uq>             uq_rel                            := rlookup(GM_CODE, uq/GM_CODE);
 
 		unit<uint32> uq := unique(GM_CODE)
@@ -313,40 +315,40 @@ container RegioIndelingen : using = "geography"
 			attribute<string>         name                              := replace(label, '/', '_', '-', '_', ' ', '_','(','',')','','â','a','ú','','''','',',','');
 		}
 		
-		unit<uint32> UrbanCores_list := classifications/Redev/UrbanCores_list;
-		unit<uint32> UrbanCores  := ='subset('+AsList('GM_CODE == '+quote(UrbanCores_list/GM_CODE)+' ','||')+')'
-		, 	Descr = "Op basis van CBS Grootstedelijke Agglomeraties 2015"
-		{    
-			attribute<geography/rdc>    geometry (poly)                      := ../geometry[nr_OrgEntity];
-			attribute<geography/rdc_mm> geometry_mm (poly)                := geometry[geography/rdc_mm];
-			attribute<string>         GM_CODE                              := ../GM_CODE[nr_OrgEntity];
-			attribute<string>         label                                := ../label[nr_OrgEntity]; //, DialogType = "LabelText";
-			attribute<UrbanCores_list/Region_uq>         Region_rel        := rjoin(GM_CODE, UrbanCores_list/GM_CODE, UrbanCores_list/Region_rel);
-			attribute<../Agglomeration_uq>  Agglomeration_rel := rjoin(GM_CODE, UrbanCores_list/GM_CODE, UrbanCores_list/Agglomeration_rel);
-			attribute<string>                            Region            := UrbanCores_list/Region_uq/values[Region_rel];
-			attribute<string>                            Agglomeration     := ../Agglomeration_uq/values[Agglomeration_rel];
-		}
+		// unit<uint32> UrbanCores_list := classifications/Redev/UrbanCores_list;
+		// unit<uint32> UrbanCores  := ='select_with_org_rel('+AsList('GM_CODE == '+quote(UrbanCores_list/GM_CODE)+' ','||')+')'
+		// , 	Descr = "Op basis van CBS Grootstedelijke Agglomeraties 2015"
+		// {    
+			// attribute<geography/rdc>    geometry (poly)                      := ../geometry[org_rel];
+			// attribute<geography/rdc_mm> geometry_mm (poly)                := geometry[geography/rdc_mm];
+			// attribute<string>         GM_CODE                              := ../GM_CODE[org_rel];
+			// attribute<string>         label                                := ../label[org_rel]; //, DialogType = "LabelText";
+			// attribute<UrbanCores_list/Region_uq>         Region_rel        := rjoin(GM_CODE, UrbanCores_list/GM_CODE, UrbanCores_list/Region_rel);
+			// attribute<../Agglomeration_uq>  Agglomeration_rel := rjoin(GM_CODE, UrbanCores_list/GM_CODE, UrbanCores_list/Agglomeration_rel);
+			// attribute<string>                            Region            := UrbanCores_list/Region_uq/values[Region_rel];
+			// attribute<string>                            Agglomeration     := ../Agglomeration_uq/values[Agglomeration_rel];
+		// }
 		
-		unit<uint32> Agglomeration_uq := UrbanCores_list/Agglomeration_uq
-		{
-			attribute<geography/rdc_cm> Geometry_cm  (poly) := bp_union_polygon(UrbanCores/geometry[rdc_cm], UrbanCores/Agglomeration_rel);
-			attribute<geography/rdc>    Geometry     (poly) := geometry_cm[geography/rdc];
-			attribute<km2>               Opp                 := value(area(geometry,m2),km2);
-		}
+		// unit<uint32> Agglomeration_uq := UrbanCores_list/Agglomeration_uq
+		// {
+			// attribute<geography/rdc_cm> Geometry_cm  (poly) := bp_union_polygon(UrbanCores/geometry[rdc_cm], UrbanCores/Agglomeration_rel);
+			// attribute<geography/rdc>    Geometry     (poly) := geometry_cm[geography/rdc];
+			// attribute<km2>               Opp                 := value(area(geometry,m2),km2);
+		// }
 		
-		unit<uint32> Amsterdam := subset(GM_CODE == 'GM0363')
+		unit<uint32> Amsterdam := select_with_org_rel(GM_CODE == 'GM0363')
 		{
-			attribute<geography/rdc>    geometry (poly)                   := ../geometry[nr_OrgEntity];
+			attribute<geography/rdc>    geometry (poly)                   := ../geometry[org_rel];
 			attribute<geography/rdc_mm> geometry_mm (poly)                := geometry[geography/rdc_mm];
-			attribute<string>            GM_CODE                           := ../GM_CODE[nr_OrgEntity];
-			attribute<string>            label                             := ../label[nr_OrgEntity]; //, DialogType = "LabelText";
+			attribute<string>            GM_CODE                           := ../GM_CODE[org_rel];
+			attribute<string>            label                             := ../label[org_rel]; //, DialogType = "LabelText";
 		}
-		unit<uint32> Utrecht := subset(GM_CODE == 'GM0344')
+		unit<uint32> Utrecht := select_with_org_rel(GM_CODE == 'GM0344')
 		{
-			attribute<geography/rdc>    geometry (poly)                   := ../geometry[nr_OrgEntity];
+			attribute<geography/rdc>    geometry (poly)                   := ../geometry[org_rel];
 			attribute<geography/rdc_mm> geometry_mm (poly)                := geometry[geography/rdc_mm];
-			attribute<string>            GM_CODE                           := ../GM_CODE[nr_OrgEntity];
-			attribute<string>            label                             := ../label[nr_OrgEntity]; //, DialogType = "LabelText";
+			attribute<string>            GM_CODE                           := ../GM_CODE[org_rel];
+			attribute<string>            label                             := ../label[org_rel]; //, DialogType = "LabelText";
 		}
 	}
 	

@@ -1,9 +1,9 @@
 container MaakVolledigeBAG : using = "classifications/BAG"
 { 
 	// te configureren
-	parameter<string>  Snapshot_Date_Input := '20240708';
+	parameter<string>  Snapshot_Date_Input := '20250115';
 	//
-	parameter<string>  FSSDir              := '%BAG_DataDir%/' + Snapshot_Date_Input + '/fss';
+	parameter<string>  FSSDir              := '%BAG_DataDir%/' + Snapshot_Date_Input + '';
 	parameter<string>  Result_FSS_dir      := '%BAG_DataDir%/VolledigeTabel_' + Snapshot_Date_Input;
 	parameter<string>  FileNeeded          := expand(., FSSDir) + '/pand/nr_fss.csv';
 	parameter<bool>    isValidFSSDir       := ExistingFile('missing', FileNeeded) == FileNeeded;

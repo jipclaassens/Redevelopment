@@ -3,7 +3,7 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 	container BBG 
 	{
 		unit<uint32> BBG_Reeks_1996_2017
-		:	StorageName     = "%Redev_DataDir%/Grondgebruik/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
+		:	StorageName     = "%Redev_DataDir%/Grondgebruik/BBG/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	Source          = "https:\//geodata.cbs.nl/files/Bodemgebruik/BBG2017/CBS_MutatiebestandBBG1996_2017_v1_GPKG.zip"
@@ -19,6 +19,8 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 			attribute<gg_src> CBSKlasse_rel_2012 := bbg_ek/CBSKlasseNr[value(BG12, bbg_ek)];
 			attribute<gg_src> CBSKlasse_rel_2015 := bbg_ek/CBSKlasseNr[value(BG15, bbg_ek)];
 			attribute<gg_src> CBSKlasse_rel_2017 := bbg_ek/CBSKlasseNr[value(BG17, bbg_ek)];
+			
+			attribute<bool>   IsWoongebied_2000  := CBSKlasse_rel_2000 == gg_src/V/woongebied;
 			
 			unit<uint32> IsWonen_1996 := select_with_org_rel(CBSKlasse_rel_1996 == gg_src/v/woongebied)
 			{
@@ -224,8 +226,9 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 		
 	}
 */
+/*
 	unit<uint32> src //nodig voor verdichting analyse en jaarlijkse analyse
-	:  StorageName = "%Redev_DataDir%/Grondgebruik/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
+	:  StorageName = "%Redev_DataDir%/Grondgebruik/BBG/CBS_MutatiebestandBBG1996_2017_v1.gpkg"
 	,  StorageType = "gdal.vect"
 	,  StorageReadOnly = "True"
 	,  SyncMode = "AllTables"
@@ -352,4 +355,5 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 				attribute<float32>   diversity        (NL_grid/domain)    := = 'add('+asList( + 'sqr(' + gg_10k_anders/name + ')',',')+')';
 		}
 	}
+*/
 }

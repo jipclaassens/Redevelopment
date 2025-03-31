@@ -93,28 +93,28 @@ container PrepBAG : using = "AdditionalClassifications"
 		
 		container VoorraadWoningenPer1Jan :=
 			for_each_nedv(
-				classifications/Tijd/jaren12_24/name
-				, 'sum(VBO_IsVoorraad && VBO_IsWonen && begindatum < int32('+string(classifications/Tijd/jaren12_24/value)+'0101) && einddatum >= int32('+string(classifications/Tijd/jaren12_24/value)+'0101) ?  1 :0)'
+				classifications/Tijd/Jaren/name
+				, 'sum(VBO_IsVoorraad && VBO_IsWonen && begindatum < int32('+string(classifications/Tijd/Jaren/value)+'0101) && einddatum >= int32('+string(classifications/Tijd/Jaren/value)+'0101) ?  1 :0)'
 				, void
 				, uint32
 			);
 		container VoorraadNietWoningenPer1Jan :=
 			for_each_nedv(
-				classifications/Tijd/jaren12_24/name
-				, 'sum(VBO_IsVoorraad && !VBO_IsWonen && begindatum < int32('+string(classifications/Tijd/jaren12_24/value)+'0101) && einddatum >= int32('+string(classifications/Tijd/jaren12_24/value)+'0101) ?  1 :0)'
+				classifications/Tijd/Jaren/name
+				, 'sum(VBO_IsVoorraad && !VBO_IsWonen && begindatum < int32('+string(classifications/Tijd/Jaren/value)+'0101) && einddatum >= int32('+string(classifications/Tijd/Jaren/value)+'0101) ?  1 :0)'
 				, void
 				, uint32
 			);
 			
 		container Per1Jan :=
 			for_each_ne(
-				classifications/Tijd/jaren12_24/name
-				, 'Per1jan_T('+string(classifications/Tijd/jaren12_24/value)+'[int32], '+string(classifications/Tijd/jaren12_24/prev_value)+'[int32])'
+				classifications/Tijd/Jaren/name
+				, 'Per1jan_T('+string(classifications/Tijd/Jaren/value)+'[int32], '+string(classifications/Tijd/Jaren/prev_value)+'[int32])'
 			), Descr = "Nodig om transformatie op te kunnen sporen.";
 			
-		unit<uint32> Transformatie_Results := ='union_unit('+AsItemList('Per1Jan/'+classifications/Tijd/jaren12_24/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra')+')'
+		unit<uint32> Transformatie_Results := ='union_unit('+AsItemList('Per1Jan/'+classifications/Tijd/Jaren/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra')+')'
 		{
-			attribute<uint64> vbo_bag_nr  := ='union_data(.,'+AsItemList('Per1Jan/'+classifications/Tijd/jaren12_24/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra/vbo_bag_nr')+')';
+			attribute<uint64> vbo_bag_nr  := ='union_data(.,'+AsItemList('Per1Jan/'+classifications/Tijd/Jaren/name+'/select/Sub_IsTr_na_3_en_Plausibel_2_extra/vbo_bag_nr')+')';
 		}
 		
 		attribute<bool>                 WasObjectVoorraadBijStartBAG      := sum_uint8(VBO_IsVoorraad && begindatum <= 20111201i ? 1b : 0b, uq_vbo_rel)[uq_vbo_rel] > 0b; //nodig voor bepaling 'mutatie in 2e instantie' 
@@ -279,6 +279,7 @@ container PrepBAG : using = "AdditionalClassifications"
 			, Descr = "stand op 1 januari"
 			{
 				attribute<rdc>                  geometry                      := BAG_Tabel/geometry[org_rel];
+				attribute<rdc>                  pand_geometry (poly)          := BAG_Tabel/pand_geometry[org_rel];
 				attribute<uint64>               pand_bag_nr                   := BAG_Tabel/pand_bag_nr[org_rel];
 				attribute<uint64>               vbo_bag_nr                    := BAG_Tabel/vbo_bag_nr[org_rel];
 				attribute<PrevDomain>           PrevDomain_vbo_rel            := =PrevYear == 2011i ? 'const(null_u[PrevDomain],.)' : 'rlookup(vbo_bag_nr, PrevDomain/vbo_bag_nr)';
@@ -299,7 +300,40 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<bool>                 VBO_WasOverigeGebruiksfunctie := prev_gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks;
 				attribute<bool>                 VBO_IsOverigeGebruiksfunctie  := gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks;
 		
-				unit<uint32>                    uq_pand_nr                    := unique(pand_bag_nr);
+				unit<uint32>       Wijk12                 := /SourceData/RegioIndelingen/impl/CBS/Y2012/Wijk;
+				attribute<Wijk12>  wijk12_rel             := point_in_polygon(geometry, Wijk12/geometry);
+					
+				unit<uint32>                    uq_pand_nr                    := unique(pand_bag_nr)
+				{
+					// tbv per wijk regressie analyse
+					attribute<jaar>    pand_bouwjaar          := modus(../pand_bouwjaar, uq_pand_nr_rel);
+					attribute<rdc>     pand_geometry  (poly)  := first(../pand_geometry, uq_pand_nr_rel);
+					attribute<rdc>     pand_centroid          := centroid_or_mid(pand_geometry);
+					attribute<Wijk12>  wijk12_rel             := point_in_polygon(pand_centroid, Wijk12/geometry);
+					attribute<jaar>    mean_bouwjaar (wijk12) := mean(pand_bouwjaar, wijk12_rel);
+					attribute<jaar>    modus_bouwjaar (wijk12) := modus(pand_bouwjaar, wijk12_rel);
+					attribute<jaar>    pand_mean_bouwjaar     := mean_bouwjaar[wijk12_rel];
+					unit<uint8>        WP4                    := /classifications/BAG/type_woonpand_4;
+					attribute<WP4>     pand_type              := AfleidingPandtype/results/WP4_rel;
+					
+					attribute<float32> chi_square    (wijk12) := sum(sqr(pand_bouwjaar[float32] - pand_mean_bouwjaar[float32]) / pand_mean_bouwjaar[float32], wijk12_rel), Descr = "Pearson's chi-square om de mate van uniformiteit te bepalen", URL = "https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test";
+					// attribute<float32> diversity              := ='1f - add('+asList( + 'sqr(' + Grondgebruik/CBS2010Klasse/gg_12K_wo_OSA/name + ')',',')+')';
+					
+					attribute<float32> count_vrijstaand           (wijk12) := sum(float32(pand_type == WP4/v/vrijstaand), wijk12_rel);
+					attribute<float32> count_twee_onder_1_kap     (wijk12) := sum(float32(pand_type == WP4/v/twee_onder_1_kap), wijk12_rel);
+					attribute<float32> count_rijtjeswoning        (wijk12) := sum(float32(pand_type == WP4/v/rijtjeswoning), wijk12_rel);
+					attribute<float32> count_appartement          (wijk12) := sum(float32(pand_type == WP4/v/appartement), wijk12_rel);
+					attribute<float32> count_all                  (wijk12) := count_vrijstaand + count_twee_onder_1_kap + count_rijtjeswoning + count_appartement;
+					
+					attribute<float32> rel_voork_vrijstaand       (wijk12) := count_vrijstaand / count_all;
+					attribute<float32> rel_voork_twee_onder_1_kap (wijk12) := count_twee_onder_1_kap / count_all;
+					attribute<float32> rel_voork_rijtjeswoning    (wijk12) := count_rijtjeswoning / count_all;
+					attribute<float32> rel_voork_appartement      (wijk12) := count_appartement / count_all;
+					
+					attribute<float32> shanning_index_WP          (wijk12) := ='- add('+AsList('rel_voork_'+WP4/name+' * log(rel_voork_'+WP4/name+')',',')+')';
+					
+					#include<AfleidingPandtype.dms>
+				}
 				attribute<uq_pand_nr>           uq_pand_nr_rel                := rlookup(pand_bag_nr, uq_pand_nr/values);
 				
 				//transformatie identificatie (Goedhuys, M. & van der Wal, E. (2020) Transformaties in de woningvoorraad 2018-2019)
@@ -788,7 +822,7 @@ container PrepBAG : using = "AdditionalClassifications"
 	}
 	
 	unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
-	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
+	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
 	{
 		attribute<rdc>                     geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
 		attribute<rdc>                     pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
@@ -806,7 +840,7 @@ container PrepBAG : using = "AdditionalClassifications"
 	}
 	
 	unit<uint32> Read_FinalMutationTable
-	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'.fss'"
+	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
 	, StorageReadOnly = "true"
 	{
 		attribute<rdc>                     geometry;

@@ -3,7 +3,7 @@ container begenzing_bebouwd_gebied
 	container BBG_2000
 	{
 		unit<uint32> shapes 
-		:	StorageName     = "%Redev_DataDir%/RegioIndelingen/Begrenzing_Bebouwd_Gebied/bg00.shp"
+		:	StorageName     = "%Redev_DataDir%/RegioIndelingen/BegrenzingBebouwdGebied_2000.shp"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		{

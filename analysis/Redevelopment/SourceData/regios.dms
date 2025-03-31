@@ -2,6 +2,113 @@ container RegioIndelingen : using = "geography"
 { 
 	container impl
 	{
+		unit<uint32> CBS_Gebiedsindelingen_jaren := range(uint32, 2012, 2025)
+		{
+			attribute<uint32> jaar            := id(.);
+			attribute<string> name            := 'Y'+string(jaar);
+			attribute<bool>   IsGeneraliseerd := jaar < 2019;
+		}
+		container CBS :=
+			for_each_ne(
+				CBS_Gebiedsindelingen_jaren/name
+				, 'Read_Gebiedsindelingen_gpkg_T('+quote(string(CBS_Gebiedsindelingen_jaren/jaar))+')'
+			)
+		{
+			container Last := =last(CBS_Gebiedsindelingen_jaren/name);
+		}
+
+		Template Read_Gebiedsindelingen_gpkg_T
+		{
+			parameter<string> jaar;
+			//
+			parameter<bool>   IsGeneraliseerd     := rjoin('Y'+jaar, CBS_Gebiedsindelingen_jaren/name, CBS_Gebiedsindelingen_jaren/IsGeneraliseerd);
+			parameter<string> gegeneraliseerd_str := IsGeneraliseerd ? '_gegeneraliseerd' : '_niet_gegeneraliseerd';
+			
+			container gpkg
+			:	StorageName     = "='%Redev_DataDir%/RegioIndelingen/cbsgebiedsindelingen'+jaar+'.gpkg'"
+			, 	StorageType     = "gdal.vect"
+			,	StorageReadOnly = "True"
+			,	SyncMode        = "alltables"
+			,	DialogData      = "rdc"
+			,	URL             = "https://www.cbs.nl/nl-nl/dossier/nederland-regionaal/geografische-data/cbs-gebiedsindelingen"
+			,	KeepData        = "true"
+			{
+				unit<uint32> provincie_gegeneraliseerd
+				{
+					attribute<string>    label := statnaam;	
+				}
+			}
+			
+			unit<uint32> Buurt     := ='gpkg/buurt'+gegeneraliseerd_str
+			{
+				attribute<rdc> geometry                                 (poly) := ='gpkg/buurt'+gegeneraliseerd_str+'/geometry[rdc]';
+				attribute<string>    label                                           := statnaam;
+				attribute<string>    name                                            := AsItemName(statnaam);
+				// attribute<.>         per_AdminDomain                   (AdminDomain) := per_AllocDomain[AdminDomain/AllocDomain_rel];
+				// attribute<.>         per_AllocDomain                   (AllocDomain) := poly2grid(geometry, AllocDomain);
+				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+			}
+			unit<uint32> Wijk      := ='gpkg/wijk'+gegeneraliseerd_str
+			{
+				attribute<rdc>         geometry                                 (poly) := ='gpkg/wijk'+gegeneraliseerd_str+'/geometry[rdc]';
+				attribute<string>      code                                            := statcode;
+				attribute<string>      WK_CODE                                         := statcode;
+				attribute<string>      label                                           := statnaam;
+				attribute<string>      name                                            := AsItemName(statnaam);
+				attribute<uint32>      OAD                                             := uint32(Kerncijfers/OAD[kerncijfers_rel]);
+				attribute<float32>     P_HUURCORP                                      := float32(Kerncijfers/P_HUURCORP[kerncijfers_rel]);
+				attribute<float32>     Landprice                                       := mean(SourceData/BAG/VolledigeBAG/nummeraanduiding/nummeraanduiding/PC4_centroids/Landprice, point_in_polygon(SourceData/BAG/VolledigeBAG/nummeraanduiding/nummeraanduiding/PC4_centroids/geometry, geometry));
+				unit<uint32>           Kerncijfers                                     := ='SourceData/Kerncijfer_WijkBuurt/read/Y'+jaar+'/XLSX'; 
+				attribute<Kerncijfers> kerncijfers_rel                                 := rlookup(code, Kerncijfers/code);
+				attribute<Provincie>   provincie_rel                                   := point_in_polygon(centroid_or_mid(geometry), provincie/geometry);
+				attribute<.>           per_NL_grid_domain             (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+				attribute<m2>          area                                            := area(geometry, m2);
+				attribute<m2>          opp_BeschermdeStadDorpgezichten                 := sum(x_BeschermdeStadDorpgezichten/area, x_BeschermdeStadDorpgezichten/first_rel);
+				attribute<float32>     share_opp_BeschermdeStadDorpsgezichten          := opp_BeschermdeStadDorpgezichten / area;
+				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+				
+				unit<uint32> x_BeschermdeStadDorpgezichten := bp_overlay_polygon(geometry[rdc_cm], SourceData/overig/StadsDorpsGezichten/geometry[rdc_cm])
+				{
+					attribute<rdc> geometry_rd (poly) := geometry[rdc];
+					attribute<m2>  area := area(geometry_rd, m2);
+				}
+				
+			}
+			unit<uint32> Gemeente  := ='gpkg/gemeente'+gegeneraliseerd_str
+			{
+				attribute<rdc>       geometry                                 (poly) := ='gpkg/gemeente'+gegeneraliseerd_str+'/geometry[rdc]';
+				attribute<string>    label                                           := statnaam;
+				attribute<string>    name                                            := AsItemName(statnaam);
+				attribute<uint32>    gem_nr                                          := uint32(right(statcode, 4));
+				// attribute<.>         per_AdminDomain                   (AdminDomain) := per_AllocDomain[AdminDomain/AllocDomain_rel];
+				// attribute<.>         per_AllocDomain                   (AllocDomain) := poly2grid(geometry, AllocDomain);
+				
+				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+			}
+			unit<uint32> COROP     := gpkg/coropgebied_gegeneraliseerd
+			{
+				attribute<rdc> geometry                                 (poly) := gpkg/coropgebied_gegeneraliseerd/geometry[rdc];
+				attribute<string>    label                                           := statnaam;
+				attribute<string>    name                                            := AsItemName(statnaam);
+				// attribute<.>         per_AdminDomain                   (AdminDomain) := per_AllocDomain[AdminDomain/AllocDomain_rel];
+				// attribute<.>         per_AllocDomain                   (AllocDomain) := poly2grid(geometry, AllocDomain);
+				
+				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+			}
+			unit<uint32> Provincie := gpkg/provincie_gegeneraliseerd
+			{
+				attribute<rdc> geometry                                 (poly) := gpkg/provincie_gegeneraliseerd/geometry[rdc];
+				attribute<string>    label                                           := statnaam;
+				attribute<string>    name                                            := replace(AsItemName(statnaam), 'Fryslân', 'Friesland');
+				// attribute<.>         per_AdminDomain                   (AdminDomain) := per_AllocDomain[AdminDomain/AllocDomain_rel];
+				// attribute<.>         per_AllocDomain                   (AllocDomain) := poly2grid(geometry, AllocDomain);
+
+				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+			}
+		}
+		
+	
+	
 		container Gebiedsindelingen
 		:	StorageName     = "%Redev_DataDir%/RegioIndelingen/cbsgebiedsindelingen2023.gpkg"
 		, 	StorageType     = "gdal.vect"
@@ -196,8 +303,8 @@ container RegioIndelingen : using = "geography"
 		attribute<string>         label     := GM_NAAM, DialogType = "LabelText";
 		attribute<string>         name                              := AsItemName(GM_NAAM); //replace(label, '/', '_', '-', '_', ' ', '_','(','',')','','â','a','ú','','''','',',','');
 		attribute<.>              per_grid (NL_grid/domain)         := poly2grid(geometry, NL_grid/domain);
-		attribute<bool>           IsUrbanCore                       := IsDefined(rlookup(GM_CODE, UrbanCores/GM_CODE));
-		attribute<bool>           IsUrbanCore_grid (NL_grid/domain) := IsUrbanCore[per_grid];
+		// attribute<bool>           IsUrbanCore                       := IsDefined(rlookup(GM_CODE, UrbanCores/GM_CODE));
+		// attribute<bool>           IsUrbanCore_grid (NL_grid/domain) := IsUrbanCore[per_grid];
 		attribute<uq>             uq_rel                            := rlookup(GM_CODE, uq/GM_CODE);
 
 		unit<uint32> uq := unique(GM_CODE)
@@ -208,40 +315,40 @@ container RegioIndelingen : using = "geography"
 			attribute<string>         name                              := replace(label, '/', '_', '-', '_', ' ', '_','(','',')','','â','a','ú','','''','',',','');
 		}
 		
-		unit<uint32> UrbanCores_list := classifications/Redev/UrbanCores_list;
-		unit<uint32> UrbanCores  := ='subset('+AsList('GM_CODE == '+quote(UrbanCores_list/GM_CODE)+' ','||')+')'
-		, 	Descr = "Op basis van CBS Grootstedelijke Agglomeraties 2015"
-		{    
-			attribute<geography/rdc>    geometry (poly)                      := ../geometry[nr_OrgEntity];
-			attribute<geography/rdc_mm> geometry_mm (poly)                := geometry[geography/rdc_mm];
-			attribute<string>         GM_CODE                              := ../GM_CODE[nr_OrgEntity];
-			attribute<string>         label                                := ../label[nr_OrgEntity]; //, DialogType = "LabelText";
-			attribute<UrbanCores_list/Region_uq>         Region_rel        := rjoin(GM_CODE, UrbanCores_list/GM_CODE, UrbanCores_list/Region_rel);
-			attribute<../Agglomeration_uq>  Agglomeration_rel := rjoin(GM_CODE, UrbanCores_list/GM_CODE, UrbanCores_list/Agglomeration_rel);
-			attribute<string>                            Region            := UrbanCores_list/Region_uq/values[Region_rel];
-			attribute<string>                            Agglomeration     := ../Agglomeration_uq/values[Agglomeration_rel];
-		}
+		// unit<uint32> UrbanCores_list := classifications/Redev/UrbanCores_list;
+		// unit<uint32> UrbanCores  := ='select_with_org_rel('+AsList('GM_CODE == '+quote(UrbanCores_list/GM_CODE)+' ','||')+')'
+		// , 	Descr = "Op basis van CBS Grootstedelijke Agglomeraties 2015"
+		// {    
+			// attribute<geography/rdc>    geometry (poly)                      := ../geometry[org_rel];
+			// attribute<geography/rdc_mm> geometry_mm (poly)                := geometry[geography/rdc_mm];
+			// attribute<string>         GM_CODE                              := ../GM_CODE[org_rel];
+			// attribute<string>         label                                := ../label[org_rel]; //, DialogType = "LabelText";
+			// attribute<UrbanCores_list/Region_uq>         Region_rel        := rjoin(GM_CODE, UrbanCores_list/GM_CODE, UrbanCores_list/Region_rel);
+			// attribute<../Agglomeration_uq>  Agglomeration_rel := rjoin(GM_CODE, UrbanCores_list/GM_CODE, UrbanCores_list/Agglomeration_rel);
+			// attribute<string>                            Region            := UrbanCores_list/Region_uq/values[Region_rel];
+			// attribute<string>                            Agglomeration     := ../Agglomeration_uq/values[Agglomeration_rel];
+		// }
 		
-		unit<uint32> Agglomeration_uq := UrbanCores_list/Agglomeration_uq
-		{
-			attribute<geography/rdc_mm> Geometry_mm  (poly) := partitioned_union_polygon(UrbanCores/geometry_mm, UrbanCores/Agglomeration_rel);
-			attribute<geography/rdc>    Geometry     (poly) := geometry_mm[geography/rdc];
-			attribute<km2>               Opp                 := value(area(geometry,m2),km2);
-		}
+		// unit<uint32> Agglomeration_uq := UrbanCores_list/Agglomeration_uq
+		// {
+			// attribute<geography/rdc_cm> Geometry_cm  (poly) := bp_union_polygon(UrbanCores/geometry[rdc_cm], UrbanCores/Agglomeration_rel);
+			// attribute<geography/rdc>    Geometry     (poly) := geometry_cm[geography/rdc];
+			// attribute<km2>               Opp                 := value(area(geometry,m2),km2);
+		// }
 		
-		unit<uint32> Amsterdam := subset(GM_CODE == 'GM0363')
+		unit<uint32> Amsterdam := select_with_org_rel(GM_CODE == 'GM0363')
 		{
-			attribute<geography/rdc>    geometry (poly)                   := ../geometry[nr_OrgEntity];
+			attribute<geography/rdc>    geometry (poly)                   := ../geometry[org_rel];
 			attribute<geography/rdc_mm> geometry_mm (poly)                := geometry[geography/rdc_mm];
-			attribute<string>            GM_CODE                           := ../GM_CODE[nr_OrgEntity];
-			attribute<string>            label                             := ../label[nr_OrgEntity]; //, DialogType = "LabelText";
+			attribute<string>            GM_CODE                           := ../GM_CODE[org_rel];
+			attribute<string>            label                             := ../label[org_rel]; //, DialogType = "LabelText";
 		}
-		unit<uint32> Utrecht := subset(GM_CODE == 'GM0344')
+		unit<uint32> Utrecht := select_with_org_rel(GM_CODE == 'GM0344')
 		{
-			attribute<geography/rdc>    geometry (poly)                   := ../geometry[nr_OrgEntity];
+			attribute<geography/rdc>    geometry (poly)                   := ../geometry[org_rel];
 			attribute<geography/rdc_mm> geometry_mm (poly)                := geometry[geography/rdc_mm];
-			attribute<string>            GM_CODE                           := ../GM_CODE[nr_OrgEntity];
-			attribute<string>            label                             := ../label[nr_OrgEntity]; //, DialogType = "LabelText";
+			attribute<string>            GM_CODE                           := ../GM_CODE[org_rel];
+			attribute<string>            label                             := ../label[org_rel]; //, DialogType = "LabelText";
 		}
 	}
 	
@@ -275,7 +382,7 @@ container RegioIndelingen : using = "geography"
 	
 	unit<uint32> Nederland := range(uint32, 0, 1) 
 	{
-		attribute<rdc>               geometry       (poly) := partitioned_union_polygon(Corop/geometry[rdc_mm], const(0[.],Corop))[rdc];
+		attribute<rdc>               geometry       (poly) := bp_union_polygon(Corop/geometry[rdc_cm], const(0[.],Corop))[rdc];
 		attribute<string>            name                  : [ 'Nederland' ];
 		attribute<.>                 per_domain   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
 		attribute<bool>              IsNederland  (NL_grid/domain) := IsDefined(per_domain);
@@ -295,7 +402,7 @@ container RegioIndelingen : using = "geography"
 		
 		unit<uint32> MRA8 := unique(GemMRA8/MRA8_name)
 		{
-			attribute<ipoint>    geometry0 (poly) := partitioned_union_polygon(ipolygon(gemeenten/j2015/Geometry), gemeenten/j2015/MRA8_rel);
+			attribute<rdc_cm>    geometry0 (poly) := bp_union_polygon(gemeenten/j2015/Geometry[rdc_cm], gemeenten/j2015/MRA8_rel);
 			attribute<rdc>       geometry (poly)  := geometry0[rdc];
 			attribute<string>    name             := replace(values, '/', '_', '-', '_', ' ', '_');
 			attribute<string>    Label            := name, DialogType = "LabelText";
@@ -305,7 +412,7 @@ container RegioIndelingen : using = "geography"
 		unit<uint32> MRA1_src: NrOfRows = 1
 		,	StorageName = "%Redev_DataDir%/CBS/RegioindelingMRA2016.fss"
 		{
-			attribute<ipoint>    geometry0 (poly) := partitioned_union_polygon(ipolygon(MRA8/geometry0), MRA8/MRA1_rel), DisableStorage = "true";
+			attribute<rdc_cm>    geometry0 (poly) := bp_union_polygon(MRA8/geometry0[rdc_cm], MRA8/MRA1_rel), DisableStorage = "true";
 			attribute<rdc>       geometry (poly)  := geometry0[rdc];
 			attribute<string>    name             : ['MRA'];
 			attribute<string>    Label            := name, DialogType = "LabelText";

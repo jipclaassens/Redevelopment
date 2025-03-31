@@ -1,15 +1,17 @@
 container UrbanAttractivityIndex
 {	
-	parameter<string> Year := '2023'; //2018 2021
-	unit<uint32>      vbo  := ='SourceData/BAG/Snapshots/VBOs/Y'+Year+'01/vbo';
-	unit<uint32>      pand := ='SourceData/BAG/Snapshots/Panden/Y'+Year+'01/Pand';
+	parameter<string> Year := '2012'; //2018 2021
+	unit<uint32>      vbo  := ='SourceData/BAG/VolledigeBAG/VBOs/vbo/Stand_per_Jaar/Y'+Year+'/select_alle_doelen';  
+	unit<uint32>      pand := ='SourceData/BAG/VolledigeBAG/Panden/pand/Stand_per_Jaar/Y'+Year+'/select_metVBO';
 	
-	attribute<float32>   Utiliteit_opp              (NL_grid/domain)   := value(vbo/GebruiksdoelSets/UtiliteitsFucties/oppervlakte_ha, float32);
-	attribute<float32>   Detailhandel_opp           (NL_grid/domain)   := vbo/GebruiksdoelSets/winkel/GebruiksdoelSet/Voorraad/oppervlakte_ha[float32];
-	attribute<float32>   HorecaCultuur_count        (NL_grid/domain)   := vbo/GebruiksdoelSets/bijeenkomst/GebruiksdoelSet/Voorraad/count_ha[float32] + vbo/GebruiksdoelSets/logies/GebruiksdoelSet/Voorraad/count_ha[float32];
+	
+	attribute<float32>   Utiliteit_opp              (NL_grid/domain)   := value(vbo/GebruiksdoelSets/utiliteit_combi/GebruiksdoelSet/oppervlakte_ha, float32);
+	attribute<float32>   Detailhandel_opp           (NL_grid/domain)   := vbo/GebruiksdoelSets/winkel/GebruiksdoelSet/oppervlakte_ha[float32];
+	attribute<float32>   HorecaCultuur_count        (NL_grid/domain)   := vbo/GebruiksdoelSets/bijeenkomst/GebruiksdoelSet/count_ha[float32] + vbo/GebruiksdoelSets/logies/GebruiksdoelSet/count_ha[float32];
+	
 	attribute<float32>   Fractie_monumentaal        (NL_grid/domain)   := MakeDefined(
-																			pand/Voorraad/pand_met_vbo/monumentale_panden[float32] >= 3f
-																			? pand/Voorraad/pand_met_vbo/monumentale_panden[float32] / pand/Voorraad/pand_met_vbo/count_ha[float32]
+																			pand/monumentale_panden >= 3f
+																			? pand/monumentale_panden / pand/count_ha
 																			: 0f
 																		, 0f);
 
@@ -32,5 +34,6 @@ container UrbanAttractivityIndex
 	parameter<float32>   Max_UAI_smoothed                             := max(UAI_smoothed);
 	attribute<float32>   UAI_smoothed_norm        (NL_grid/domain)   := UAI_smoothed / Max_UAI_smoothed;
 	attribute<float32>   Make_Tiff                (NL_grid/domain)   := UAI_smoothed_norm, StorageName = "='%Redev_DataDir%/SpatialData/UAI_'+Year+'.tif'";
+	attribute<float32>   Read_Tiff                (NL_grid/domain)   : StorageName = "='%Redev_DataDir%/SpatialData/UAI_'+Year+'.tif'";
 	
 }

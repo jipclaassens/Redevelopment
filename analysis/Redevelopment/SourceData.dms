@@ -10,6 +10,75 @@ container SourceData :  using = "units;geography;classifications"
 	#include <regios.dms>
 	// #include <spatial_data.dms>
 	// #include <woz.dms>
+	#include <vierkanten.dms>
+	
+	container overig
+	{
+		unit<uint32> landprice_pc4_2007
+		:  StorageName = "%SourceDataDir%/Overig/Weighted_avg_landprice_pc4_1985-2007.csv"
+		,  StorageType = "gdal.vect"
+		,  StorageReadOnly = "True" 
+		{
+			attribute<string> gemeente;
+			attribute<string> PC4Code;
+			attribute<string> p_m2_FE;
+			
+			attribute<float32> landprice  := p_m2_FE[float32];
+		}
+		
+		unit<uint32> StadsDorpsGezichten_src
+		:  StorageName = "%SourceDataDir%/Overig/Stads_en_Dorpsgezichten_2020.gdb"
+		,  StorageType = "gdal.vect"
+		,	StorageReadOnly = "True"
+		,	SyncMode = "AllTables"
+		{
+			attribute<rdc>              geometry (poly);
+			attribute<string>           naam : DialogType = "LabelText";
+			attribute<string>           JURSTATUS;
+			
+		}
+		
+		unit<uint32> StadsDorpsGezichten := select_with_org_rel(StadsDorpsGezichten_src/JURSTATUS == 'rijksmonument')
+		{
+			attribute<rdc>              geometry (poly) := org_rel -> geometry;
+			attribute<string>           label           := org_rel -> naam;
+		}
+	}
+	
+	container Kerncijfer_WijkBuurt
+	{
+		unit<uint32> jaren := range(uint32, 2012, 2025)
+		{
+			attribute<uint32> jaar            := id(.);
+			attribute<string> name            := 'Y'+string(jaar);
+			attribute<string> code_veld       := jaar >= 2019 ? 'gwb_code' : 'wkcode';
+		}
+		
+		container Read :=
+			for_each_ne(
+				jaren/name
+				, 'Read_xlsx_T('+quote(string(jaren/jaar))+','+quote(jaren/code_veld)+')'
+			)
+		{
+			container Last := =last(jaren/name);
+		}
+
+		Template Read_xlsx_T
+		{
+			parameter<string> jaar;
+			parameter<string> code_veld;
+			//
+	
+			unit<uint32> XLSX 
+			:   StorageName     = "='%SourceDataDir%/Overig/CBS_Kerncijfers_WijkBuurt/kwb-'+jaar+'.xlsx'"
+			,   StorageType     = "gdal.vect"
+			,	StorageReadOnly = "True"
+			{
+				attribute<string> WKCODE := IsNUll(BU_CODE) ? 'WK'+GM_CODE+WK_CODE : Null_str; 
+				attribute<string> CODE   := =code_veld; 
+			}
+		}
+	}
 	
  	container EigendomStaat
 	{

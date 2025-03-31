@@ -5,6 +5,12 @@ container AdditionalClassifications : using = "classifications/tijd"
 		attribute<string> name : ['SN_Sloop','SN_Sloop_nw','SN_Nieuwbouw','Nieuwbouw','Toevoeging','Onttrekking','Transformatie_Plus','Transformatie_Min','Sloop','Onveranderd'];
 		attribute<string> label := name;
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		unit<uint8> Plus := select_with_org_rel(name == 'SN_Nieuwbouw' || name == 'Nieuwbouw' || name == 'Toevoeging' || name == 'Transformatie_Plus')
+		{
+			attribute<string> name := ../name[org_rel];
+			attribute<string> label := name;
+			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		}
 	}
 	// unit<uint8> Redev_SiteTypes : nrofrows = 7
 	// {

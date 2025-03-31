@@ -158,7 +158,7 @@ label var p_beschermd "Percentage oppervlak beschermd stad- en dorpsgezicht in w
 label var p_beschikbaar "Percentage landoppervlak niet weg of spoor in wijk"
 label var p_onbebouw "Percentage landoppervlak niet weg, spoor of pand in wijk"
 
-drop wk_code count_woon_y2012 count_woon_y2024 count_sn_sloop count_sn_sloop_nw count_sn_nieuwbouw count_nieuwbouw count_toevoeging count_onttrekking count_transformatiep count_transformatiem count_sloop count_onveranderd count_total_process provincie_rel opp_beschermdestaddorpgezichtenm share_beschermdestaddorpgezichte  count_total_proces_pluschange count_total_proces_minchange
+drop wk_code count_woon_y2012 count_woon_y2024   count_sn_nieuwbouw count_nieuwbouw count_toevoeging  count_transformatiep     opp_beschermdestaddorpgezic  count_total_proces_pluschange 
 
 //////////////////////////////////////////////////////////////////////
 **# ////////////////////////// ANALYSES //////////////////////////////
@@ -308,10 +308,19 @@ foreach t of local types{
 // 	reg  ln_cnt_wgr_ha_`t' p_woninggroei p_onbebouwd p_huurcorp p_beschermd uai ib8.construction_period, r
 // 	outreg2 using output/PerWijk_${filedate}_cnt_nose_`t', excel cttop (`t') label dec(3) nose
 	
-	reg  ln_cnt_wgr_ha_`t' p_woninggroei p_onbebouwd p_huurcorp p_beschermd ib8.construction_period, r
-	outreg2 using output/PerWijk_${filedate}_cnt_nose_`t', excel cttop (`t') label dec(3) nose
+	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib8.construction_period, r allbaselevels
+	outreg2 using output/PerWijk_${filedate}_cnt_nose, excel cttop (`t') label dec(3) nose
 
 }
+
+
+
+
+//descriptives
+estpost sum count_woninggroei_ha_plus cnt_wgr_ha_snnb cnt_wgr_ha_nb cnt_wgr_ha_toev cnt_wgr_ha_trfp p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei bouwperiode_*  
+esttab using output/sum_PerWijk_${filedate}.rtf, cells("count(fmt(0)) mean(fmt(2)) sd(fmt(2)) min(fmt(0)) max(fmt(0))") label nomtitle nonumber replace
+
+
 
 
 

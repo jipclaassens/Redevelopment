@@ -373,6 +373,7 @@ container RegioIndelingen : using = "geography"
 		// attribute<uint32>    prvnr;
 		// attribute<string>    prvnm        := name;
 		attribute<string>    label        := replace(AsItemName(prvnm), 'Fryslân', 'Friesland');
+		container V := for_each_nedv(label, 'value('+string(id(.))+', ..)', void, .);
 		
 		unit<uint32> GR := select_with_org_rel(label == 'Groningen')
 		{
@@ -504,8 +505,16 @@ container RegioIndelingen : using = "geography"
 		attribute<string>  GM_NAAM         := ='Gebiedsindelingen_oud/cbs_gemeente_'+JaarVanOudeGebiedsIndelingen+'_gegeneraliseerd/statnaam';
 		attribute<string>  GM_CODE         := ='Gebiedsindelingen_oud/cbs_gemeente_'+JaarVanOudeGebiedsIndelingen+'_gegeneraliseerd/statcode';
 		
-		attribute<string>  label            := GM_Naam;
-		attribute<string>  name            := AsItemName(GM_Naam);
+		attribute<provincie> prov_rel := point_in_polygon(centroid_or_mid(geometry), Provincie/geometry);
+		
+		attribute<string>  GM_NAAM_edit    := switch(
+												case(GM_NAAM == 'Hengelo' && prov_rel == provincie/v/gelderland, 'Hengelo_GE')
+												,case(GM_NAAM == 'Bergen' && prov_rel == provincie/v/noord_holland, 'Bergen_NH')
+												,GM_NAAM
+												);
+		
+		attribute<string>  label            := GM_NAAM_edit;
+		attribute<string>  name            := AsItemName(GM_NAAM_edit);
 		
 		container V := for_each_nedv(name, 'value('+string(id(.))+', ..)', void, .);
 	}

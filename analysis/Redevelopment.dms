@@ -30,7 +30,7 @@ container Redevelopment
 		parameter<m2>      minimum_site_area               := 25[m2];
 		parameter<float32> minimum_SN_area_share           := 0.01f;
 		
-		parameter<string> BRT_file_date  := '20240604';
+		parameter<string> BRT_file_date  := '20250318';
 		parameter<string> BRK_file_date  := '20231206';
 		parameter<string> BAG_file_date  := '20250115'; //'20240708'; 20250115
 

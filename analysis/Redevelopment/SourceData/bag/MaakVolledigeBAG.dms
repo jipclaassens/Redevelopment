@@ -1,9 +1,10 @@
 container MaakVolledigeBAG : using = "classifications/BAG"
 { 
 	// te configureren
-	parameter<string>  Snapshot_Date_Input := '20240708';
+	parameter<string>  Snapshot_Date_Input := Parameters/BAG_file_date;
 	//
-	parameter<string>  FSSDir              := '%BAG_DataDir%/' + Snapshot_Date_Input + '/fss';
+	// parameter<string>  FSSDir              := '%BAG_DataDir%/' + Snapshot_Date_Input + '/fss'; //regular local folder
+	parameter<string>  FSSDir              := 'D:/OneDrive/Objectvision/Object Vision - SourceData/BAG/' + Snapshot_Date_Input + ''; //shared folder
 	parameter<string>  Result_FSS_dir      := '%BAG_DataDir%/VolledigeTabel_' + Snapshot_Date_Input;
 	parameter<string>  FileNeeded          := expand(., FSSDir) + '/pand/nr_fss.csv';
 	parameter<bool>    isValidFSSDir       := ExistingFile('missing', FileNeeded) == FileNeeded;

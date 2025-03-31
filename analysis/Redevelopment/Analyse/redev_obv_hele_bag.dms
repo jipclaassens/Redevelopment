@@ -84,7 +84,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		unit<uint32> Onveranderd_Objecten           := PrepDomains/Onveranderd/domain;
 	}
 	
-// /*
+/*
  	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
 	, StorageName = "='%LocalDataProjDir%/Temp/PerObject_Export_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
 	, using = "AdditionalClassifications"
@@ -100,7 +100,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Urbanisation[point_in_polygon(geometry, RegioUnit_gem_oud/geometry)];
 		
 	}
- // */	
+ */	
  
 	// unit<uint32> PerSite_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_SiteTypes/name+'_Sites')+')'
 	// , StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
@@ -316,37 +316,45 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		}
 	}
 	
+	parameter<string> Export_Date := '20250328'; //today?
+	
 	unit<uint32> Analyse_PerWijk := RegioUnit_Wijk12
 	, using = "AdditionalClassifications"
+	, StorageName = "='%LocalDataProjDir%/Output/Analyse_PerWijk_'+Export_Date+'.csv'"
+	, StorageType = "gdalwrite.vect"
 	{
-		attribute<string>                 WK_CODE                 := RegioUnit_Wijk12/CODE;
-		attribute<km2>                    area                    := area(geometry, m2)[km2];
-		attribute<uint32>                 OAD                     := RegioUnit_Wijk12/OAD;
-		attribute<float32>                P_HUURCORP              := RegioUnit_Wijk12/P_HUURCORP;
-		attribute<float32>                Landprice               := RegioUnit_Wijk12/Landprice;
-		attribute<jaar>                   modus_buildingyear_2012 := /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/uq_pand_nr/modus_bouwjaar;
-		attribute<float32>                mean_UAI                := mean(Analyse/UrbanAttractivityIndex/Read_Tiff, per_NL_grid_domain);
+		attribute<string>                WK_CODE                 := CODE;
+		attribute<km2>                   Total_area              := area(geometry, m2)[km2];
+		attribute<km2>                   WegSpoor_area           := /SourceData/BRT/Wijken_x_WegSpoor/area_per_wijk;
+		attribute<km2>                   Water_area              := /SourceData/BRT/Wijken_x_Water/area_per_wijk;
+		attribute<km2>                   PandFootprint_2012      := sum(/SourceData/BAG/VolledigeBAG/Panden/pand/Stand_per_Jaar/y2012/select/footprint, point_in_polygon(centroid_or_mid(/SourceData/BAG/VolledigeBAG/Panden/pand/Stand_per_Jaar/y2012/select/geometry), geometry))[km2];
+		attribute<uint32>                OAD                     := RegioUnit_Wijk12/OAD;
+		attribute<float32>               P_HUURCORP              := RegioUnit_Wijk12/P_HUURCORP;
+		// attribute<float32>                Landprice               := RegioUnit_Wijk12/Landprice;
+		attribute<jaar>                  modus_buildingyear_2012 := /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/uq_pand_nr/modus_bouwjaar;
+		attribute<float32>               mean_UAI_2012           := mean(Analyse/UrbanAttractivityIndex/Read_Tiff, per_NL_grid_domain);
 		// attribute<float32>                building_year_uniformity  := , Descr = "Pearson's chi-square om de mate van uniformiteit te bepalen", URL = "https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test"
 		
 		attribute<uint32>                count_woon_y2012         := sum_uint32(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsWonen && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/Wijk12_rel);
+		attribute<uint32>                count_nietwoon_y2012     := sum_uint32(NOT(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsWonen) && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/Wijk12_rel);
 		attribute<uint32>                count_woon_y2024         := sum_uint32(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/VBO_IsWonen && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/Wijk12_rel);
+		attribute<uint32>                count_nietwoon_y2024     := sum_uint32(NOT(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/VBO_IsWonen) && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/Wijk12_rel);
 		     
-		attribute<uint32>                count_SN_Sloop           := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_SN_Sloop_nw        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop_nw, Read_PerObject_Export/wijk12_rel);
+		// attribute<uint32>                count_SN_Sloop           := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop, Read_PerObject_Export/wijk12_rel);
+		// attribute<uint32>                count_SN_Sloop_nw        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop_nw, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_SN_Nieuwbouw       := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Nieuwbouw, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Nieuwbouw          := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Toevoeging         := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Toevoeging, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Onttrekking        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, Read_PerObject_Export/wijk12_rel);
+		// attribute<uint32>                count_Onttrekking        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_TransformatieP     := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/transformatie_plus, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_TransformatieM     := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Transformatie_Min, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Sloop              := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Sloop, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Onveranderd        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_total_process      := sum_uint32(IsDefined(Read_PerObject_Export/geometry), Read_PerObject_Export/wijk12_rel);
+		// attribute<uint32>                count_TransformatieM     := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Transformatie_Min, Read_PerObject_Export/wijk12_rel);
+		// attribute<uint32>                count_Sloop              := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Sloop, Read_PerObject_Export/wijk12_rel);
+		// attribute<uint32>                count_Onveranderd        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd, Read_PerObject_Export/wijk12_rel);
+		// attribute<uint32>                count_total_process      := sum_uint32(IsDefined(Read_PerObject_Export/geometry), Read_PerObject_Export/wijk12_rel);
 		
-		attribute<RegioUnit_Provincie12> provincie_rel                     := RegioUnit_Wijk12/provincie_rel;
-		attribute<km2>                   opp_BeschermdeStadDorpgezichten   := RegioUnit_Wijk12/opp_BeschermdeStadDorpgezichten[km2];
-		attribute<float32>               share_BeschermdeStadDorpgezichten := RegioUnit_Wijk12/share_opp_BeschermdeStadDorpsgezichten;
-		attribute<float32>               P_groei_woon_y2012_24_prov    := (sum(count_woon_y2024, provincie_rel)[provincie_rel][float32] - sum(count_woon_y2012, provincie_rel)[provincie_rel][float32]) / sum(count_woon_y2012, provincie_rel)[provincie_rel][float32] * 100f;
+		// attribute<RegioUnit_Provincie12> provincie_rel                         := RegioUnit_Wijk12/provincie_rel;
+		attribute<km2>                   opp_BeschermdeStadDorpgezichten2020   := RegioUnit_Wijk12/opp_BeschermdeStadDorpgezichten[km2];
+		// attribute<float32>               P_groei_woon_y2012_24_prov            := (sum(count_woon_y2024, provincie_rel)[provincie_rel][float32] - sum(count_woon_y2012, provincie_rel)[provincie_rel][float32]) / sum(count_woon_y2012, provincie_rel)[provincie_rel][float32] * 100f;
 		
 		container Sums
 		{

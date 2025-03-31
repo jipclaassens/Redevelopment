@@ -30,6 +30,7 @@ container ExportSettings
 			{
 				parameter<string> FullName := '=PropValue(this, '+Quote('FullName')+')';
 				parameter<string> Expr     := '=PropValue(this, '+Quote('Expr'    )+')';
+				parameter<string> ProjDir  := expand(., '%projDir%');
 			}
 			container Environment
 			{

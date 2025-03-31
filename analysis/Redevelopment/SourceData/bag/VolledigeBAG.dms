@@ -190,8 +190,8 @@ container VolledigeBAG : using = "classifications/BAG"
 		{
 			container Stand_per_Jaar := 
 				for_each_ne(
-					classifications/Tijd/jaren12_24/name
-					, 'Stand_Per_Jaar_T('+string(classifications/Tijd/jaren12_24/value)+'[int32])'
+					classifications/Tijd/jaren/name
+					, 'Stand_Per_Jaar_T('+string(classifications/Tijd/jaren/value)+'[int32])'
 				);
 				
 			Template Stand_Per_Jaar_T
@@ -208,6 +208,7 @@ container VolledigeBAG : using = "classifications/BAG"
 					attribute<rdc>                  geometry (poly)                := pand/geometry[org_rel];
 					attribute<jaar>                 bouwjaar                       := pand/bouwjaar_trunc[org_rel];
 					attribute<pand_status>          pand_status_rel                := pand/status_rel[org_rel]; 
+					attribute<m2>                   footprint                      := area(geometry, m2);
 					attribute<bool>                 HasVBO                         := ='IsDefined(invert(point_in_polygon(VBOs/vbo/Stand_per_Jaar/Y'+string(Year)+'/select_alle_doelen/geometry, geometry)))';
 				}
 				unit<uint32> select_metVBO := select_with_org_rel(select/HasVBO)

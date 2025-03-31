@@ -307,8 +307,8 @@ container BRT
 		attribute<int32>  wegvlak_groep := int32(elem/values[value(id * nrAttr + 10, elem)]);
 		attribute<uint8>  bbg_code   := uint8(elem/values[value(id * nrAttr + 11, elem)]);
 		
-		attribute<uint8>  bbg_code_ek:= rjoin(bbg_code, id(classifications/bbg), classifications/bbg/bbg_ek);
-		attribute<string> bbg_name   := rjoin(bbg_code, id(classifications/bbg), classifications/bbg/name);
+		// attribute<uint8>  bbg_code_ek:= rjoin(bbg_code, id(classifications/bbg), classifications/bbg/bbg_ek);
+		// attribute<string> bbg_name   := rjoin(bbg_code, id(classifications/bbg), classifications/bbg/name);
 		
 
 		attribute<uint32> BrushColor := rgb(r_brush, g_brush, b_brush), DialogType = "BrushColor";
@@ -317,12 +317,14 @@ container BRT
 		
 		attribute<string> name := replace(label, ' - ', '_', ' ', '', '-', '', ':', '', ',', '');
 		
-		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		// container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		
+		attribute<label_uq> label_uq_rel := rlookup(label, label_uq/values);
 		
 		unit<uint32> label_uq   := unique(label)
 		{
 			// attribute<string> label := rjoin(values, visualisatiecodes/code, visualisatiecodes/label);
-			attribute<string> name := lowercase(replace(values, ' - ', '_', ' ', '_', ',', '', ':', '')) ;
+			attribute<string> name := lowercase(AsItemName(values));
 			
 			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 

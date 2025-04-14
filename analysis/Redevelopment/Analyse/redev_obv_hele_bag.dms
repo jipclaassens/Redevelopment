@@ -84,7 +84,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		unit<uint32> Onveranderd_Objecten           := PrepDomains/Onveranderd/domain;
 	}
 	
-/*
+// /*
  	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
 	, StorageName = "='%LocalDataProjDir%/Temp/PerObject_Export_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
 	, using = "AdditionalClassifications"
@@ -97,10 +97,10 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<int32>            MutatieMaand                    := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/MutatieMaand')+')';
 		attribute<int32>            vbo_oppervlakte                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_oppervlakte')+')';
 		attribute<jaar>             pand_bouwjaar                   := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bouwjaar')+')';
-		attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Urbanisation[point_in_polygon(geometry, RegioUnit_gem_oud/geometry)];
+		// attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Urbanisation[point_in_polygon(geometry, RegioUnit_gem_oud/geometry)];
 		
 	}
- */	
+ // */	
  
 	// unit<uint32> PerSite_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_SiteTypes/name+'_Sites')+')'
 	// , StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
@@ -133,8 +133,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<int32>            vbo_oppervlakte;
 		attribute<int32>            vbo_oppervlakte_edit := vbo_oppervlakte > 9900i ? null_i : vbo_oppervlakte;
 		attribute<jaar>             pand_bouwjaar;
-		// attribute<UrbanisationK>    UrbanisationK_rel;
-		attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Urbanisation[point_in_polygon(geometry, RegioUnit_gem_oud/geometry)];
+		// attribute<UrbanisationK>    UrbanisationK_rel; 
+		attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Wijken/UrbanisationK_rel[Wijk12_rel];
 		// attribute<m2>               site_oppervlakte     := rjoin(site_id, Read_PerSite_Export/site_id, Read_PerSite_Export/site_oppervlakte);
 		// attribute<bool>             IsWithinUrbanContour := IsDefined(point_in_polygon(geometry, /SourceData/begenzing_bebouwd_gebied/Bevolkingskern_2011/shapes/geometry));
 		
@@ -261,7 +261,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				Redev_ObjectTypes/name
 				, replace('union_data(UrbanisationK, '+AsList('sum_uint32(type_class == Redev_ObjectTypes/v/@OT@ && UrbanisationK_rel == UrbanisationK/v/'+UrbanisationK/label+')', ',')+')', '@OT@', Redev_ObjectTypes/name)
 				, UrbanisationK
-				, uint32
+				, uint32   
 			)
 		{
 			attribute<string> Label (UrbanisationK) := UrbanisationK/label;
@@ -317,7 +317,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		}
 	}
 	
-	parameter<string> Export_Date := '20250331'; //today?
+	parameter<string> Export_Date := '20250402'; //today?
 	
 	unit<uint32> Analyse_PerWijk := RegioUnit_Wijk12
 	, using = "AdditionalClassifications"
@@ -338,25 +338,35 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		
 		attribute<uint32>                count_woon_y2012         := sum_uint32(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsWonen && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/Wijk12_rel);
 		attribute<uint32>                count_nietwoon_y2012     := sum_uint32(NOT(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsWonen) && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/Wijk12_rel);
-		attribute<uint32>                count_woon_y2024         := sum_uint32(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/VBO_IsWonen && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/Wijk12_rel);
-		attribute<uint32>                count_nietwoon_y2024     := sum_uint32(NOT(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/VBO_IsWonen) && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2024/select/Wijk12_rel);
+		attribute<uint32>                count_woon_y2025         := sum_uint32(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2025/select/VBO_IsWonen && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2025/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2025/select/Wijk12_rel);
+		attribute<uint32>                count_nietwoon_y2025     := sum_uint32(NOT(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2025/select/VBO_IsWonen) && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2025/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2025/select/Wijk12_rel);
 		     
-		// attribute<uint32>                count_SN_Sloop           := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop, Read_PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_SN_Sloop           := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop, Read_PerObject_Export/wijk12_rel);
 		// attribute<uint32>                count_SN_Sloop_nw        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop_nw, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_SN_Nieuwbouw       := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Nieuwbouw, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Nieuwbouw          := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Toevoeging         := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Toevoeging, Read_PerObject_Export/wijk12_rel);
-		// attribute<uint32>                count_Onttrekking        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, Read_PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Onttrekking        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Transformatie_Plus     := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/transformatie_plus, Read_PerObject_Export/wijk12_rel);
-		// attribute<uint32>                count_TransformatieM     := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Transformatie_Min, Read_PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Transformatie_Min     := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Transformatie_Min, Read_PerObject_Export/wijk12_rel);
+		
+		attribute<uint32>                saldo_SN                 := sub_or_null(count_SN_Nieuwbouw, count_SN_Sloop);
+		attribute<uint32>                saldo_Toevoeging         := sub_or_null(count_Toevoeging, count_Onttrekking);
+		attribute<uint32>                saldo_Transformatie      := sub_or_null(count_Transformatie_Plus, count_Transformatie_Min);
+		attribute<uint32>                saldo_Nieuwbouw          := count_Nieuwbouw;
+		
+		
 		// attribute<uint32>                count_Sloop              := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Sloop, Read_PerObject_Export/wijk12_rel);
 		// attribute<uint32>                count_Onveranderd        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd, Read_PerObject_Export/wijk12_rel);
 		// attribute<string>                dom_process_plus         := ='Redev_ObjectTypes/Plus/name[argmax_uint8('+Aslist('count_'+Redev_ObjectTypes/Plus/name+'', ',')+')]';
 		attribute<Redev_ObjectTypes/Plus> dom_process_plus         := ='argmax_uint8('+Aslist('count_'+Redev_ObjectTypes/Plus/name+'', ',')+')[Redev_ObjectTypes/Plus]';
+		attribute<ObjectTypes_Saldi>      dom_process_saldo        := ='argmax_ifdefined_uint8('+Aslist('saldo_'+ObjectTypes_Saldi/name+' > 10 ? saldo_'+ObjectTypes_Saldi/name+' : null_u', ',')+')[ObjectTypes_Saldi]';
 		
 		// attribute<RegioUnit_Provincie12> provincie_rel                         := RegioUnit_Wijk12/provincie_rel;
 		attribute<km2>                   opp_BeschermdeStadDorpgezichten2020   := RegioUnit_Wijk12/opp_BeschermdeStadDorpgezichten[km2];
 		// attribute<float32>               P_groei_woon_y2012_24_prov            := (sum(count_woon_y2024, provincie_rel)[provincie_rel][float32] - sum(count_woon_y2012, provincie_rel)[provincie_rel][float32]) / sum(count_woon_y2012, provincie_rel)[provincie_rel][float32] * 100f;
+		
+		attribute<float32>                P_woning_groei := (float32(count_woon_y2025) - float32(count_woon_y2012)) / float32(count_woon_y2012) * 100f;
 		
 		container Sums
 		{
@@ -378,7 +388,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		}
 	}
 	
-	unit<uint32> Analyse_PerWijk_x_Jaar := combine(RegioUnit_Wijk12, /classifications/Tijd/jaren)
+/* 	unit<uint32> Analyse_PerWijk_x_Jaar := combine(RegioUnit_Wijk12, /classifications/Tijd/jaren)
 	, using = "AdditionalClassifications"
 	{
 		attribute<string>                 Jaar_name               := Tijd/jaren12_24/name[second_rel];
@@ -463,7 +473,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			attribute<uint32>                count_negative           := count_SN_Sloop + count_Sloop + count_Onttrekking + count_TransformatieM;
 		}
 	}
-		
+ */		
 		// % restricties opp van regio area (opzoek naar 2012 versie?)
 		// hoeveelheid beschikbare ruimte (landbouw zonder restrictie)
 		// nabijheid stadskern

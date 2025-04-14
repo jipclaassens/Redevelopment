@@ -69,48 +69,52 @@ g count_total_proces_pluschange = count_sn_nieuwbouw + count_nieuwbouw + count_t
 g land_area =  total_area - water_area
 g land_area_ha = land_area * 100
 
-g p_woninggroei = ((count_woon_y2024 - count_woon_y2012) / count_woon_y2024) * 100
-g count_woninggroei   = count_woon_y2024 - count_woon_y2012
-g count_woninggroei_ha   = count_woninggroei / land_area_ha
+// g p_woninggroei = ((count_woon_y2025 - count_woon_y2012) / count_woon_y2025) * 100
+// g count_woninggroei   = count_woon_y2025 - count_woon_y2012
+// g count_woninggroei_ha   = count_woninggroei / land_area_ha
 
-g count_woninggroei_ha_plus   = count_total_proces_pluschange / land_area_ha
-g cnt_wgr_ha_snnb   = count_sn_nieuwbouw / land_area_ha
+g count_sn   = count_sn_nieuwbouw - count_sn_sloop 
+g count_div  = count_toevoeging - count_onttrekking
+g count_transformatie  = count_transformatiep - count_transformatiem
+
+// g count_woninggroei_ha_plus   = count_total_proces_pluschange / land_area_ha
+g cnt_wgr_ha_sn     = count_sn / land_area_ha
 g cnt_wgr_ha_nb     = count_nieuwbouw / land_area_ha
-g cnt_wgr_ha_toev   = count_toevoeging / land_area_ha
-g cnt_wgr_ha_trfp   = count_transformatiep / land_area_ha
+g cnt_wgr_ha_div   = count_div / land_area_ha
+g cnt_wgr_ha_trf    = count_transformatie / land_area_ha
 
-g ln_cnt_wgr_ha_plus = ln(count_woninggroei_ha_plus)
-g ln_cnt_wgr_ha_snnb = ln(cnt_wgr_ha_snnb)
+// g ln_cnt_wgr_ha_plus = ln(count_woninggroei_ha_plus)
+g ln_cnt_wgr_ha_sn   = ln(cnt_wgr_ha_sn)
 g ln_cnt_wgr_ha_nb   = ln(cnt_wgr_ha_nb)
-g ln_cnt_wgr_ha_toev = ln(cnt_wgr_ha_toev)
-g ln_cnt_wgr_ha_trfp = ln(cnt_wgr_ha_trfp)
+g ln_cnt_wgr_ha_div  = ln(cnt_wgr_ha_div)
+g ln_cnt_wgr_ha_trf  = ln(cnt_wgr_ha_trf)
 
 
 
-g p_sn_nb = (count_sn_nieuwbouw / count_total_proces_pluschange) * 100
-g p_nb = (count_nieuwbouw / count_total_proces_pluschange) * 100
-g p_toev = (count_toevoeging / count_total_proces_pluschange) * 100
-g p_transf = (count_transformatiep / count_total_proces_pluschange) * 100
+// g p_sn_nb = (count_sn_nieuwbouw / count_total_proces_pluschange) * 100
+// g p_nb = (count_nieuwbouw / count_total_proces_pluschange) * 100
+// g p_toev = (count_toevoeging / count_total_proces_pluschange) * 100
+// g p_transf = (count_transformatiep / count_total_proces_pluschange) * 100
 
 // replace area = area / 1000000
 
 // g lnlandprice = ln(landprice)
 // g lnOAD = ln(oad)
 // g lnArea = ln(area)
-g lnP_woninggroei = ln(p_woninggroei)
+// g lnP_woninggroei = ln(p_woninggroei)
 
 g p_beschermd = opp_besch / land_area * 100
 replace p_beschermd = 100 if p_beschermd > 100
 replace uai = uai * 100
 
-g p_beschikbaar = ((land_area - wegspoor) / land_area) * 100
+// g p_beschikbaar = ((land_area - wegspoor) / land_area) * 100
 g p_onbebouwd   = ((land_area - wegspoor - pandfootprint) / land_area) * 100
 
 //plus list
-local types "sn_nieuwbouw nieuwbouw toevoeging transformatiep"
-foreach t of local types{ 
-	g P_`t' = (count_`t' / count_total_proces_pluschange) * 100
-}
+// local types "sn_nieuwbouw nieuwbouw toevoeging transformatiep"
+// foreach t of local types{ 
+// 	g P_`t' = (count_`t' / count_total_proces_pluschange) * 100
+// }
 
 //minus list
 // local types "sn_sloop sn_sloop_nw sloop onttrekking transformatiem"
@@ -129,7 +133,7 @@ label var p_huurcorp "Percentage huurcorporatie woningen in wijk"
 // label var landprice "Gemiddelde residuele grondwaarde in 2007 in wijk"
 label var bouwjaar "Gemiddelde bouwjaar in 2012 in wijk"
 label var count_woon_y2012 "Aantal woningen in 2012 in wijk"
-label var count_woon_y2024 "Aantal woningen in 2024 in wijk"
+label var count_woon_y2025 "Aantal woningen in 2025 in wijk"
 // label var count_sn_sloop "Aantal gesloopte woningen via sloop-nieuwbouw"
 // label var count_sn_sloop_nw "Aantal gesloopte niet-woningen via sloop-nieuwbouw"
 // label var count_sn_nieuwbouw "Aantal nieuw gebouwde woningen via sloop-nieuwbouw"
@@ -142,23 +146,23 @@ label var count_woon_y2024 "Aantal woningen in 2024 in wijk"
 // label var count_onveranderd "Aantal onveranderde woningen"
 label var construction_period "Gem. bouwjaar categorie"
 
-label var p_woninggroei "Percentage woninggroei tussen 2012-2024 in wijk"
-label var count_woninggroei "Aantal woningverandering tussen 2012-2024 in wijk"
-label var count_woninggroei_ha "Aantal woningverandering per ha tussen 2012-2024 in wijk"
-label var count_woninggroei_ha_plus "Aantal positieve woningverandering per ha tussen 2012-2024 in wijk"
-label var p_sn_nb "Percentage sloop-nieuwbouw van totale positieve verandering"
-label var p_nb "Percentage nieuwbouw van totale positieve verandering"
-label var p_toev "Percentage toevoeging van totale positieve verandering"
-label var p_transf "Percentage transformatie van totale positieve verandering"
-label var lnP_woninggroei "log (Percentage woninggroei tussen 2012-2024 in wijk)"
+// label var p_woninggroei "Percentage woninggroei tussen 2012-2024 in wijk"
+// label var count_woninggroei "Aantal woningverandering tussen 2012-2024 in wijk"
+// label var count_woninggroei_ha "Aantal woningverandering per ha tussen 2012-2024 in wijk"
+// label var count_woninggroei_ha_plus "Aantal positieve woningverandering per ha tussen 2012-2024 in wijk"
+// label var p_sn_nb "Percentage sloop-nieuwbouw van totale positieve verandering"
+// label var p_nb "Percentage nieuwbouw van totale positieve verandering"
+// label var p_toev "Percentage toevoeging van totale positieve verandering"
+// label var p_transf "Percentage transformatie van totale positieve verandering"
+// label var lnP_woninggroei "log (Percentage woninggroei tussen 2012-2024 in wijk)"
 // label var lnlandprice "log (Gemiddelde residuele grondwaarde in 2007 in wijk)"
 label var uai "Gemiddelde urban attractivity index in 2012 in wijk"
 // label var p_groei_woon "Percentage woninggroei tussen 2012-2024 in provincie"
 label var p_beschermd "Percentage oppervlak beschermd stad- en dorpsgezicht in wijk"
-label var p_beschikbaar "Percentage landoppervlak niet weg of spoor in wijk"
+// label var p_beschikbaar "Percentage landoppervlak niet weg of spoor in wijk"
 label var p_onbebouw "Percentage landoppervlak niet weg, spoor of pand in wijk"
 
-drop wk_code count_woon_y2012 count_woon_y2024   count_sn_nieuwbouw count_nieuwbouw count_toevoeging  count_transformatiep     opp_beschermdestaddorpgezic  count_total_proces_pluschange 
+drop wk_code count_woon_y2012 count_woon_y2025   count_sn_nieuwbouw count_nieuwbouw count_toevoeging  count_transformatiep     opp_beschermdestaddorpgezic  count_total_proces_pluschange 
 
 //////////////////////////////////////////////////////////////////////
 **# ////////////////////////// ANALYSES //////////////////////////////
@@ -268,7 +272,7 @@ reg  ln_cnt_wgr_ha_snnb p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib8
 
 // local types "sn_nieuwbouw nieuwbouw toevoeging transformatiep sn_sloop sn_sloop_nw sloop onttrekking transformatiem"
 // local types "sn_nieuwbouw nieuwbouw toevoeging transformatiep"
-local types "snnb nb toev trfp"
+local types "sn nb div trf"
 // local types "snnb"
 foreach t of local types{ 
     display ""
@@ -308,9 +312,8 @@ foreach t of local types{
 // 	reg  ln_cnt_wgr_ha_`t' p_woninggroei p_onbebouwd p_huurcorp p_beschermd uai ib8.construction_period, r
 // 	outreg2 using output/PerWijk_${filedate}_cnt_nose_`t', excel cttop (`t') label dec(3) nose
 	
-	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib8.construction_period, r allbaselevels
-	outreg2 using output/PerWijk_${filedate}_cnt_nose, excel cttop (`t') label dec(3) nose
-
+	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd ib8.construction_period, r allbaselevels
+	outreg2 using output/PerWijk_${filedate}_lncnt_nose, excel cttop (ln(`t')) label dec(3) nose
 }
 
 

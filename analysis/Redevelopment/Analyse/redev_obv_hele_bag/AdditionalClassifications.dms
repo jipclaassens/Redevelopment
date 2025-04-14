@@ -5,12 +5,22 @@ container AdditionalClassifications : using = "classifications/tijd"
 		attribute<string> name : ['SN_Sloop','SN_Sloop_nw','SN_Nieuwbouw','Nieuwbouw','Toevoeging','Onttrekking','Transformatie_Plus','Transformatie_Min','Sloop','Onveranderd'];
 		attribute<string> label := name;
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		
 		unit<uint8> Plus := select_with_org_rel(name == 'SN_Nieuwbouw' || name == 'Nieuwbouw' || name == 'Toevoeging' || name == 'Transformatie_Plus')
 		{
 			attribute<string> name := ../name[org_rel];
 			attribute<string> label := name;
 			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		}
+	}
+	
+	unit<uint8> ObjectTypes_Saldi : nrofrows = 4
+	{
+		attribute<string> name         : ['SN','Nieuwbouw','Toevoeging','Transformatie'];
+		attribute<string> label        := name;
+		attribute<uint32> PenColor     := Brushcolor, DialogType = "PenColor";
+		attribute<uint32> BrushColor   : [rgb(112,48,160),rgb(237,125,49), rgb(112,173,71), rgb(118,113,113)] , DialogType = "BrushColor";
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	// unit<uint8> Redev_SiteTypes : nrofrows = 7
 	// {
@@ -19,12 +29,35 @@ container AdditionalClassifications : using = "classifications/tijd"
 		// container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	// }
 
+	unit<uint8> MutatieTypen_All := union_unit_uint8(MutatieTypen, MutatieTypen_UnID, MutatieTypen_Uitgesloten)
+	{
+		attribute<string>                   name                          := union_data(., MutatieTypen/name          , MutatieTypen_UnID/name           , MutatieTypen_Uitgesloten/name);
+		attribute<MutatieTypen>             MutatieTypen_rel              := union_data(., id(MutatieTypen)           , const(null_b, MutatieTypen_UnID) , const(null_b, MutatieTypen_Uitgesloten));
+		attribute<MutatieTypen_UnID>        MutatieTypen_UnID_rel         := union_data(., const(null_b, MutatieTypen), id(MutatieTypen_UnID)            , const(null_b, MutatieTypen_Uitgesloten));
+		attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel  := union_data(., const(null_b, MutatieTypen),  const(null_b, MutatieTypen_UnID), id(MutatieTypen_Uitgesloten));
+		attribute<string> label := name;
+	}
+	
 	unit<uint8> MutatieTypen : nrofrows = 9
 	{
 		attribute<string> name  : ['N', 'T', 'S', 'O', 'TMplus', 'TMmin', 'Cplus', 'Cmin','S_nw'];
 		attribute<string> label := name;
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
+	unit<uint8> MutatieTypen_Uitgesloten : nrofrows = 5
+	{
+		attribute<string> name  : ['S_rest', 'O_rest', 'TMmin_rest', 'Cplus_rest', 'Cmin_rest'];
+		attribute<string> label := name;
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+	unit<uint8> MutatieTypen_UnID : nrofrows = 6
+	{
+		attribute<string> name  : ['Wp', 'Wm', 'NWp', 'NWm', 'Tp', 'Tm'];
+		attribute<string> label := name;
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+	
+	
 	
 	unit<uint32> Verslagmaanden0 := combine(JarenMin1, Maanden)
 	{

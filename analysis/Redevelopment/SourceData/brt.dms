@@ -23,7 +23,6 @@ container BRT : using = "classifications/BRT"
 			attribute<visualisatiecodes/label_uq> label_uq_rel          := rlookup(label, visualisatiecodes/label_uq/values);
 			attribute<rdc>                        geometry_simpl (poly) := bg_simplify_multi_polygon(Geometry, 1d);
 		}
-	
 	}
 	
 	unit<uint32> IsWaterweg := select_with_org_rel(

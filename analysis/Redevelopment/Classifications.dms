@@ -42,9 +42,9 @@ container classifications : using = "units"
 	unit<uint8> UrbanisationK : nrofrows = 3
 	{
 		attribute<string>    Label        :  ['Urban', 'Intermediate','Peripheral'], DialogType = "LabelText";
-		attribute<uint32>    PenColor     := Brushcolor, DialogType = "PenColor";
-		attribute<uint32>    BrushColor   :  [rgb(200,0,0), rgb(128,128,128),rgb(0,200,0)] , DialogType = "BrushColor";
-		attribute<uint32>    SymbolColor   :  [rgb(200,0,0), rgb(128,128,128),rgb(0,200,0)] , DialogType = "SymbolColor";
+		attribute<uint32>    PenColor     := const(rgb(150,150,150),.), DialogType = "PenColor";
+		attribute<uint32>    BrushColor   :  [rgb(237,80,40), rgb(168,164,164),rgb(166,207,138)] , DialogType = "BrushColor";
+		// attribute<uint32>    SymbolColor   :  [rgb(200,0,0), rgb(128,128,128),rgb(0,200,0)] , DialogType = "SymbolColor";
 		
 		container V := for_each_nedv(Label, 'value('+string(id(.))+', ..)', void, .);
 	}

@@ -14,14 +14,53 @@ container AdditionalClassifications : using = "classifications/tijd"
 		}
 	}
 	
+	unit<uint8> HighMedLow : nrofrows = 3
+	{
+		attribute<string> name         : ['High','Medium','Low'];
+	}
 	unit<uint8> ObjectTypes_Saldi : nrofrows = 4
 	{
 		attribute<string> name         : ['SN','Nieuwbouw','Toevoeging','Transformatie'];
+		attribute<string> name_engl    : ['Replacement','NewBuilt','Addition','Transformation'];
 		attribute<string> label        := name;
 		attribute<uint32> PenColor     := Brushcolor, DialogType = "PenColor";
 		attribute<uint32> BrushColor   : [rgb(112,48,160),rgb(237,125,49), rgb(112,173,71), rgb(118,113,113)] , DialogType = "BrushColor";
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
+	unit<uint32> ObjectTypes_Saldi_HML := combine(ObjectTypes_Saldi, HighMedLow)
+	{
+		attribute<string> label        := name_engl;
+		attribute<string> ObjectTypes  := ObjectTypes_Saldi/name[first_rel];
+		attribute<string> ObjectTypes_Eng  := ObjectTypes_Saldi/name_engl[first_rel];
+		attribute<string> HML          := HighMedLow/name[second_rel];
+		attribute<string> name         := ObjectTypes + '_' + HML;
+		attribute<string> name_engl    := ObjectTypes_Eng + '_' + HML;
+		
+		attribute<uint32> LB : [
+			2918, 416, 0,
+			4240, 657, 0,
+			1370, 308, 0,
+			189 , 49 , 0
+			];
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		
+		attribute<uint32> BrushColor   : [
+		rgb(50,0,100), rgb(112,48,160), rgb(162,101,208),
+		rgb(169,77,14), rgb(237,125,49), rgb(245,184,142),
+		rgb(65,100,41), rgb(112,173,71), rgb(166,207,138),
+		rgb(30,30,30), rgb(118,113,113), rgb(168,164,164)
+		] , DialogType = "BrushColor";
+				
+		//sn   max = 7038  1-416, 416-2918, >
+		//nb   max = 3562  1-657, 657-4240, >
+		//toev max =  461  1-308, 308-1370, >
+		//trf  max = 8340  1-49, 49-189, >
+	}
+	
+	
+	
+	
+	
 	// unit<uint8> Redev_SiteTypes : nrofrows = 7
 	// {
 		// attribute<string> name : ['SN','Toevoeging','Transformatie','Onttrekking','Onveranderd','Nieuwbouw','Sloop'];

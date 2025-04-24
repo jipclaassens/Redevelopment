@@ -2,7 +2,7 @@ container DetermineUrbanisationK
 {
 	unit<uint32> Wijken := 	SourceData/RegioIndelingen/Impl/CBS/Y2012/Wijk
 	{
-		attribute<uint32>        OAD_src             := OAD;
+		attribute<uint32>        OAD_src             := MakeDefined(OAD, 0);
 		attribute<OAD_Klassen>   OAD_K_rel           := Classify(OAD_src, OAD_Klassen/LB);
 		attribute<UrbanisationK> UrbanisationK_rel   := OAD_Klassen/UrbanisationK_rel[OAD_K_rel];
 	}

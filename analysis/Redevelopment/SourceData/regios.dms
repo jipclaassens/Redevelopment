@@ -65,7 +65,7 @@ container RegioIndelingen : using = "geography"
 				attribute<m2>          area                                            := area(geometry, m2);
 				attribute<m2>          opp_BeschermdeStadDorpgezichten                 := sum(x_BeschermdeStadDorpgezichten/area, x_BeschermdeStadDorpgezichten/first_rel);
 				attribute<float32>     share_opp_BeschermdeStadDorpsgezichten          := opp_BeschermdeStadDorpgezichten / area;
-				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+				// container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
 				
 				unit<uint32> x_BeschermdeStadDorpgezichten := bp_overlay_polygon(geometry[rdc_cm], SourceData/overig/StadsDorpsGezichten/geometry[rdc_cm])
 				{
@@ -166,40 +166,40 @@ container RegioIndelingen : using = "geography"
 			attribute<string>    prvnm           := statnaam;
 		}
 		
-		unit<uint32> Read_PC4_areas_shape // CBS_pc4_2020_v1
-		:	StorageName     = "%Redev_DataDir%/CBS/pc6_tm2019_shp/CBS_pc4_2020_v1.shp"
-		,	StorageType     = "gdal.vect"
-		,	StorageReadOnly = "True"
-		{
-			attribute<rdc>                  geometry (poly);
-			attribute<int32>                PC4;
-		}
+		// unit<uint32> Read_PC4_areas_shape // CBS_pc4_2020_v1
+		// :	StorageName     = "%Redev_DataDir%/CBS/pc6_tm2019_shp/CBS_pc4_2020_v1.shp"
+		// ,	StorageType     = "gdal.vect"
+		// ,	StorageReadOnly = "True"
+		// {
+			// attribute<rdc>                  geometry (poly);
+			// attribute<int32>                PC4;
+		// }
 		
 		
-		unit<uint32> Read_PC6_areas_shape
-		:	StorageName     = "%Redev_DataDir%/CBS/pc6_tm2019_shp/pc6_xy_tm2020_areas.shp"
-		,	StorageType     = "gdal.vect"
-		,	StorageReadOnly = "True"
-		{
-			attribute<rdc>                  geometry (poly);
-			attribute<string>               PC6;
-		}
+		// unit<uint32> Read_PC6_areas_shape
+		// :	StorageName     = "%Redev_DataDir%/CBS/pc6_tm2019_shp/pc6_xy_tm2020_areas.shp"
+		// ,	StorageType     = "gdal.vect"
+		// ,	StorageReadOnly = "True"
+		// {
+			// attribute<rdc>                  geometry (poly);
+			// attribute<string>               PC6;
+		// }
 		
-		unit<uint32> Make_PC4_areas_FSS := Read_PC4_areas_shape
-		,	StorageName     = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/pc4_2020_areas.fss"
-		{
-			attribute<rdc>                  geometry (poly) := Read_PC4_areas_shape/geometry;
-			attribute<string>               PC4             := string(Read_PC4_areas_shape/PC4);
-			attribute<string>               label         := PC4, DialogType = "LabelText";
-		}
+		// unit<uint32> Make_PC4_areas_FSS := Read_PC4_areas_shape
+		// ,	StorageName     = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/pc4_2020_areas.fss"
+		// {
+			// attribute<rdc>                  geometry (poly) := Read_PC4_areas_shape/geometry;
+			// attribute<string>               PC4             := string(Read_PC4_areas_shape/PC4);
+			// attribute<string>               label         := PC4, DialogType = "LabelText";
+		// }
 		
-		unit<uint32> Make_PC6_areas_FSS := Read_PC6_areas_shape
-		,	StorageName     = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/pc6_2020_areas.fss"
-		{
-			attribute<rdc>                  geometry (poly) := Read_PC6_areas_shape/geometry;
-			attribute<string>               PC6             := Read_PC6_areas_shape/PC6;
-			attribute<string>               label         := PC6, DialogType = "LabelText";
-		}
+		// unit<uint32> Make_PC6_areas_FSS := Read_PC6_areas_shape
+		// ,	StorageName     = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/pc6_2020_areas.fss"
+		// {
+			// attribute<rdc>                  geometry (poly) := Read_PC6_areas_shape/geometry;
+			// attribute<string>               PC6             := Read_PC6_areas_shape/PC6;
+			// attribute<string>               label         := PC6, DialogType = "LabelText";
+		// }
 		
 		unit<uint32> Make_Buurt_fss := Buurt
 		, StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/buurt.fss"

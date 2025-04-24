@@ -37,10 +37,10 @@ container AdditionalClassifications : using = "classifications/tijd"
 		attribute<string> name_engl    := ObjectTypes_Eng + '_' + HML;
 		
 		attribute<uint32> LB : [
-			2918, 416, 0,
-			4240, 657, 0,
-			1370, 308, 0,
-			189 , 49 , 0
+			 100,  20, 1, //sn
+			 100,  20, 1, //nb
+			  50,  10, 1, //toev
+			  12,   4, 1  //trf
 			];
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		
@@ -95,8 +95,6 @@ container AdditionalClassifications : using = "classifications/tijd"
 		attribute<string> label := name;
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
-	
-	
 	
 	unit<uint32> Verslagmaanden0 := combine(JarenMin1, Maanden)
 	{

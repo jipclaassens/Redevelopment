@@ -1,5 +1,7 @@
 // Set directory Jip
-cd "C:\Users\JipClaassens\OneDrive - Objectvision\VU\Projects\202008-RedevelopmentPaper"
+cd "C:\Users\JipClaassens\OneDrive - Objectvision\VU\Projects\202008-RedevelopmentPaper" //ovsrv08
+cd "D:\OneDrive\OneDrive - Objectvision\VU\Projects\202008-RedevelopmentPaper" //laptop
+
 ssc install outreg2 //install outreg2 voor het wegschrijven van regressie resultaten naar word/excel/etc.
 
 global filedate = 20250423  // 20241211  20250226
@@ -25,42 +27,55 @@ rename opp_besch opp_beschermdestaddorpgezicht
 
 
 ///nieuwe version op basis van analyse verderop.
+// g construction_period_label = ""
+// replace construction_period_label = "Construction 1929 and earlier" if bouwjaar <= 1929 & bouwjaar != . 
+// replace construction_period_label = "Construction 1930-1957" if bouwjaar >= 1930 & bouwjaar <= 1957
+// replace construction_period_label = "Construction 1958-1968" if bouwjaar >= 1958 & bouwjaar <= 1968
+// replace construction_period_label = "Construction 1969-1975" if bouwjaar >= 1969 & bouwjaar <= 1975
+// replace construction_period_label = "Construction 1976-1985" if bouwjaar >= 1976 & bouwjaar <= 1985
+// replace construction_period_label = "Construction 1986-1995" if bouwjaar >= 1986 & bouwjaar <= 1995
+// replace construction_period_label = "Construction 1996-2008" if bouwjaar >= 1996 & bouwjaar <= 2008
+// replace construction_period_label = "Construction 2009 and later " if bouwjaar >= 2009 & bouwjaar != .
+// encode construction_period_label, generate(construction_period)
+//
 g construction_period_label = ""
 replace construction_period_label = "Construction 1929 and earlier" if bouwjaar <= 1929 & bouwjaar != . 
-replace construction_period_label = "Construction 1930-1957" if bouwjaar >= 1930 & bouwjaar <= 1957
-replace construction_period_label = "Construction 1958-1968" if bouwjaar >= 1958 & bouwjaar <= 1968
-replace construction_period_label = "Construction 1969-1975" if bouwjaar >= 1969 & bouwjaar <= 1975
-replace construction_period_label = "Construction 1976-1985" if bouwjaar >= 1976 & bouwjaar <= 1985
-replace construction_period_label = "Construction 1986-1995" if bouwjaar >= 1986 & bouwjaar <= 1995
-replace construction_period_label = "Construction 1996-2008" if bouwjaar >= 1996 & bouwjaar <= 2008
-replace construction_period_label = "Construction 2009 and later " if bouwjaar >= 2009 & bouwjaar != .
+replace construction_period_label = "Construction 1930-1945" if bouwjaar >= 1930 & bouwjaar <= 1945
+replace construction_period_label = "Construction 1946-1960" if bouwjaar >= 1946 & bouwjaar <= 1960
+replace construction_period_label = "Construction 1961-1970" if bouwjaar >= 1961 & bouwjaar <= 1970
+replace construction_period_label = "Construction 1971-1980" if bouwjaar >= 1971 & bouwjaar <= 1980
+replace construction_period_label = "Construction 1981-1990" if bouwjaar >= 1981 & bouwjaar <= 1990
+replace construction_period_label = "Construction 1991-2000" if bouwjaar >= 1991 & bouwjaar <= 2000
+replace construction_period_label = "Construction 2000 and later " if bouwjaar >= 2001 & bouwjaar != .
 encode construction_period_label, generate(construction_period)
 
 
+
+
 * Bouwperiode-labels en condities
-local labels 1929_earlier 1930_1957 1958_1968 1969_1975 1976_1985 1986_1995 1996_2008 2009_later
-
-local conds  bouwjaar<=1929 ///
-             inrange(bouwjaar,1930,1957) ///
-             inrange(bouwjaar,1958,1968) ///
-             inrange(bouwjaar,1969,1975) ///
-             inrange(bouwjaar,1976,1985) ///
-             inrange(bouwjaar,1986,1995) ///
-             inrange(bouwjaar,1996,2008) ///
-             bouwjaar>=2009
-
-local nice_labels "≤1929 1930–1957 1958–1968 1969–1975 1976–1985 1986–1995 1996–2008 ≥2009"
-local n : word count `labels'
-
-forvalues i = 1/`n' {
-    local varname   : word `i' of `labels'
-    local condition : word `i' of `conds'
-    local labtxt    : word `i' of `nice_labels'
-
-    gen bouwperiode_`varname' = `condition' if !missing(bouwjaar)
-    label var bouwperiode_`varname' "Bouwperiode: `labtxt'"
-}
-
+// local labels 1929_earlier 1930_1957 1958_1968 1969_1975 1976_1985 1986_1995 1996_2008 2009_later
+//
+// local conds  bouwjaar<=1929 ///
+//              inrange(bouwjaar,1930,1957) ///
+//              inrange(bouwjaar,1958,1968) ///
+//              inrange(bouwjaar,1969,1975) ///
+//              inrange(bouwjaar,1976,1985) ///
+//              inrange(bouwjaar,1986,1995) ///
+//              inrange(bouwjaar,1996,2008) ///
+//              bouwjaar>=2009
+//
+// local nice_labels "≤1929 1930–1957 1958–1968 1969–1975 1976–1985 1986–1995 1996–2008 ≥2009"
+// local n : word count `labels'
+//
+// forvalues i = 1/`n' {
+//     local varname   : word `i' of `labels'
+//     local condition : word `i' of `conds'
+//     local labtxt    : word `i' of `nice_labels'
+//
+//     gen bouwperiode_`varname' = `condition' if !missing(bouwjaar)
+//     label var bouwperiode_`varname' "Bouwperiode: `labtxt'"
+// }
+//
 
 g count_total_proces_pluschange = count_sn_nieuwbouw + count_nieuwbouw + count_toevoeging + count_transformatie_plus
 // g count_total_proces_minchange  = count_sn_sloop + count_sn_sloop_nw + count_onttrekking + count_transformatiem + count_sloop
@@ -77,20 +92,32 @@ g count_div            = count_toevoeging - count_onttrekking
 g count_transformatie  = count_transformatie_p - count_transformatie_m
 
 g count_woninggroei_ha_plus   = count_total_proces_pluschange / land_area_ha
+
 g cnt_wgr_ha_sn     = count_sn / land_area_ha
-g cnt_wgr_ha_nb     = count_nieuwbouw / land_area_ha
 g cnt_wgr_ha_div    = count_div / land_area_ha
 g cnt_wgr_ha_trf    = count_transformatie / land_area_ha
-g cnt_wgr_ha_trfp    = count_transformatie_p / land_area_ha
+g cnt_wgr_ha_nb     = count_nieuwbouw / land_area_ha
+
+g cnt_wgr_ha_snnb     = count_sn_nieuwbouw / land_area_ha
+g cnt_wgr_ha_snsl     = count_sn_sloop / land_area_ha
 g cnt_wgr_ha_toev    = count_toevoeging / land_area_ha
+g cnt_wgr_ha_ontt     = count_onttrekking / land_area_ha
+g cnt_wgr_ha_trfp    = count_transformatie_p / land_area_ha
+g cnt_wgr_ha_trfm    = count_transformatie_m / land_area_ha
 
 g ln_cnt_wgr_ha_plus = ln(count_woninggroei_ha_plus)
+
 g ln_cnt_wgr_ha_sn   = ln(cnt_wgr_ha_sn)
-g ln_cnt_wgr_ha_nb   = ln(cnt_wgr_ha_nb)
 g ln_cnt_wgr_ha_div  = ln(cnt_wgr_ha_div)
 g ln_cnt_wgr_ha_trf  = ln(cnt_wgr_ha_trf)
-g ln_cnt_wgr_ha_trfp  = ln(cnt_wgr_ha_trfp)
+g ln_cnt_wgr_ha_nb   = ln(cnt_wgr_ha_nb)
+
+g ln_cnt_wgr_ha_snnb   = ln(cnt_wgr_ha_snnb)
+g ln_cnt_wgr_ha_snsl   = ln(cnt_wgr_ha_snsl)
 g ln_cnt_wgr_ha_toev  = ln(cnt_wgr_ha_toev)
+g ln_cnt_wgr_ha_ontt  = ln(cnt_wgr_ha_ontt)
+g ln_cnt_wgr_ha_trfp  = ln(cnt_wgr_ha_trfp)
+g ln_cnt_wgr_ha_trfm  = ln(cnt_wgr_ha_trfm)
 
 
 
@@ -201,16 +228,21 @@ reg  ln_cnt_wgr_ha_plus p_huurcorp uai p_beschermd p_onbebouwd ib8.construction_
 // p_beschermd	Niet sig.	→ geen consistent zelfstandig effect
 
 reg  count_woninggroei_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib8.construction_period, r allbaselevels
-outreg2 using output/PerWijk_${filedate}_nose, excel label dec(3) nose
+outreg2 using output/PerWijk_${filedate}_nose2, excel label dec(3) nose
 reg  ln_cnt_wgr_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib8.construction_period, r allbaselevels
-outreg2 using output/PerWijk_${filedate}_nose, excel label dec(3) nose
+outreg2 using output/PerWijk_${filedate}_nose2, excel label dec(3) nose
+
+reg  count_woninggroei_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib4.construction_period, r allbaselevels
+outreg2 using output/PerWijk_${filedate}_nose2, excel label dec(3) nose
+reg  ln_cnt_wgr_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib4.construction_period, r allbaselevels
+outreg2 using output/PerWijk_${filedate}_nose2, excel label dec(3) nose
 
 
 //====== per type
 reg  ln_cnt_wgr_ha_snnb p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib8.construction_period, r allbaselevels
 
 
-local types "sn nb div trf toev trfp"
+local types "sn nb div trf"
 foreach t of local types{ 
     display ""
     display ""
@@ -220,9 +252,24 @@ foreach t of local types{
     display "---------------------------------------------"
     display "---------------------------------------------"
 	
-	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd ib8.construction_period, r allbaselevels
-	outreg2 using output/PerWijk_${filedate}_lncnt_nose2, excel cttop (ln(`t')) label dec(3) nose
+	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd ib5.construction_period, r allbaselevels
+	outreg2 using output/PerWijk_${filedate}_lncnt_nose_main2, excel cttop (ln(`t')) label dec(3) nose
 }
+
+local types "snnb snsl toev ontt trfp trfm" 
+foreach t of local types{ 
+    display ""
+    display ""
+    display "---------------------------------------------"
+    display "---------------------------------------------"
+    display "-- Regressing redev type = `t' --"
+    display "---------------------------------------------"
+    display "---------------------------------------------"
+	
+	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd ib5.construction_period, r allbaselevels
+	outreg2 using output/PerWijk_${filedate}_lncnt_nose_sub2, excel cttop (ln(`t')) label dec(3) nose
+}
+
 
 
 //tst vraag Jan

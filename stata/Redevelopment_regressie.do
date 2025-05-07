@@ -53,29 +53,29 @@ encode construction_period_label, generate(construction_period)
 
 
 * Bouwperiode-labels en condities
-// local labels 1929_earlier 1930_1957 1958_1968 1969_1975 1976_1985 1986_1995 1996_2008 2009_later
-//
-// local conds  bouwjaar<=1929 ///
-//              inrange(bouwjaar,1930,1957) ///
-//              inrange(bouwjaar,1958,1968) ///
-//              inrange(bouwjaar,1969,1975) ///
-//              inrange(bouwjaar,1976,1985) ///
-//              inrange(bouwjaar,1986,1995) ///
-//              inrange(bouwjaar,1996,2008) ///
-//              bouwjaar>=2009
-//
-// local nice_labels "≤1929 1930–1957 1958–1968 1969–1975 1976–1985 1986–1995 1996–2008 ≥2009"
-// local n : word count `labels'
-//
-// forvalues i = 1/`n' {
-//     local varname   : word `i' of `labels'
-//     local condition : word `i' of `conds'
-//     local labtxt    : word `i' of `nice_labels'
-//
-//     gen bouwperiode_`varname' = `condition' if !missing(bouwjaar)
-//     label var bouwperiode_`varname' "Bouwperiode: `labtxt'"
-// }
-//
+local labels 1929_earlier 1930_1945 1945_1960 1961_1970 1971_1980 1981_1990 1991_2000 2001_later
+
+local conds  bouwjaar<=1929 ///
+             inrange(bouwjaar,1930,1945) ///
+             inrange(bouwjaar,1946,1960) ///
+             inrange(bouwjaar,1961,1970) ///
+             inrange(bouwjaar,1971,1980) ///
+             inrange(bouwjaar,1981,1990) ///
+             inrange(bouwjaar,1991,2000) ///
+             bouwjaar>=2000
+
+local nice_labels "≤1929 1930–1945 1946–1960 1961–1970 1971–1980 1981–1990 1991–2000 >2000"
+local n : word count `labels'
+
+forvalues i = 1/`n' {
+    local varname   : word `i' of `labels'
+    local condition : word `i' of `conds'
+    local labtxt    : word `i' of `nice_labels'
+
+    gen bouwperiode_`varname' = `condition' if !missing(bouwjaar)
+    label var bouwperiode_`varname' "Bouwperiode: `labtxt'"
+}
+
 
 g count_total_proces_pluschange = count_sn_nieuwbouw + count_nieuwbouw + count_toevoeging + count_transformatie_plus
 // g count_total_proces_minchange  = count_sn_sloop + count_sn_sloop_nw + count_onttrekking + count_transformatiem + count_sloop
@@ -227,15 +227,10 @@ reg  ln_cnt_wgr_ha_plus p_huurcorp uai p_beschermd p_onbebouwd ib8.construction_
 // p_woninggroei	+0.042	Sterke samenhang: waar meer groeit in totaal, is ook de dichtheidsgroei hoger
 // p_beschermd	Niet sig.	→ geen consistent zelfstandig effect
 
-reg  count_woninggroei_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib8.construction_period, r allbaselevels
-outreg2 using output/PerWijk_${filedate}_nose2, excel label dec(3) nose
-reg  ln_cnt_wgr_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib8.construction_period, r allbaselevels
-outreg2 using output/PerWijk_${filedate}_nose2, excel label dec(3) nose
-
-reg  count_woninggroei_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib4.construction_period, r allbaselevels
-outreg2 using output/PerWijk_${filedate}_nose2, excel label dec(3) nose
-reg  ln_cnt_wgr_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib4.construction_period, r allbaselevels
-outreg2 using output/PerWijk_${filedate}_nose2, excel label dec(3) nose
+reg  count_woninggroei_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib5.construction_period, r allbaselevels
+outreg2 using output/PerWijk_${filedate}_nose_jr70, excel label dec(3) nose
+reg  ln_cnt_wgr_ha_plus p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei ib5.construction_period, r allbaselevels
+outreg2 using output/PerWijk_${filedate}_nose_jr70, excel label dec(3) nose
 
 
 //====== per type
@@ -253,7 +248,7 @@ foreach t of local types{
     display "---------------------------------------------"
 	
 	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd ib5.construction_period, r allbaselevels
-	outreg2 using output/PerWijk_${filedate}_lncnt_nose_main2, excel cttop (ln(`t')) label dec(3) nose
+	outreg2 using output/PerWijk_${filedate}_lncnt_nose_main_jr70, excel cttop (ln(`t')) label dec(3) nose
 }
 
 local types "snnb snsl toev ontt trfp trfm" 
@@ -267,7 +262,7 @@ foreach t of local types{
     display "---------------------------------------------"
 	
 	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd ib5.construction_period, r allbaselevels
-	outreg2 using output/PerWijk_${filedate}_lncnt_nose_sub2, excel cttop (ln(`t')) label dec(3) nose
+	outreg2 using output/PerWijk_${filedate}_lncnt_nose_sub_jr70, excel cttop (ln(`t')) label dec(3) nose
 }
 
 

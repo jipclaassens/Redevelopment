@@ -84,7 +84,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		unit<uint32> Onveranderd_Objecten           := PrepDomains/Onveranderd/domain;
 	}
 	
-/*
+// /*
  	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
 	, StorageName = "='%LocalDataProjDir%/Temp/PerObject_Export_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
 	, using = "AdditionalClassifications"
@@ -100,7 +100,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Urbanisation[point_in_polygon(geometry, RegioUnit_gem_oud/geometry)];
 		
 	}
- */	
+ // */	
  
 	// unit<uint32> PerSite_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_SiteTypes/name+'_Sites')+')'
 	// , StorageName = "%LocalDataProjDir%/Temp/PerSite_Export.fss"
@@ -139,9 +139,19 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// attribute<bool>             IsWithinUrbanContour := IsDefined(point_in_polygon(geometry, /SourceData/begenzing_bebouwd_gebied/Bevolkingskern_2011/shapes/geometry));
 		
 		attribute<RegioUnit_Wijk12>   Wijk12_rel             := point_in_polygon(geometry, RegioUnit_Wijk12/geometry);
-		attribute<RegioUnit_Wijk23>   Wijk23_rel             := point_in_polygon(geometry, RegioUnit_Wijk23/geometry);
+		// attribute<RegioUnit_Wijk23>   Wijk23_rel             := point_in_polygon(geometry, RegioUnit_Wijk23/geometry);
 		attribute<string>             WK_CODE_2012         := RegioUnit_Wijk12/WK_CODE[Wijk12_rel];
-		attribute<string>             WK_CODE_2023         := RegioUnit_Wijk23/WK_CODE[Wijk23_rel];
+		// attribute<string>             WK_CODE_2023         := RegioUnit_Wijk23/WK_CODE[Wijk23_rel];
+		
+		//adhoc
+		unit<uint32> Sloop := select_with_attr_by_cond(.,type_class == Redev_ObjectTypes/v/sloop)
+		{
+			attribute<bool>      SnelwegBuffer    (NL_grid/domain_25m) : StorageName = "='%SourceDataDir%/BGT/IsAutoWegBuffer_200m_20250305_Nederland.tif'", StorageType = "tif";
+			attribute<bool> IsWithinBuffer := SnelwegBuffer[grid_rel];
+			attribute<NL_grid/domain_25m> grid_rel  := geometry[NL_grid/domain_25m];
+
+		}
+		
 		
 		// attribute<NL_grid/domain>   per_grid := geometry[NL_grid/domain];
 		
@@ -321,8 +331,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	
 	unit<uint32> Analyse_PerWijk := RegioUnit_Wijk12
 	, using = "AdditionalClassifications"
-	, StorageName = "='%LocalDataProjDir%/Output/Analyse_PerWijk_'+Export_Date+'.csv'"
-	, StorageType = "gdalwrite.vect"
+	// , StorageName = "='%LocalDataProjDir%/Output/Analyse_PerWijk_'+Export_Date+'.csv'"
+	// , StorageType = "gdalwrite.vect"
 	{
 		attribute<string>                WK_CODE                 := CODE;
 		attribute<km2>                   Total_area              := area(geometry, m2)[km2];
@@ -361,6 +371,14 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// attribute<string>                dom_process_plus         := ='Redev_ObjectTypes/Plus/name[argmax_uint8('+Aslist('count_'+Redev_ObjectTypes/Plus/name+'', ',')+')]';
 		attribute<Redev_ObjectTypes/Plus> dom_process_plus         := ='argmax_uint8('+Aslist('count_'+Redev_ObjectTypes/Plus/name+'', ',')+')[Redev_ObjectTypes/Plus]';
 		attribute<ObjectTypes_Saldi>      dom_process_saldo        := ='argmax_ifdefined_uint8('+Aslist('saldo_'+ObjectTypes_Saldi/name+' > 10 ? saldo_'+ObjectTypes_Saldi/name+' : null_u', ',')+')[ObjectTypes_Saldi]';
+		
+		attribute<uint32> saldo_dom_process_saldo    := ='merge(dom_process_saldo, uint32, '+AsItemList('saldo_'+ObjectTypes_Saldi/name)+')';
+		
+		attribute<uint32> saldo_if_dom_process_saldo_SN := dom_process_saldo == ObjectTypes_Saldi/v/SN ? saldo_SN : null_u;
+		attribute<uint32> saldo_if_dom_process_saldo_T  := dom_process_saldo == ObjectTypes_Saldi/v/Toevoeging ? saldo_Toevoeging : null_u;
+		attribute<uint32> saldo_if_dom_process_saldo_Tr := dom_process_saldo == ObjectTypes_Saldi/v/Transformatie ? saldo_Transformatie : null_u;
+		attribute<uint32> saldo_if_dom_process_saldo_NB := dom_process_saldo == ObjectTypes_Saldi/v/Nieuwbouw ? saldo_Nieuwbouw : null_u;
+		
 		
 		attribute<ObjectTypes_Saldi_HML>  ObjectTypes_Saldi_HML_rel := switch(
 																			 case(dom_process_saldo == ObjectTypes_Saldi/v/SN && saldo_SN > ObjectTypes_Saldi_HML/LB[ObjectTypes_Saldi_HML/V/SN_High], ObjectTypes_Saldi_HML/V/SN_High)

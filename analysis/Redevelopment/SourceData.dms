@@ -8,7 +8,7 @@ container SourceData :  using = "units;geography;classifications"
 	// #include <nvm.dms>
 	// #include <overig.dms>
 	#include <regios.dms>
-	// #include <spatial_data.dms>
+	#include <spatial_data.dms>
 	// #include <woz.dms>
 	#include <vierkanten.dms>
 	

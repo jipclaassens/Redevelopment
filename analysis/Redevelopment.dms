@@ -3,6 +3,12 @@ container Redevelopment
 	container MaakOntkoppeldeData
 	{
 		// parameter<string> SN := 'Ready', ExplicitSuppliers = "/Analyse/Redev_obv_hele_bag/AdditionalOperations/SN/NB_metSloop_TouchSloopPerc/Step3";
+		parameter<string> MaakVolledigeBAGTabel           := 'Ready', ExplicitSuppliers = "/SourceData/BAG/MaakVolledigeBAG/MaakVolledigeBAGTabel";
+		parameter<string> Write_Relevant_Tiles_x_WegSpoor := 'Ready', ExplicitSuppliers = "/SourceData/BRT/Write_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor";
+		parameter<string> UrbanAttractivityIndex          := 'Ready', ExplicitSuppliers = "/Analyse/UrbanAttractivityIndex/Make_Tiff";
+		
+		parameter<string> Write_FinalMutationTable := 'Ready', ExplicitSuppliers = "/Analyse/Redev_obv_hele_bag/PrepBAG/Write_FinalMutationTable";
+		parameter<string> PerObject_Export         := 'Ready', ExplicitSuppliers = "/Analyse/Redev_obv_hele_bag/PerObject_Export";
 		
 	}
 	container Parameters : using = "units"
@@ -29,6 +35,10 @@ container Redevelopment
 		// parameter<m>       verdiepinghoogte                := 2.8[m];
 		parameter<m2>      minimum_site_area               := 25[m2];
 		parameter<float32> minimum_SN_area_share           := 0.01f;
+		
+		parameter<int32>     VBO_opp_truncation              := 500i;
+		parameter<int32>     VBO_opp_truncation_lower        := 10i;
+		// parameter<int32>     VBO_opp_truncation_defaultvalue := 120i;
 		
 		parameter<string> BRT_file_date  := '20250318';
 		parameter<string> BRK_file_date  := '20231206';

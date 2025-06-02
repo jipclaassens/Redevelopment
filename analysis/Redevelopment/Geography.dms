@@ -109,18 +109,19 @@ container geography : using = "units"
 	}
 	container NL_grid: Using = "units"
 	{
-		unit<uint32> Gridsizes : nrofrows = 5
+		unit<uint32> Gridsizes : nrofrows = 6
 		{
-			attribute<m>      size : [10, 25, 100, 500, 1000];
+			attribute<m>      size : [5, 10, 25, 100, 500, 1000];
 			attribute<string> name := 'size_'+string(size)+'m';
 		}
 		
-		unit<spoint> domain       := perGridsize/size_100m/domain;
-		unit<spoint> domain_10m   := perGridsize/size_10m/domain;
-		unit<spoint> domain_25m   := perGridsize/size_25m/domain;
-		unit<spoint> domain_100m  := perGridsize/size_100m/domain;
-		unit<spoint> domain_500m  := perGridsize/size_500m/domain;
-		unit<spoint> domain_1000m := perGridsize/size_1000m/domain;
+		unit<ipoint> domain       := perGridsize/size_100m/domain;
+		unit<ipoint> domain_5m    := perGridsize/size_5m/domain;
+		unit<ipoint> domain_10m   := perGridsize/size_10m/domain;
+		unit<ipoint> domain_25m   := perGridsize/size_25m/domain;
+		unit<ipoint> domain_100m  := perGridsize/size_100m/domain;
+		unit<ipoint> domain_500m  := perGridsize/size_500m/domain;
+		unit<ipoint> domain_1000m := perGridsize/size_1000m/domain;
 	
 		parameter<m> x_min := 0[m];
 		parameter<m> x_max := 280000[m];
@@ -137,18 +138,18 @@ container geography : using = "units"
 		{
 			parameter<m> gridsize;
 			
-			parameter<int16> nr_cols := int16((x_max - x_min) / gridsize);
-			parameter<int16> nr_rows := int16((y_max - y_min) / gridsize);
+			parameter<int32> nr_cols := int32((x_max - x_min) / gridsize);
+			parameter<int32> nr_rows := int32((y_max - y_min) / gridsize);
 			
-			unit<spoint> domain :=
+			unit<ipoint> domain :=
 				range(
 					 gridset(
 						 rdc
 						,point_xy(gridsize, -gridsize, rdc)
 						,point_xy(x_min, y_max, rdc)
-						,spoint
+						,ipoint
 					)
-					,point_xy(0s, 0s)
+					,point_xy(0i, 0i)
 					,point_xy(nr_cols, nr_rows)
 				),	DialogData = "rdc"
 			{
@@ -160,7 +161,7 @@ container geography : using = "units"
 				attribute<NL_grid/domain_500m>  grid_500m_rel    := id(.)[NL_grid/domain_500m];
 			}
 			
-			unit<uint32> points := select_with_org_rel(isDefined(domain/id))
+			unit<uint32> points := select_uint32_with_org_rel(isDefined(domain/id))
 			{
 				attribute<rdc> 	                geometry  := org_rel -> point_rd;
 				attribute<uint32>               id        := org_rel -> id_nr;

@@ -123,6 +123,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	, using = "AdditionalClassifications;classifications/tijd"
 	{
 		attribute<rdc>              geometry;
+		attribute<NL_grid/domain_25m> per_25m_rel := geometry[NL_grid/domain_25m];
 		attribute<uint64>           vbo_bag_nr;
 		// attribute<string>           site_id;
 		attribute<Redev_ObjectTypes>type_class;
@@ -135,6 +136,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<jaar>             pand_bouwjaar;
 		// attribute<UrbanisationK>    UrbanisationK_rel; 
 		attribute<UrbanisationK>    UrbanisationK_rel               := Analyse/DetermineUrbanisationK/Wijken/UrbanisationK_rel[Wijk12_rel];
+		attribute<bool>             IsGreyBrownfield_1996 := SourceData/bestand_bodem_gebruik/BBG/Dominant/IsGreyBrownField_1996_augm[per_25m_rel];
 		// attribute<m2>               site_oppervlakte     := rjoin(site_id, Read_PerSite_Export/site_id, Read_PerSite_Export/site_oppervlakte);
 		// attribute<bool>             IsWithinUrbanContour := IsDefined(point_in_polygon(geometry, /SourceData/begenzing_bebouwd_gebied/Bevolkingskern_2011/shapes/geometry));
 		
@@ -249,7 +251,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				// , Verslagmaanden
 				// , int32
 			// );
-		
+			
+		parameter<int32> AvgObjectSize_RelevantSaldi := mean(Redev_ObjectTypes/IsRelevantSaldi[type_class] ? vbo_oppervlakte_edit : null_i);
 		container AvgObjectSize_PerRedevType :=
 			for_each_nedv(
 				Redev_ObjectTypes/name
@@ -276,6 +279,14 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		{
 			attribute<string> Label (UrbanisationK) := UrbanisationK/label;
 		}
+		
+		container Count_OnGreyBrown_PerRedevType :=
+			for_each_nedv(
+				Redev_ObjectTypes/name
+				, 'sum_uint32(type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' && IsGreyBrownfield_1996)'
+				, void
+				, uint32
+			);
 			
 		// container Count_BegrBebGeb_PerRedevType :=
 			// for_each_nedv(

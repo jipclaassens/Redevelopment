@@ -4,12 +4,17 @@ container AdditionalClassifications : using = "classifications/tijd"
 	{
 		attribute<string> name : ['SN_Sloop','SN_Sloop_nw','SN_Nieuwbouw','Nieuwbouw','Toevoeging','Onttrekking','Transformatie_Plus','Transformatie_Min','Sloop','Onveranderd'];
 		attribute<string> label := name;
+		
+		attribute<bool> IsRelevantSaldi := name != 'Onveranderd' && name != 'Sloop' && name != 'SN_Sloop_nw';
+		
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		
-		unit<uint8> Plus := select_with_org_rel(name == 'SN_Nieuwbouw' || name == 'Nieuwbouw' || name == 'Toevoeging' || name == 'Transformatie_Plus')
+		unit<uint8> Plus := select_with_attr_by_cond(., name == 'SN_Nieuwbouw' || name == 'Nieuwbouw' || name == 'Toevoeging' || name == 'Transformatie_Plus')
 		{
-			attribute<string> name := ../name[org_rel];
-			attribute<string> label := name;
+			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		}
+		unit<uint8> RelevantSaldi := select_with_attr_by_cond(., name != 'Onveranderd' && name != 'Sloop' && name != 'SN_Sloop_nw')
+		{
 			container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		}
 	}

@@ -15,7 +15,7 @@ container VolledigeBAG : using = "classifications/BAG"
 		attribute<rdc>         pand_geometry (poly)           := panden/pand/geometry[second_rel];
 		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[second_rel];
 		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[first_rel];
-		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte[first_rel];
+		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte_trunc[first_rel];
 		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar_trunc[second_rel];
 		// attribute<WP4>         pand_type                      := panden/pand/WP4_rel[second_rel];
 		
@@ -144,6 +144,7 @@ container VolledigeBAG : using = "classifications/BAG"
 			attribute<uint64>                       pand_bag_nr                  := uint64(identificatie);
 			attribute<classifications/bag/pand_status>   status_rel                   := import/meta/status_rel;
 			
+			attribute<m2>                           footprint                    := area(geometry, m2);
 			attribute<int32>                        begindatum                   := impl/begindatum0 < 19600101i ? impl/TIJDSTIPREGISTRATIE : impl/begindatum0;
 			attribute<int32>                        einddatum                    := impl/einddatum0 < 19600101i ? impl/EINDREGISTRATIE : impl/einddatum0;
 			attribute<jaar>                         bouwjaar                     := import/bouwjaar;
@@ -262,8 +263,22 @@ container VolledigeBAG : using = "classifications/BAG"
 			attribute<uint64>                     vbo_bag_nr                := uint64(identificatie);
 			attribute<uint64>                     pand_bag_nr               := rjoin(vbo_bag_nr, uint64(import/gerelateerdPand/identificatie), uint64(import/gerelateerdPand/pand_id));
 			attribute<int32>                      oppervlakte               := import/oppervlakte;
+			attribute<m2>                         pand_footprint            := panden/pand/footprint[pand_rel];
+			
+			attribute<int32>                      oppervlakte_trunc00       := oppervlakte == 999i || oppervlakte == 9999i || oppervlakte == 99999i  || oppervlakte == 999999i || oppervlakte == 888888i || oppervlakte == 999998i 
+																				? null_i
+																				: oppervlakte;
+			attribute<int32>                      oppervlakte_trunc0        := oppervlakte_trunc00 < Parameters/VBO_opp_truncation_lower && impl/gebruiksdoelen/woon
+																				? pand_footprint[int32]
+																				: oppervlakte_trunc00;
+			attribute<int32>                      oppervlakte_trunc        := oppervlakte_trunc0 < Parameters/VBO_opp_truncation_lower 
+																				? Parameters/VBO_opp_truncation_lower 
+																				: oppervlakte_trunc0;
+			
+			
+			
 			attribute<vbo_status>                 status_rel                := import/meta/status_rel;
-			// attribute<uint32>                     pand_rel                  := rlookup(pand_bag_nr, pand_domein/pand_bag_nr);
+			attribute<panden/pand>                pand_rel                  := rlookup(pand_bag_nr, panden/pand/pand_bag_nr);
 			attribute<int32>                      begindatum                := import/meta/BEGINDATUM == 0i ? MaxDatum : import/meta/BEGINDATUM;
 			attribute<int32>                      einddatum                 := import/meta/EINDDATUM == 0i ? MaxDatum : import/meta/EINDDATUM;
 			attribute<uint16>                     functie_code              := impl/gebruiksdoelen/functie_code;
@@ -281,12 +296,12 @@ container VolledigeBAG : using = "classifications/BAG"
 			
 			unit<uint32> impl := .
 			{
-				attribute<bool>                 IsGezondheidsZorg             := gebruiksdoelen/GezondheidsZorg;
-				attribute<bool>                 IsVoorraadStartBAG            := VBO_IsVoorraad && begindatum <= 20111201i;
-				attribute<uint32>               pand_count_ZorgFuncties (uq_pand)       := sum(IsGezondheidsZorg && VBO_IsVoorraad ? 1 : 0, uq_pand_rel);
-				attribute<uint32>               pand_count_ZorgFuncties_StartBAG (uq_pand)       := sum(IsGezondheidsZorg && IsVoorraadStartBAG ? 1 : 0, uq_pand_rel);
-				unit<uint32> uq_pand := unique(pand_bag_nr);
-				attribute<uq_pand>        uq_pand_rel := rlookup(pand_bag_nr, uq_pand/values);
+				attribute<bool>                 IsGezondheidsZorg                          := gebruiksdoelen/GezondheidsZorg;
+				attribute<bool>                 IsVoorraadStartBAG                         := VBO_IsVoorraad && begindatum <= 20111201i;
+				attribute<uint32>               pand_count_ZorgFuncties          (uq_pand) := sum(IsGezondheidsZorg && VBO_IsVoorraad ? 1 : 0, uq_pand_rel);
+				attribute<uint32>               pand_count_ZorgFuncties_StartBAG (uq_pand) := sum(IsGezondheidsZorg && IsVoorraadStartBAG ? 1 : 0, uq_pand_rel);
+				unit<uint32>                    uq_pand                                    := unique(pand_bag_nr);
+				attribute<uq_pand>              uq_pand_rel                                := rlookup(pand_bag_nr, uq_pand/values);
 			
 				container gebruiksdoelen :=
 					for_each_nedv(
@@ -316,8 +331,8 @@ container VolledigeBAG : using = "classifications/BAG"
 		{
 			container Stand_per_Jaar := 
 				for_each_ne(
-					classifications/Tijd/jaren12_24/name
-					, 'Stand_Per_Jaar_T('+string(classifications/Tijd/jaren12_24/value)+'[int32])'
+					classifications/Tijd/jaren/name
+					, 'Stand_Per_Jaar_T('+string(classifications/Tijd/jaren/value)+'[int32])'
 				);
 				
 			Template Stand_Per_Jaar_T

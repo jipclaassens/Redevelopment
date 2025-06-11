@@ -1,0 +1,23 @@
+container N2000_Analyse :  using = "units;classifications/bag;geography"
+{
+	unit<uint32> N2000 := SourceData/overig/Natura2000;
+	
+	unit<uint32> Niewbouw       := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain
+	{
+		attribute<uint32>          x                 := uint32(Get_X(vbo_geometry));
+		attribute<uint32>          y                 := uint32(Get_Y(vbo_geometry));
+		attribute<int32>           MutatieMaand      := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/MutatieMaand;
+		attribute<int32>           vbo_oppervlakte   := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/vbo_oppervlakte;
+		attribute<uint64>          vbo_bag_nr        := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/vbo_bag_nr;
+		attribute<jaar>            pand_bouwjaar     := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/pand_bouwjaar;
+		attribute<uint64>          pand_bag_nr       := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/pand_bag_nr;
+		attribute<uint32>          dist2N2000_m      := uint32(dist_info(N2000/geometry, vbo_geometry));
+	}
+
+
+
+
+
+}
+
+

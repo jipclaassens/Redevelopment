@@ -2,7 +2,7 @@ container SourceData :  using = "units;geography;classifications"
 {
 	#include <bag.dms>
 	#include <bbg.dms>
-	// #include <begrbebgeb.dms>
+	#include <begrbebgeb.dms>
 	// #include <brk.dms>
 	#include <brt.dms>
 	// #include <nvm.dms>
@@ -14,6 +14,30 @@ container SourceData :  using = "units;geography;classifications"
 	
 	container overig
 	{
+		unit<uint32> Natura2000:
+			StorageName     = "%Redev_DataDir%/Beleid/EU/Natura2000_20200524_RD_reproject.gdb"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		,	Source          = "Nationaal georegister download shp-formaat op 20201013, conversie in ArcGIS met project fuunctie (niet via dataframe) naar gdb-formaat ivm grootte"
+							  "check op 20220117 (van het bestand met als datum 2020-05-24) met nieuwer bestand, inhoudelijk niet gewijzigd"
+		,	url             = "http://geodata.nationaalgeoregister.nl/natura2000/atom/natura2000.xml PS_Natura2000_as_is"
+							  "https://www.nationaalgeoregister.nl/geonetwork/srv/api/records/8829e5dd-c861-4639-a6c8-fdbb6e3440d2"
+		,	SyncMode        = "Attr"
+		,	SqlString       = "SELECT * FROM Natura2000_20200524_RD_reproject WHERE KADASTER <> 'niet van toepassing'" 	//skip gebieden ver de Noordzee op op basis van Kadaster-filter
+		{
+			attribute<rdc> geometry (poly);
+			attribute<string>    name := AsItemName(naam_n2k);
+			attribute<string>    label := name;
+
+			unit<uint32> PointSet := sequence2points(geometry);
+			
+			// attribute<.>    per_25m            (NL_grid/domain_25m) := poly2grid(Geometry, NL_grid/domain_25m);
+			// attribute<.>    per_100m               (NL_grid/domain) := modus(per_25m, NL_grid/domain_25m/domain_rel);
+			// attribute<bool> Result_AdminDomain (NL_grid/domain_25m) := per_25m >= 0;
+			// attribute<bool> Result_AllocDomain     (NL_grid/domain) := per_100m >= 0;
+		}
+	
+	
 		unit<uint32> landprice_pc4_2007
 		:  StorageName = "%SourceDataDir%/Overig/Weighted_avg_landprice_pc4_1985-2007.csv"
 		,  StorageType = "gdal.vect"
@@ -129,7 +153,7 @@ container SourceData :  using = "units;geography;classifications"
 	}
  
  
-/* 	container Zones : using = "/classifications/BBG"
+ 	container Zones : using = "/classifications/BBG"
 	{
 		container gg_zones_bbg2000_begr2000
 		{
@@ -163,5 +187,4 @@ container SourceData :  using = "units;geography;classifications"
 				);
 		} 
 	}
- */
 }

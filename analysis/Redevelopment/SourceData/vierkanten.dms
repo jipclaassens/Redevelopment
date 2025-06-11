@@ -18,7 +18,7 @@ container CBS_vierkanten
 		//
 		
 		container GPKG
-		:	StorageName     = "='%SourceDataDir%/CBS/cbs_vk100_'+jaar+'_vol.gpkg'"
+		:	StorageName     = "='%SourceDataDir%/CBS/CBSVierkanten/cbs_vk100_'+jaar+'_vol.gpkg'"
 		,	StorageType     = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	DialogData      = "rdc"

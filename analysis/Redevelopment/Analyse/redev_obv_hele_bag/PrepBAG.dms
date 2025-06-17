@@ -36,6 +36,10 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<bool>                 IsOnveranderd_NietWoon_Voorraad  := not(IsMutated) && not(VBO_IsWonen) && not(IsOverigeGebruiksfunctie) && VBO_IsVoorraad && EINDDATUM == /SourceData/BAG/VolledigeBAG/MaxDatum;
 		attribute<bool>                 LigtOpStandplaats_Start_20162017 := IsDefined(point_in_polygon(geometry, /SourceData/BAG/VolledigeBAG/Standplaatsen/src/SelectieMoment/geometry)), Descr = "Er is een sloop piek in 2016/2017, dit betrof foutieve toevoeging van stacaravans als pand. Deze zijn toen allemaal 'gesloopt'. Deze kunnen we vervolgens identiferen doordat ze als nieuwe standplaats zijn toegevoegd aan de BAG.";
 		
+		//laatste bouwvergunning_verleend datum, per pand.
+		attribute<int32>                Datum_BouwvergunningVerleend     := pand_status_rel == pand_status/v/bouwvergunning_verleend ? begindatum : null_i;
+		attribute<int32>                LastDatum_BouwvergunningVerleend     := last(Datum_BouwvergunningVerleend, uq_pand_nr_rel)[uq_pand_nr_rel];
+
 		
 		attribute<uint32>               pand_count_new_WoonFuncties       := sum(VBO_IsWonen && vbo_IsVoorraad && not(ActiefOp_StartBAG) ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
 		
@@ -590,6 +594,8 @@ container PrepBAG : using = "AdditionalClassifications"
 			attribute<pand_status_w_Undefined> prev_pand_status_rel  := src/prev_pand_status_rel[org_rel];
 			attribute<pand_status>             pand_status_rel       := src/pand_status_rel[org_rel];
 			
+			attribute<int32>                   LastDatum_BouwvergunningVerleend := src/LastDatum_BouwvergunningVerleend[org_rel];
+			
 			attribute<bool>                    IsWaarschijnlijkCorrectieVanStudentenComplex_2          := src/IsWaarschijnlijkCorrectieVanStudentenComplex_2[org_rel];
 			attribute<bool>                    VBO_WasWonen          := src/VBO_WasWonen[org_rel];
 			attribute<bool>                    VBO_IsWonen           := src/VBO_IsWonen[org_rel];
@@ -1126,6 +1132,8 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<uint64>                   pand_bag_nr           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
 		attribute<int32>                    vbo_oppervlakte       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_oppervlakte')+')';
 		attribute<int32>                    MutatieMaand          := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
+		attribute<pand_status>              pand_status_rel       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_status_rel')+')';
+		attribute<int32>                    LastDatum_BouwvergunningVerleend       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/LastDatum_BouwvergunningVerleend')+')';
 		attribute<MutatieTypen>             MutatieTypen_rel_src  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
 		attribute<MutatieTypen_UnID>        MutatieTypen_UnID_rel := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_UnID_rel')+')';
 		attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_Uitgesloten_rel')+')';
@@ -1141,6 +1149,8 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<jaar>                     pand_bouwjaar;
 		attribute<uint64>                   pand_bag_nr;
 		attribute<int32>                    vbo_oppervlakte;
+		attribute<pand_status>              pand_status_rel;
+		attribute<int32>                    LastDatum_BouwvergunningVerleend;
 		attribute<int32>                    MutatieMaand;
 		attribute<MutatieTypen>             MutatieTypen_rel_src;
 		attribute<MutatieTypen_UnID>        MutatieTypen_UnID_rel;

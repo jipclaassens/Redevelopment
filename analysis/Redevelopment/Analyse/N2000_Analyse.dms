@@ -1,23 +1,109 @@
 container N2000_Analyse :  using = "units;classifications/bag;geography"
 {
-	unit<uint32> N2000 := SourceData/overig/Natura2000;
+	container N2000_src
+	: StorageName = "%SourceDataDir%/Overig/n2000_stikstofgevoelig.gpkg"
+	, StorageReadOnly = "TRUE"
+	, StorageType = "gdal.vect"
+	, SyncMode = "AllTables"
+	, DialogData = "rdc"
+	{
+		unit<uint32> n2000_processed
+		{
+			attribute<bool> IsStikstofGevoelig := stikstofgevoelig == 'JA';
+		}
+	}
+	
+	unit<uint32> N2000 := N2000_src/n2000_processed
+	{
+		unit<uint32> StikstofGevoelig := select_with_org_rel(IsStikstofGevoelig)
+		{
+			attribute<rdc> geometry (poly) := org_rel -> geometry;
+		}
+	}
 	
 	unit<uint32> Niewbouw       := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain
 	{
-		attribute<uint32>          x                 := uint32(Get_X(vbo_geometry));
-		attribute<uint32>          y                 := uint32(Get_Y(vbo_geometry));
-		attribute<int32>           MutatieMaand      := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/MutatieMaand;
-		attribute<int32>           vbo_oppervlakte   := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/vbo_oppervlakte;
-		attribute<uint64>          vbo_bag_nr        := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/vbo_bag_nr;
-		attribute<jaar>            pand_bouwjaar     := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/pand_bouwjaar;
-		attribute<uint64>          pand_bag_nr       := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/pand_bag_nr;
-		attribute<uint32>          dist2N2000_m      := uint32(dist_info(N2000/geometry, vbo_geometry));
+		attribute<uint64>          pand_bag_nr           := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/pand_bag_nr;
+		attribute<uint64>          vbo_bag_nr            := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/vbo_bag_nr;
+		attribute<uint32>          x                     := uint32(Get_X(vbo_geometry));
+		attribute<uint32>          y                     := uint32(Get_Y(vbo_geometry));
+		attribute<int32>           MutatieMaand          := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/MutatieMaand;
+		attribute<int32>           vbo_oppervlakte       := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/vbo_oppervlakte;
+		attribute<string>          pand_status           := classifications/bag/pand_status/name[Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/pand_status_rel];
+		attribute<jaar>            pand_bouwjaar         := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/pand_bouwjaar;
+		attribute<int32>           last_pand_bouwvergunningberleend_datum := Analyse/Redev_obv_hele_bag/PrepDomains/N/domain/LastDatum_BouwvergunningVerleend;
+		
+		attribute<uint32>          dist2N2000_m          := uint32(dist_info(N2000/geometry, vbo_geometry));
+		attribute<uint32>          dist2N2000_stikstof_m := uint32(dist_info(N2000/StikstofGevoelig/geometry, vbo_geometry));
+		attribute<uint32>          Cluster_rel           := Cluster_obv_VergunningDatum/subset/connected_parts/part_rel;
+		
+		attribute<uint32>          GM_CODE               := SourceData/RegioIndelingen/Impl/CBS/Y2024/Gemeente/gem_nr[point_in_polygon(vbo_geometry, /SourceData/RegioIndelingen/Impl/CBS/Y2024/Gemeente/geometry)];
+		attribute<string>          PRV_CODE              := SourceData/RegioIndelingen/Impl/CBS/Y2024/Provincie/PRV_CODE[point_in_polygon(vbo_geometry, /SourceData/RegioIndelingen/Impl/CBS/Y2024/Provincie/geometry)];
+		attribute<string>          PRV_NAAM              := SourceData/RegioIndelingen/Impl/CBS/Y2024/Provincie/name[point_in_polygon(vbo_geometry, /SourceData/RegioIndelingen/Impl/CBS/Y2024/Provincie/geometry)];
+		
+		
+		unit<uint32> Cluster_obv_VergunningDatum := join_near_values(vbo_geometry, vbo_geometry,  100d)
+		{
+			attribute<int32> First_DatumVergunning  := ../last_pand_bouwvergunningberleend_datum[first_rel] / 100i;
+			attribute<int32> Second_DatumVergunning := ../last_pand_bouwvergunningberleend_datum[second_rel] / 100i;
+			
+			attribute<bool> HasSimilarDate         := First_DatumVergunning >= Second_DatumVergunning - 6i &&  First_DatumVergunning <= Second_DatumVergunning + 6i;
+			attribute<bool> NonDoublures           := first_rel < second_rel;
+			
+			unit<uint32> subset := select_with_org_rel(HasSimilarDate && NonDoublures)
+			{
+				attribute<...> F1 := org_rel -> first_rel;
+				attribute<...> F2 := org_rel -> second_rel;
+				unit<uint32>   connected_parts := connected_parts(F1, F2);
+			}
+		}
 	}
 
+	unit<uint32> Uq_Pand_Nr := Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr
+	{
+		attribute<rdc>         geometry                      (poly) := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_geometry, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
+		attribute<int32>       Last_Datum_BouwvergunningVerleend    := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Datum_BouwvergunningVerleend, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
+		attribute<pand_status> Last_pand_status_rel                 := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_status_rel, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
+		attribute<jaar>        Last_pand_bouwjaar                   := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_bouwjaar, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
+	}
+	
+	unit<uint32> Pand_BouwvergunningVerleend := select_with_org_rel(IsDefined(Uq_Pand_Nr/Last_Datum_BouwvergunningVerleend))
+	{
+		 
+		attribute<uint64>      pand_bag_nr                             := uq_pand_nr/values[org_rel];
+		attribute<uint32>      x                                       := uint32(Get_X(centroid));
+		attribute<uint32>      y                                       := uint32(Get_Y(centroid));
+		attribute<int32>       last_pand_bouwvergunningberleend_datum  := Uq_Pand_Nr/Last_Datum_BouwvergunningVerleend[org_rel];
+		attribute<string>      last_pand_status                        := pand_status/name[Uq_Pand_Nr/Last_pand_status_rel[org_rel]];
+		attribute<jaar>        pand_bouwjaar                           := Uq_Pand_Nr/Last_pand_bouwjaar[org_rel];
+		
+		attribute<uint32>      dist2N2000_m                            := uint32(dist_info(N2000/geometry, centroid));
+		attribute<uint32>      dist2N2000_stikstof_m                   := uint32(dist_info(N2000/StikstofGevoelig/geometry, centroid));
+		attribute<uint32>      cluster_rel                             := Cluster_obv_VergunningDatum/subset/connected_parts/part_rel;
+		
+		attribute<uint32>      GM_CODE                                 := SourceData/RegioIndelingen/Impl/CBS/Y2024/Gemeente/gem_nr[point_in_polygon(centroid, /SourceData/RegioIndelingen/Impl/CBS/Y2024/Gemeente/geometry)];
+		attribute<string>      PRV_CODE                                := SourceData/RegioIndelingen/Impl/CBS/Y2024/Provincie/PRV_CODE[point_in_polygon(centroid, /SourceData/RegioIndelingen/Impl/CBS/Y2024/Provincie/geometry)];
+		attribute<string>      PRV_NAAM                                := SourceData/RegioIndelingen/Impl/CBS/Y2024/Provincie/name[point_in_polygon(centroid, /SourceData/RegioIndelingen/Impl/CBS/Y2024/Provincie/geometry)];
 
-
-
-
+		attribute<rdc>         geometry                         (poly) := Uq_Pand_Nr/geometry[org_rel];
+		attribute<rdc>         centroid                                := centroid_or_mid(geometry);
+		
+		unit<uint32> Cluster_obv_VergunningDatum := join_near_values(centroid, centroid,  100d)
+		{
+			attribute<int32> First_DatumVergunning  := ../last_pand_bouwvergunningberleend_datum[first_rel] / 100i;
+			attribute<int32> Second_DatumVergunning := ../last_pand_bouwvergunningberleend_datum[second_rel] / 100i;
+			
+			attribute<bool> HasSimilarDate         := First_DatumVergunning >= Second_DatumVergunning - 6i &&  First_DatumVergunning <= Second_DatumVergunning + 6i;
+			attribute<bool> NonDoublures           := first_rel < second_rel;
+			
+			unit<uint32> subset := select_with_org_rel(HasSimilarDate && NonDoublures)
+			{
+				attribute<...> F1 := org_rel -> first_rel;
+				attribute<...> F2 := org_rel -> second_rel;
+				unit<uint32>   connected_parts := connected_parts(F1, F2);
+			}
+		}
+	}
 }
 
 

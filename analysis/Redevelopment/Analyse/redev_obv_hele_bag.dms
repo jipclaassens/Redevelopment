@@ -662,6 +662,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			attribute<string>      label                                       := string(vbo_bag_nr);
 			attribute<rdc>         pand_geometry  (poly)                       := org_rel -> pand_geometry;
 			attribute<jaar>        pand_bouwjaar                               := org_rel -> pand_bouwjaar;
+			attribute<pand_status> pand_status_rel                             := org_rel -> pand_status_rel;//tbv n2000 paper
+			attribute<int32>       LastDatum_BouwvergunningVerleend                := org_rel -> LastDatum_BouwvergunningVerleend; //tbv n2000 paper
 			attribute<uint64>      vbo_bag_nr                                  := org_rel -> vbo_bag_nr;
 			attribute<uint64>      pand_bag_nr                                 := org_rel -> pand_bag_nr;
 			

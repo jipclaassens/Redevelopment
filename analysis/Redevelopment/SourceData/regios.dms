@@ -100,6 +100,7 @@ container RegioIndelingen : using = "geography"
 				attribute<rdc> geometry                                 (poly) := gpkg/provincie_gegeneraliseerd/geometry[rdc];
 				attribute<string>    label                                           := statnaam;
 				attribute<string>    name                                            := replace(AsItemName(statnaam), 'Fryslân', 'Friesland');
+				attribute<string>    prv_code                                        := statcode;
 				// attribute<.>         per_AdminDomain                   (AdminDomain) := per_AllocDomain[AdminDomain/AllocDomain_rel];
 				// attribute<.>         per_AllocDomain                   (AllocDomain) := poly2grid(geometry, AllocDomain);
 

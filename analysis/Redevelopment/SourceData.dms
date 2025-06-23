@@ -160,31 +160,62 @@ container SourceData :  using = "units;geography;classifications"
 			container gg_3K_in_bbg := 
 				for_each_nedv( 
 					gg_3K/name
-					,'begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_100m_3k == gg_3K/V/' + gg_3K/name
+					,'begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_augm_100m_3k == gg_3K/V/' + gg_3K/name
 					,NL_grid/domain
 					,bool
 				);
 			container gg_3K_buiten_bbg := 
 				for_each_nedv(
 					gg_3K/name
-					,'!begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_100m_3k == gg_3K/V/' + gg_3K/name
+					,'!begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_augm_100m_3k == gg_3K/V/' + gg_3K/name
 					,NL_grid/domain
 					,bool
 				);
-			container gg_10K_in_bbg := 
+			// container gg_10K_in_bbg := 
+				// for_each_nedv(
+					// gg_10K/name
+					// ,'begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_100m_10k == gg_10K/V/' + gg_10K/name
+					// ,NL_grid/domain
+					// ,bool
+				// );
+			// container gg_10K_buiten_bbg := 
+				// for_each_nedv(
+					// gg_10K/name
+					// ,'!begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_100m_10k == gg_10K/V/' + gg_10K/name
+					// ,NL_grid/domain
+					// ,bool
+				// );
+		} 
+		container gg_zones_bbg2012_begr2011
+		{
+			container gg_3K_in_bbg := 
+				for_each_nedv( 
+					gg_3K/name
+					,'begenzing_bebouwd_gebied/Bevolkingskern_2011/is_bbg_augmBegr2000 && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2012_augm_100m_3k == gg_3K/V/' + gg_3K/name
+					,NL_grid/domain
+					,bool
+				);
+			container gg_3K_buiten_bbg := 
 				for_each_nedv(
-					gg_10K/name
-					,'begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_100m_10k == gg_10K/V/' + gg_10K/name
+					gg_3K/name
+					,'!begenzing_bebouwd_gebied/Bevolkingskern_2011/is_bbg_augmBegr2000 && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2012_augm_100m_3k == gg_3K/V/' + gg_3K/name
 					,NL_grid/domain
 					,bool
 				);
-			container gg_10K_buiten_bbg := 
-				for_each_nedv(
-					gg_10K/name
-					,'!begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_100m_10k == gg_10K/V/' + gg_10K/name
-					,NL_grid/domain
-					,bool
-				);
+			// container gg_10K_in_bbg := 
+				// for_each_nedv(
+					// gg_10K/name
+					// ,'begenzing_bebouwd_gebied/Bevolkingskern_2011/is_bbg_augmBegr2000 && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2012_100m_10k == gg_10K/V/' + gg_10K/name
+					// ,NL_grid/domain
+					// ,bool
+				// );
+			// container gg_10K_buiten_bbg := 
+				// for_each_nedv(
+					// gg_10K/name
+					// ,'!begenzing_bebouwd_gebied/Bevolkingskern_2011/is_bbg_augmBegr2000 && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2012_100m_10k == gg_10K/V/' + gg_10K/name
+					// ,NL_grid/domain
+					// ,bool
+				// );
 		} 
 	}
 }

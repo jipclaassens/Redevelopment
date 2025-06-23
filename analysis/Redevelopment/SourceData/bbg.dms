@@ -54,6 +54,11 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 			attribute<gg_3K>     bbg2000_100m_3k   (NL_grid/domain)     := gg_10K/gg_3K_rel[bbg2000_100m_10k];
 			attribute<gg_3K>     bbg2012_100m_3k   (NL_grid/domain)     := gg_10K/gg_3K_rel[bbg2012_100m_10k];
 			attribute<gg_3K>     bbg2017_100m_3k   (NL_grid/domain)     := gg_10K/gg_3K_rel[bbg2017_100m_10k];
+			
+			attribute<gg_10k>    bbg2000_augm_100m_10k  (NL_grid/domain)     := gg_src/gg_10k_rel[per_100m_modus/j2000_augm];
+			attribute<gg_10k>    bbg2012_augm_100m_10k  (NL_grid/domain)     := gg_src/gg_10k_rel[per_100m_modus/j2012_augm];
+			attribute<gg_3K>     bbg2000_augm_100m_3k   (NL_grid/domain)     := gg_10K/gg_3K_rel[bbg2000_augm_100m_10k];
+			attribute<gg_3K>     bbg2012_augm_100m_3k   (NL_grid/domain)     := gg_10K/gg_3K_rel[bbg2012_augm_100m_10k];
 		
 			attribute<bool>      IsGreyBrownField_1996      (NL_grid/domain_25m) := gg_src/IsGreyBrownfield[per_25m_modus/J1996];
 			attribute<bool>      IsGreyBrownField_1996_augm (NL_grid/domain_25m) := gg_src/IsGreyBrownfield[per_25m_modus/J1996_bouwterreinupdate];
@@ -92,7 +97,11 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 					, NL_grid/domain_5m
 					, gg_src
 					, '%LocalDataProjDir%/UnlinkedData/BBG/bbg'+BBG_ReeksJaren/jaar+'_5m.tif'
-				);
+				)
+			{
+				attribute<gg_src> J2000_augm (NL_grid/domain_5m) :=  J2000 == gg_src/v/bouwterrein ? J1996 : J2000;
+				attribute<gg_src> J2012_augm (NL_grid/domain_5m) :=  J2012 == gg_src/v/bouwterrein ? J1996 : J2012;
+			}
 			// container per_10m := 
 				// for_each_ndva(
 					  // BBG_ReeksJaren/naam
@@ -117,6 +126,9 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 					, '%LocalDataProjDir%/UnlinkedData/BBG/bbg'+BBG_ReeksJaren/jaar+'_100m_modus.tif'
 				)
 			{
+				attribute<gg_src> j2000_augm (NL_grid/domain) : StorageName = "%LocalDataProjDir%/UnlinkedData/BBG/bbg2000_augm_100m_modus.tif";
+				attribute<gg_src> j2012_augm (NL_grid/domain) : StorageName = "%LocalDataProjDir%/UnlinkedData/BBG/bbg2012_augm_100m_modus.tif";
+				
 				attribute<gg_src> J1996_bouwterreinupdate (NL_grid/domain) := J1996 == gg_src/v/bouwterrein ? J2017 : J1996;
 			}
 				
@@ -159,7 +171,17 @@ container bestand_bodem_gebruik : using = "classifications/bbg"
 				for_each_ne(
 					BBG_ReeksJaren/naam
 					,'Modus100mT('+string(BBG_ReeksJaren/jaar)+')'
-				);
+				)
+			{
+				container j2000_augm
+				{
+					attribute<gg_src>   DominantCBSKlasse_100m  (NL_grid/domain)    := ='MakeDefined(modus(dominant/per_5m/J2000_augm,  NL_grid/domain_5m/grid_100m_rel), 0[gg_src])', StorageName = "='%LocalDataProjDir%/UnlinkedData/BBG/bbg2000_augm_100m_modus.tif'", StorageType = "gdalwrite.grid";
+				}
+				container j2012_augm
+				{
+					attribute<gg_src>   DominantCBSKlasse_100m  (NL_grid/domain)    := ='MakeDefined(modus(dominant/per_5m/J2012_augm,  NL_grid/domain_5m/grid_100m_rel), 0[gg_src])', StorageName = "='%LocalDataProjDir%/UnlinkedData/BBG/bbg2012_augm_100m_modus.tif'", StorageType = "gdalwrite.grid";
+				}
+			}
 				
 			container Make25mgrids_modus := 
 				for_each_ne(

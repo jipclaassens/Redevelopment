@@ -42,6 +42,8 @@ container begenzing_bebouwd_gebied
 		}
 		attribute<shapes> grid   (NL_grid/domain) := poly2grid(shapes/geometry, NL_grid/domain);
 		attribute<bool>   is_bbg (NL_grid/domain) := isDefined(grid);
+		
+		attribute<bool>   is_bbg_augmBegr2000 (NL_grid/domain) := is_bbg || BBG_2000/is_bbg;
 	}
 	
 	// container Begrenzing_Bebouwd_Gebied_2006

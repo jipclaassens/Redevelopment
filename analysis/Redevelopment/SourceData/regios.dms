@@ -477,7 +477,9 @@ container RegioIndelingen : using = "geography"
 		{
 			attribute<geography/rdc>   geometry  (polygon) ;
 			attribute<string>           label                      := statnaam ;
-			attribute<src_2012>         grid      (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+			// attribute<src_2012>         grid      (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
+			
+			unit<uint32> Defined := select_with_attr_by_cond(., IsDefined(statnaam));
 		}
 	}
 

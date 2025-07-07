@@ -351,6 +351,24 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		}
 	}
 	
+	container FigurenPaper
+	{
+		container Figure_3_about_sites
+		{
+			attribute<rdc> SN_sites                                 (poly, AdditionalOperations/SN/Result) := AdditionalOperations/SN/Result/geometry_rd;
+			attribute<rdc> pand_SN_sloop             (poly, AdditionalOperations/SN/Result/Sloop_Objecten) := AdditionalOperations/SN/Result/Sloop_Objecten/pand_geometry;
+			attribute<rdc> pand_SN_sloop_nw       (poly, AdditionalOperations/SN/Result/Sloop_NW_Objecten) := AdditionalOperations/SN/Result/Sloop_NW_Objecten/pand_geometry;
+			attribute<rdc> pand_SN_nieuwbouw     (poly, AdditionalOperations/SN/Result/Nieuwbouw_Objecten) := AdditionalOperations/SN/Result/Nieuwbouw_Objecten/pand_geometry;
+			attribute<rdc> pand_Nieuwbouw                    (poly, AdditionalOperations/Nieuwbouw/Result) := AdditionalOperations/Nieuwbouw/Result/pand_geometry;
+			attribute<rdc> pand_Onveranderd        (poly, PrepBAG/BAG_Tabel/Onveranderd_Woon/Uq/Amsterdam) := PrepBAG/BAG_Tabel/Onveranderd_Woon/Uq/Amsterdam/pand_geometry;
+			attribute<rdc> pand_Onveranderd_nw (poly, PrepBAG/BAG_Tabel/Onveranderd_NietWoon/Uq/Amsterdam) := PrepBAG/BAG_Tabel/Onveranderd_NietWoon/Uq/Amsterdam/pand_geometry;
+			attribute<rdc> pand_Toevoeging                                   (poly, PrepDomains/TC/domain) := PrepDomains/TC/domain/pand_geometry;
+			attribute<rdc> pand_Onttrekking                                  (poly, PrepDomains/OC/domain) := PrepDomains/OC/domain/pand_geometry;
+			attribute<rdc> pand_TransformatieP                           (poly, PrepDomains/TMplus/domain) := PrepDomains/TMplus/domain/pand_geometry;
+		}
+	
+	}
+	
 	parameter<string> Export_Date := '20250603'; //today?
 	
 	unit<uint32> Analyse_PerWijk := RegioUnit_Wijk12

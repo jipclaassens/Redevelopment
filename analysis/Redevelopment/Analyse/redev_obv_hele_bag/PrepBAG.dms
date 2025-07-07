@@ -63,6 +63,15 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<int32>               MutatieMaand         := const(null_i,.);
 				attribute<int32>               vbo_oppervlakte      := last(../vbo_oppervlakte, uq_rel);
 				attribute<jaar>                pand_bouwjaar        := last(../pand_bouwjaar, uq_rel);
+				
+				attribute<bool> IsAmsterdam := IsDefined(point_in_polygon(vbo_geometry, /SourceData/RegioIndelingen/Gemeente/Amsterdam/geometry));
+				
+				unit<uint32> Amsterdam := select_with_org_rel(IsAmsterdam)
+				, DialogData = "pand_geometry"
+				, DialogType = "map"
+				{
+					attribute<rdc> pand_geometry (poly) := ../pand_geometry[org_rel];
+				}
 			}
 		}
 		
@@ -85,12 +94,11 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<int32>               vbo_oppervlakte      := last(../vbo_oppervlakte, uq_rel);
 				attribute<jaar>                pand_bouwjaar        := last(../pand_bouwjaar, uq_rel);
 				
-				attribute<AMS>                 Amsterdam_rel        := point_in_polygon(vbo_geometry, AMS/geometry);
-
-				//ad hoc voor kaartje paper
-				unit<uint32> Amsterdam := select_with_attr_by_cond(., IsDefined(Amsterdam_rel))
+				//voor figuren paper
+				attribute<bool> IsAmsterdam := IsDefined(point_in_polygon(vbo_geometry, /SourceData/RegioIndelingen/Gemeente/Amsterdam/geometry));
+				unit<uint32> Amsterdam := select_with_org_rel(IsAmsterdam)
 				{
-				
+					attribute<rdc> pand_geometry (poly) := ../pand_geometry[org_rel];
 				}
 			}
 		}

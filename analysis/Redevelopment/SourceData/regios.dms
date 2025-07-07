@@ -122,6 +122,8 @@ container RegioIndelingen : using = "geography"
 			attribute<rdc>       geometry (poly) := Gebiedsindelingen/buurt_niet_gegeneraliseerd/geometry;
 			attribute<string>    statcode        := Gebiedsindelingen/buurt_niet_gegeneraliseerd/statcode;
 			attribute<string>    statnaam        := Gebiedsindelingen/buurt_niet_gegeneraliseerd/statnaam;
+			attribute<string>    BU_NAAM         := statnaam;
+			attribute<string>    BU_CODE         := statcode;
 			attribute<string>    name            := AsItemName(statnaam);
 		}
 		
@@ -130,6 +132,8 @@ container RegioIndelingen : using = "geography"
 			attribute<rdc>       geometry (poly)     := Gebiedsindelingen/wijk_niet_gegeneraliseerd/geometry;
 			attribute<string>    statcode            := Gebiedsindelingen/wijk_niet_gegeneraliseerd/statcode;
 			attribute<string>    statnaam            := Gebiedsindelingen/wijk_niet_gegeneraliseerd/statnaam;
+			attribute<string>    WK_NAAM             := statnaam;
+			attribute<string>    WK_CODE             := statcode;
 			attribute<string>    name                := AsItemName(statnaam);
 		}
 		
@@ -139,6 +143,7 @@ container RegioIndelingen : using = "geography"
 			attribute<string>    statcode        := Gebiedsindelingen/gemeente_niet_gegeneraliseerd/statcode;
 			attribute<string>    statnaam        := Gebiedsindelingen/gemeente_niet_gegeneraliseerd/statnaam;
 			attribute<string>    GM_NAAM         := Gebiedsindelingen/gemeente_niet_gegeneraliseerd/statnaam;
+			attribute<string>    GM_CODE         := statcode;
 			attribute<string>    name            := AsItemName(statnaam);
 		}
 		
@@ -202,7 +207,7 @@ container RegioIndelingen : using = "geography"
 			// attribute<string>               label         := PC6, DialogType = "LabelText";
 		// }
 		
-		unit<uint32> Make_Buurt_fss := Buurt
+/* 		unit<uint32> Make_Buurt_fss := Buurt
 		, StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/buurt.fss"
 		{
 			attribute<geography/rdc>       geometry  (poly) := Buurt/geometry;
@@ -245,30 +250,30 @@ container RegioIndelingen : using = "geography"
 			attribute<string>    PROV_CODE       := provincie/statcode;
 			attribute<uint32>    prvnr           := provincie/id[uint32];
 		}
-		
+ */		
 	}
 	
 	
-	unit<uint32> Buurt
-	: 	StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/buurt.fss"
-	,	StorageReadOnly = "True"
+	unit<uint32> Buurt := impl/buurt
+	// : 	StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/buurt.fss"
+	// ,	StorageReadOnly = "True"
 	{
-		attribute<geography/rdc>   geometry  (poly);
-		attribute<string>           BU_CODE;
-		attribute<string>           BU_NAAM;
-		attribute<string>           GM_CODE;
+		// attribute<geography/rdc>   geometry  (poly);
+		// attribute<string>           BU_CODE;
+		// attribute<string>           BU_NAAM;
+		// attribute<string>           GM_CODE;
 		
 		attribute<Wijk>             wijk_rel := point_in_polygon(centroid_or_mid(geometry), wijk/geometry);
 		attribute<.>                per_grid   (NL_grid/domain) := poly2grid(geometry, NL_grid/domain);
 	}
-	unit<uint32> Wijk
-	: 	StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/wijk.fss"
-	,	StorageReadOnly = "True"
+	unit<uint32> Wijk := impl/wijk
+	// : 	StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/wijk.fss"
+	// ,	StorageReadOnly = "True"
 	{
-		attribute<geography/rdc>   geometry  (poly);
-		attribute<string>           GM_CODE;
-		attribute<string>           WK_NAAM;
-		attribute<string>           WK_CODE;
+		// attribute<geography/rdc>   geometry  (poly);
+		// attribute<string>           GM_CODE;
+		// attribute<string>           WK_NAAM;
+		// attribute<string>           WK_CODE;
 		
 		attribute<geography/rdc>   centroid                   := centroid_or_mid(geometry);
 		attribute<string>           label                      := WK_NAAM ;
@@ -294,15 +299,15 @@ container RegioIndelingen : using = "geography"
 	}
 	
 	
-	unit<uint32> Gemeente
-	: StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/gemeente.fss"
-	, StorageReadOnly = "true"
+	unit<uint32> Gemeente := impl/gemeente
+	// : StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/gemeente.fss"
+	// , StorageReadOnly = "true"
 	{
-		attribute<geography/rdc> geometry (poly);
-		attribute<string>         GM_NAAM;
-		attribute<string>         GM_CODE : DialogType = "LabelText";
+		// attribute<geography/rdc> geometry (poly);
+		// attribute<string>         GM_NAAM;
+		// attribute<string>         GM_CODE : DialogType = "LabelText";
 		attribute<string>         label     := GM_NAAM, DialogType = "LabelText";
-		attribute<string>         name                              := AsItemName(GM_NAAM); //replace(label, '/', '_', '-', '_', ' ', '_','(','',')','','â','a','ú','','''','',',','');
+		// attribute<string>         name                              := AsItemName(GM_NAAM); //replace(label, '/', '_', '-', '_', ' ', '_','(','',')','','â','a','ú','','''','',',','');
 		attribute<.>              per_grid (NL_grid/domain)         := poly2grid(geometry, NL_grid/domain);
 		// attribute<bool>           IsUrbanCore                       := IsDefined(rlookup(GM_CODE, UrbanCores/GM_CODE));
 		// attribute<bool>           IsUrbanCore_grid (NL_grid/domain) := IsUrbanCore[per_grid];
@@ -355,12 +360,12 @@ container RegioIndelingen : using = "geography"
 	
 	
 	
-	unit<uint32>  COROP
-	: StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/corop.fss"
-	, StorageReadOnly = "true"
+	unit<uint32>  COROP := impl/corop
+	// : StorageName = "%LocalDataProjDir%/UnlinkedData/RegioIndelingen/corop.fss"
+	// , StorageReadOnly = "true"
 	{
-		attribute<rdc>       geometry (poly);
-		attribute<string>    name;
+		// attribute<rdc>       geometry (poly);
+		// attribute<string>    name;
 		attribute<String>    Label           := name;
 	}
 	

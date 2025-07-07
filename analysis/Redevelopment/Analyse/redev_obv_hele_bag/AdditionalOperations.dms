@@ -218,6 +218,7 @@ container AdditionalOperations
 		}
 		
 		unit<uint32> Result                       := bp_split_union_polygon(Union_with_original_geometry/geometry[rdc_cm])
+		, DialogData = "geometry_rd", DialogType = "map"
 		{
 			attribute<rdc> geometry_rd               (poly) := geometry[rdc];
 			

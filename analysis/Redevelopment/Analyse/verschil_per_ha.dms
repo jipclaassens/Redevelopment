@@ -13,20 +13,12 @@ container DensificationPaper: using = "units;classifications/tijd"
 		
 	container totaal_per_jaar_from12 := 
 		for_each_nedv(
-			jaren12_24/name
+			jaren/name
 			// , 'SourceData/BAG/snapshots/vbos/'+jaren12_23/name+'01/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha'
-			, 'sourcedata/BAG/VolledigeBAG/VBOs/vbo/Stand_per_Jaar/'+jaren12_24/name+'/select/count_ha[nrwonha]'
+			, 'sourcedata/BAG/VolledigeBAG/VBOs/vbo/Stand_per_Jaar/'+jaren/name+'/select/count_ha[nrwonha]'
 			, NL_grid/domain
 			, nrwonha
 		), FreeData = "false";
-		
-	// container totaal_per_jaar_from12_ligstand := 
-		// for_each_nedv(
-			// jaren12_24/name
-			// , 'SourceData/BAG/snapshots/Ligplaatsen/'+jaren12_24/name+'01/ligplaats/count_ha + SourceData/BAG/snapshots/Standplaatsen/'+jaren12_24/name+'01/standplaats/count_ha' 
-			// , NL_grid/domain
-			// , nrwonha
-		// ), FreeData = "false";
 		
 	container sum_per_jaar_to12 := 
 		for_each_nedv(
@@ -38,8 +30,8 @@ container DensificationPaper: using = "units;classifications/tijd"
 		
 	container sum_per_jaar_from12 := 
 		for_each_nedv(
-			jaren12_24/name
-			, 'sum(totaal_per_jaar_from12/'+jaren12_24/name+')[uint32]'
+			jaren/name
+			, 'sum(totaal_per_jaar_from12/'+jaren/name+')[uint32]'
 			, void
 			, uint32
 		), FreeData = "false";
@@ -52,8 +44,8 @@ container DensificationPaper: using = "units;classifications/tijd"
 		
 	container processes_per_year_from2012 := 
 		for_each_ne(
-			jaren12_23/name
-			, 'processes_per_year_T('+string(jaren12_23/value)+',''totaal_per_jaar_from12'')'
+			JarenMin1/name
+			, 'processes_per_year_T('+string(JarenMin1/value)+',''totaal_per_jaar_from12'')'
 		);
 		
 	// container processes_per_year_from2012_ligstand := 
@@ -81,502 +73,77 @@ container DensificationPaper: using = "units;classifications/tijd"
 		attribute<float32>  Urban_Residential_Construction     (RegioUnit_NL) := (B_dens_nl + B_grey_nl + B_green_nl) / totaal_nl;
 		attribute<float32>  Non_Urban_Residential_Construction (RegioUnit_NL) := (N_dens_nl + N_grey_nl + N_green_nl) / totaal_nl;
 	}
-	
-	// container processes_per_year_to2011_aggl := 
-		// for_each_ne(
-			// jaren00_11/name
-			// , 'processes_per_year_aggl_T('+string(jaren00_11/value)+',''totaal_per_jaar_to12'')'
-		// );
-		
-	// container processes_per_year_from2012_aggl := 
-		// for_each_ne(
-			// jaren12_20/name
-			// , 'processes_per_year_aggl_T('+string(jaren12_20/value)+',''totaal_per_jaar_from12'')'
-		// );
-	
-	// Template processes_per_year_aggl_T
-	// {
-		// parameter<uint32>  year;
-		// parameter<string>  path;
-		// parameter<string>  year_string := string(year);
-		
-		// attribute<nrwonha>  totaal_nl        (RegioUnit_NL)  := ='sum('+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+' , RegioUnit_NL/per_grid)';
-		
-		// attribute<nrwonha>  Aggl_totaal      (RegioUnit_NL)  := ='sum(RegioUnit_gem/IsUrbanCore_grid                     ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  Aggl_B_dens_nl   (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_in_bbg_inAggl/dens      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  Aggl_B_grey_nl   (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_in_bbg_inAggl/grey      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  Aggl_B_green_nl  (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_in_bbg_inAggl/green     ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  Aggl_N_dens_nl   (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_buiten_bbg_inAggl/dens  ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  Aggl_N_grey_nl   (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_buiten_bbg_inAggl/grey  ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  Aggl_N_green_nl  (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_buiten_bbg_inAggl/green ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		
-		// attribute<nrwonha>  NAggl_totaal     (RegioUnit_NL)  := ='sum(!RegioUnit_gem/IsUrbanCore_grid                      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  NAggl_B_dens_nl  (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_in_bbg_nietAggl/dens      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  NAggl_B_grey_nl  (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_in_bbg_nietAggl/grey      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  NAggl_B_green_nl (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_in_bbg_nietAggl/green     ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  NAggl_N_dens_nl  (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_buiten_bbg_nietAggl/dens  ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  NAggl_N_grey_nl  (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_buiten_bbg_nietAggl/grey  ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-		// attribute<nrwonha>  NAggl_N_green_nl (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_Agglomerations/gg_3K_buiten_bbg_nietAggl/green ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_grid)';
-	// }
 
-	Container Results_per_year_to12 : FreeData = "false"
+	unit<uint32> Results_per_year_to12 := jaren00_11
 	{
-		attribute<float32> totaal_nl                             (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/totaal_nl')+')';
+		attribute<float32> totaal_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/totaal_nl')+')';
 		
-		attribute<float32> B_dens_nl                             (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_dens_nl')+')';
-		attribute<float32> B_grey_nl                             (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_grey_nl')+')';
-		attribute<float32> B_green_nl                            (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_green_nl')+')';
-		attribute<float32> N_dens_nl                             (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_dens_nl')+')';
-		attribute<float32> N_grey_nl                             (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_grey_nl')+')';
-		attribute<float32> N_green_nl                            (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_green_nl')+')';
+		attribute<float32> B_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_dens_nl')+')';
+		attribute<float32> B_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_grey_nl')+')';
+		attribute<float32> B_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_green_nl')+')';
+		attribute<float32> N_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_dens_nl')+')';
+		attribute<float32> N_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_grey_nl')+')';
+		attribute<float32> N_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_green_nl')+')';
 	}
 	
-	Container Results_per_year_from12 : FreeData = "false"
+	unit<uint32> Results_per_year_from12  := JarenMin1
 	{
-		attribute<float32> totaal_nl                             (jaren12_23) := ='union_data(jaren12_23,'+AsItemList('processes_per_year_from2012/'+jaren12_23/name+'/totaal_nl')+')';
+		attribute<float32> totaal_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/totaal_nl')+')';
 		
-		attribute<float32> B_dens_nl                             (jaren12_23) := ='union_data(jaren12_23,'+AsItemList('processes_per_year_from2012/'+jaren12_23/name+'/B_dens_nl')+')';
-		attribute<float32> B_grey_nl                             (jaren12_23) := ='union_data(jaren12_23,'+AsItemList('processes_per_year_from2012/'+jaren12_23/name+'/B_grey_nl')+')';
-		attribute<float32> B_green_nl                            (jaren12_23) := ='union_data(jaren12_23,'+AsItemList('processes_per_year_from2012/'+jaren12_23/name+'/B_green_nl')+')';
-		attribute<float32> N_dens_nl                             (jaren12_23) := ='union_data(jaren12_23,'+AsItemList('processes_per_year_from2012/'+jaren12_23/name+'/N_dens_nl')+')';
-		attribute<float32> N_grey_nl                             (jaren12_23) := ='union_data(jaren12_23,'+AsItemList('processes_per_year_from2012/'+jaren12_23/name+'/N_grey_nl')+')';
-		attribute<float32> N_green_nl                            (jaren12_23) := ='union_data(jaren12_23,'+AsItemList('processes_per_year_from2012/'+jaren12_23/name+'/N_green_nl')+')';
+		attribute<float32> B_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_dens_nl')+')';
+		attribute<float32> B_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_grey_nl')+')';
+		attribute<float32> B_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_green_nl')+')';
+		attribute<float32> N_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_dens_nl')+')';
+		attribute<float32> N_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_grey_nl')+')';
+		attribute<float32> N_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_green_nl')+')';
 	}
-	// Container Results_per_year_from12_ligstand : FreeData = "false"
-	// {
-		// attribute<float32> totaal_nl                             (jaren12_20) := ='union_data(jaren12_20,'+AsItemList('processes_per_year_from2012_ligstand/'+jaren12_20/name+'/totaal_nl')+')';
-		
-		// attribute<float32> B_dens_nl                             (jaren12_20) := ='union_data(jaren12_20,'+AsItemList('processes_per_year_from2012_ligstand/'+jaren12_20/name+'/B_dens_nl')+')';
-		// attribute<float32> B_grey_nl                             (jaren12_20) := ='union_data(jaren12_20,'+AsItemList('processes_per_year_from2012_ligstand/'+jaren12_20/name+'/B_grey_nl')+')';
-		// attribute<float32> B_green_nl                            (jaren12_20) := ='union_data(jaren12_20,'+AsItemList('processes_per_year_from2012_ligstand/'+jaren12_20/name+'/B_green_nl')+')';
-		// attribute<float32> N_dens_nl                             (jaren12_20) := ='union_data(jaren12_20,'+AsItemList('processes_per_year_from2012_ligstand/'+jaren12_20/name+'/N_dens_nl')+')';
-		// attribute<float32> N_grey_nl                             (jaren12_20) := ='union_data(jaren12_20,'+AsItemList('processes_per_year_from2012_ligstand/'+jaren12_20/name+'/N_grey_nl')+')';
-		// attribute<float32> N_green_nl                            (jaren12_20) := ='union_data(jaren12_20,'+AsItemList('processes_per_year_from2012_ligstand/'+jaren12_20/name+'/N_green_nl')+')';
-	// }
-	
-	// Container Results_per_year_to12_aggl : FreeData = "false"
-	// {
-		// attribute<float32> totaal_nl                             (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/totaal_nl')+')';
-		// attribute<float32> Aggl_totaal                           (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/Aggl_totaal')+')';
-		// attribute<float32> NAggl_totaal                          (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/NAggl_totaal')+')';
-		
-		// attribute<float32> Aggl_B_dens_nl                        (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/Aggl_B_dens_nl')+')';
-		// attribute<float32> Aggl_B_grey_nl                        (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/Aggl_B_grey_nl')+')';
-		// attribute<float32> Aggl_B_green_nl                       (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/Aggl_B_green_nl')+')';
-		// attribute<float32> Aggl_N_dens_nl                        (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/Aggl_N_dens_nl')+')';
-		// attribute<float32> Aggl_N_grey_nl                        (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/Aggl_N_grey_nl')+')';
-		// attribute<float32> Aggl_N_green_nl                       (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/Aggl_N_green_nl')+')';
-		
-		// attribute<float32> NAggl_B_dens_nl                       (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/NAggl_B_dens_nl')+')';
-		// attribute<float32> NAggl_B_grey_nl                       (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/NAggl_B_grey_nl')+')';
-		// attribute<float32> NAggl_B_green_nl                      (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/NAggl_B_green_nl')+')';
-		// attribute<float32> NAggl_N_dens_nl                       (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/NAggl_N_dens_nl')+')';
-		// attribute<float32> NAggl_N_grey_nl                       (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/NAggl_N_grey_nl')+')';
-		// attribute<float32> NAggl_N_green_nl                      (jaren00_11) := ='union_data(jaren00_11,'+AsItemList('processes_per_year_to2011_aggl/'+jaren00_11/name+'/NAggl_N_green_nl')+')';
-	// }
-	
-	// Container Results_per_year_from12_aggl : FreeData = "false"
-	// {
-		// attribute<float32> totaal_nl                             (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/totaal_nl')+')';
-		// attribute<float32> Aggl_totaal                           (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/Aggl_totaal')+')';
-		// attribute<float32> NAggl_totaal                          (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/NAggl_totaal')+')';
-		
-		// attribute<float32> Aggl_B_dens_nl                        (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/Aggl_B_dens_nl')+')';
-		// attribute<float32> Aggl_B_grey_nl                        (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/Aggl_B_grey_nl')+')';
-		// attribute<float32> Aggl_B_green_nl                       (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/Aggl_B_green_nl')+')';
-		// attribute<float32> Aggl_N_dens_nl                        (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/Aggl_N_dens_nl')+')';
-		// attribute<float32> Aggl_N_grey_nl                        (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/Aggl_N_grey_nl')+')';
-		// attribute<float32> Aggl_N_green_nl                       (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/Aggl_N_green_nl')+')';
-		
-		// attribute<float32> NAggl_B_dens_nl                       (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/NAggl_B_dens_nl')+')';
-		// attribute<float32> NAggl_B_grey_nl                       (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/NAggl_B_grey_nl')+')';
-		// attribute<float32> NAggl_B_green_nl                      (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/NAggl_B_green_nl')+')';
-		// attribute<float32> NAggl_N_dens_nl                       (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/NAggl_N_dens_nl')+')';
-		// attribute<float32> NAggl_N_grey_nl                       (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/NAggl_N_grey_nl')+')';
-		// attribute<float32> NAggl_N_green_nl                      (jaren12_19) := ='union_data(jaren12_19,'+AsItemList('processes_per_year_from2012_aggl/'+jaren12_19/name+'/NAggl_N_green_nl')+')';
-	// }
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	// attribute<nrwonha>  totaal_2000       (NL_grid/domain)           := SourceData/CBS_vierkanten/woningen2000;
-	// attribute<nrwonha>  totaal_2004       (NL_grid/domain)           := SourceData/CBS_vierkanten/woningen2004;
-	// attribute<nrwonha>  totaal_2006       (NL_grid/domain)           := SourceData/CBS_vierkanten/woningen2006;
-	// attribute<nrwonha>  totaal_2008       (NL_grid/domain)           := SourceData/CBS_vierkanten/woningen2008;
-	// attribute<nrwonha>  totaal_2012_v     (NL_grid/domain)           := SourceData/CBS_vierkanten/woningen2012;
-	// attribute<nrwonha>  totaal_2012_b     (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201201/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
-	// attribute<nrwonha>  totaal_2013       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201301/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
-	// attribute<nrwonha>  totaal_2014       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201401/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha; 
-	// attribute<nrwonha>  totaal_2015       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201501/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
-	// attribute<nrwonha>  totaal_2016       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201601/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
-	// attribute<nrwonha>  totaal_2017       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201701/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
-	// attribute<nrwonha>  totaal_2018       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201801/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
-	// attribute<nrwonha>  totaal_2019       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201901/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
-	// attribute<nrwonha>  totaal_2020       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y202001/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
-	// attribute<nrwonha>  totaal_2021       (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y202101/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha;
 
-	// attribute<nrwonha>  totaal_20002006   (NL_grid/domain)           := SourceData/CBS_vierkanten/woningen2006 - SourceData/CBS_vierkanten/woningen2000;
-	// attribute<nrwonha>  totaal_20062012   (NL_grid/domain)           := SourceData/CBS_vierkanten/woningen2012 - SourceData/CBS_vierkanten/woningen2006;
-	// attribute<nrwonha>  totaal_20122018   (NL_grid/domain)           := SourceData/BAG/snapshots/vbos/y201801/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha - SourceData/BAG/snapshots/vbos/y201201/vbo/GebruiksdoelSets/woon/GebruiksdoelSet/count_ha, FreeData = "False";
+	attribute<nrwonha>  totaal_20002006   (NL_grid/domain)           := totaal_per_jaar_to12/Y2006 - totaal_per_jaar_to12/Y2000;
+	attribute<nrwonha>  totaal_20062012   (NL_grid/domain)           := totaal_per_jaar_to12/Y2012 - totaal_per_jaar_to12/Y2006;
+	attribute<nrwonha>  totaal_20122018   (NL_grid/domain)           := totaal_per_jaar_from12/Y2018 - totaal_per_jaar_from12/Y2012;
+	attribute<nrwonha>  totaal_20182024   (NL_grid/domain)           := totaal_per_jaar_from12/Y2024 - totaal_per_jaar_from12/Y2018;
 
-	// attribute<nrwonha>  Randstad_2006       (NL_grid/domain)           := SourceData/RegioIndelingen/Randstad/IsRandstad[float32] * totaal_2006;
-	// attribute<nrwonha>  Randstad_2012_v     (NL_grid/domain)           := SourceData/RegioIndelingen/Randstad/IsRandstad[float32] * totaal_2012_v;
-	// attribute<nrwonha>  Randstad_2018       (NL_grid/domain)           := SourceData/RegioIndelingen/Randstad/IsRandstad[float32] * totaal_2018;
-
-	// attribute<nrwonha>  Randstad_20002006   (NL_grid/domain)           := SourceData/RegioIndelingen/Randstad/IsRandstad[float32] * totaal_20002006;
-	// attribute<nrwonha>  Randstad_20062012   (NL_grid/domain)           := SourceData/RegioIndelingen/Randstad/IsRandstad[float32] * totaal_20062012;
-	// attribute<nrwonha>  Randstad_20122018   (NL_grid/domain)           := SourceData/RegioIndelingen/Randstad/IsRandstad[float32] * totaal_20122018;
-
-	container DensityPerProcess 
-	{
-		container Nederland
-		{
-			container p2006
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := mean(totaal_20002006 > 0f  ? totaal_2006 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens && totaal_20002006 > 0f  ? totaal_2006 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey && totaal_20002006 > 0f  ? totaal_2006 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green && totaal_20002006 > 0f  ? totaal_2006 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens && totaal_20002006 > 0f  ? totaal_2006 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey && totaal_20002006 > 0f  ? totaal_2006 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green && totaal_20002006 > 0f  ? totaal_2006 : (0/0)[float32], RegioUnit_NL/per_grid);
-			}
-			container p2012
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := mean(totaal_20062012 > 0f  ? totaal_2012_v : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens && totaal_20062012 > 0f  ? totaal_2012_v : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey && totaal_20062012 > 0f  ? totaal_2012_v : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green && totaal_20062012 > 0f  ? totaal_2012_v : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens && totaal_20062012 > 0f  ? totaal_2012_v : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey && totaal_20062012 > 0f  ? totaal_2012_v : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green && totaal_20062012 > 0f  ? totaal_2012_v : (0/0)[float32], RegioUnit_NL/per_grid);
-			}
-			container p2018
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := mean(totaal_20122018 > 0f && totaal_2018 > 2f  ? totaal_2018 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens && totaal_20122018 > 0f && totaal_2018 > 2f  ? totaal_2018 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey && totaal_20122018 > 0f && totaal_2018 > 2f  ? totaal_2018 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green && totaal_20122018 > 0f && totaal_2018 > 2f  ? totaal_2018 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens && totaal_20122018 > 0f && totaal_2018 > 2f  ? totaal_2018 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey && totaal_20122018 > 0f && totaal_2018 > 2f  ? totaal_2018 : (0/0)[float32], RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := mean(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green && totaal_20122018 > 0f && totaal_2018 > 2f  ? totaal_2018 : (0/0)[float32], RegioUnit_NL/per_grid);
-			}
-		}
-		
-	}
-	
 	container TotalPerProcess
 	{
-		container Randstad
-		{
-			container p2006
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(Randstad_20002006, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? Randstad_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? Randstad_20002006  : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? Randstad_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? Randstad_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? Randstad_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? Randstad_20002006 : 0f, RegioUnit_NL/per_grid);
-			}
-			container p2012
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(Randstad_20062012, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? Randstad_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? Randstad_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? Randstad_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? Randstad_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? Randstad_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? Randstad_20062012 : 0f, RegioUnit_NL/per_grid);
-			}
-			container p2018
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(Randstad_20122018, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? Randstad_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? Randstad_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? Randstad_20122018  : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? Randstad_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? Randstad_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? Randstad_20122018 : 0f, RegioUnit_NL/per_grid);
-			}
-		}
-		
-		container dynamisch
-		{
-			container p2000_2006
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20002006, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-			}
-			container p2006_2012
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20062012, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2006_begr2006/gg_3K_in_bbg/dens ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2006_begr2006/gg_3K_in_bbg/grey ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2006_begr2006/gg_3K_in_bbg/green ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2006_begr2006/gg_3K_buiten_bbg/dens ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2006_begr2006/gg_3K_buiten_bbg/grey ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2006_begr2006/gg_3K_buiten_bbg/green ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-			}
-			container p2012_2018
-			{
-				attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20122018, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2012_begr2012/gg_3K_in_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2012_begr2012/gg_3K_in_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2012_begr2012/gg_3K_in_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2012_begr2012/gg_3K_buiten_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2012_begr2012/gg_3K_buiten_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-				attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2012_begr2012/gg_3K_buiten_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			}
-		}
-		
 		container p2000_2006
 		{
-			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20002006, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens  ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey  ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens  ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey  ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20002006 : 0f, RegioUnit_NL/per_grid);
-			
-			attribute<nrwonha>  B_dens_pos   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20002006 > 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_pos   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20002006 > 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_pos  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20002006 > 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_dens_neg   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20002006 < 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_neg   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20002006 < 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_neg  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20002006 < 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			
-			attribute<nrwonha>  B_neg       (RegioUnit_NL)  := sum(SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20002006 < 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_pos       (RegioUnit_NL)  := sum(SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20002006 > 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_neg       (RegioUnit_NL)  := sum(!SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20002006 < 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_pos       (RegioUnit_NL)  := sum(!SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20002006 > 0f ? totaal_20002006 : 0f : 0f, RegioUnit_NL/per_grid);
+			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20002006, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens  ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey  ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens  ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey  ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
 		}
 		container p2006_2012
 		{
-			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20062012, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20062012 : 0f, RegioUnit_NL/per_grid);
-			
-			attribute<nrwonha>  B_dens_pos   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20062012 > 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_pos   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20062012 > 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_pos  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20062012 > 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_dens_neg   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20062012 < 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_neg   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20062012 < 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_neg  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20062012 < 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-
-			attribute<nrwonha>  B_neg       (RegioUnit_NL)  := sum(SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20062012 < 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_pos       (RegioUnit_NL)  := sum(SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20062012 > 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_neg       (RegioUnit_NL)  := sum(!SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20062012 < 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_pos       (RegioUnit_NL)  := sum(!SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20062012 > 0f ? totaal_20062012 : 0f : 0f, RegioUnit_NL/per_grid);
+			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20062012, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
 		}
 		container p2012_2018
 		{
-			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20122018, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			
-			attribute<nrwonha>  B_dens_pos   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20122018 > 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_pos   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20122018 > 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_pos  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20122018 > 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_dens_neg   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20122018 < 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_grey_neg   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20122018 < 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_green_neg  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20122018 < 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-
-			attribute<nrwonha>  B_neg       (RegioUnit_NL)  := sum(SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20122018 < 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  B_pos       (RegioUnit_NL)  := sum(SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20122018 > 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_neg       (RegioUnit_NL)  := sum(!SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20122018 < 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
-			attribute<nrwonha>  N_pos       (RegioUnit_NL)  := sum(!SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg ? totaal_20122018 > 0f ? totaal_20122018 : 0f : 0f, RegioUnit_NL/per_grid);
+			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20122018, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
 		}
-		// container p2012_2018_bevolkingskern
-		// {
-			// attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20122018, RegioUnit_NL/per_grid);
-			// attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_2000_bevolkingskern/gg_3K_in_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			// attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_2000_bevolkingskern/gg_3K_in_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			// attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_2000_bevolkingskern/gg_3K_in_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			// attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_2000_bevolkingskern/gg_3K_buiten_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			// attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_2000_bevolkingskern/gg_3K_buiten_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-			// attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_2000_bevolkingskern/gg_3K_buiten_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_grid);
-		// }
-		
-		container Regressie: FreeData = "False"
+		container p2018_2024
 		{
-			attribute<uint2>     B_dens                 (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens[uint2];
-			attribute<uint2>     B_grey                 (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey[uint2];
-			attribute<uint2>     B_green                (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green[uint2];
-			attribute<uint2>     N_dens                 (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens[uint2];
-			attribute<uint2>     N_grey                 (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey[uint2];
-			attribute<uint2>     N_green                (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green[uint2];
-			
-			// attribute<nrwonha>   B_grey_2000            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_2000 : 0f;
-			// attribute<nrwonha>   B_dens_vinex           (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens && SourceData/Spatial_data/Dani/VinexPlans == 1
-																			// ? totaal_20002006 > 0f 
-																				// ? totaal_20002006 
-																				// : 0f
-																			// : 0f;
-			
-			// attribute<nrwonha>   B_0006_neg            (NL_grid/domain)  := SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20002006 < 0f 
-																				// ? totaal_20002006 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   B_0612_neg            (NL_grid/domain)  := SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20062012 < 0f 
-																				// ? totaal_20062012 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   B_1218_neg            (NL_grid/domain)  := SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20122018 < 0f 
-																				// ? totaal_20122018 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   B_0006_pos            (NL_grid/domain)  := SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20002006 > 0f 
-																				// ? totaal_20002006 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   B_0612_pos            (NL_grid/domain)  := SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20062012 > 0f 
-																				// ? totaal_20062012 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   B_1218_pos            (NL_grid/domain)  := SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20122018 > 0f 
-																				// ? totaal_20122018 
-																				// : 0f
-																			// : 0f;
-
-			// attribute<nrwonha>   N_0006_neg            (NL_grid/domain)  := !SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20002006 < 0f 
-																				// ? totaal_20002006 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   N_0612_neg            (NL_grid/domain)  := !SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20062012 < 0f 
-																				// ? totaal_20062012 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   N_1218_neg            (NL_grid/domain)  := !SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20122018 < 0f 
-																				// ? totaal_20122018 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   N_0006_pos            (NL_grid/domain)  := !SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20002006 > 0f 
-																				// ? totaal_20002006 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   N_0612_pos            (NL_grid/domain)  := !SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20062012 > 0f 
-																				// ? totaal_20062012 
-																				// : 0f
-																			// : 0f;
-																			
-			// attribute<nrwonha>   N_1218_pos            (NL_grid/domain)  := !SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg 
-																			// ? totaal_20122018 > 0f 
-																				// ? totaal_20122018 
-																				// : 0f
-																			// : 0f;
-			attribute<float32>   B_dens_vogel_0006  (NL_grid/domain)  := VogelaarWijken == 1[uint2] 
-																			// ? B_dens_0006 > 0f 
-																			? B_dens_0006 < 0f 
-																				? 1f
-																				: 0f
-																			: 0f;
-			attribute<float32>   B_dens_vogel_0612  (NL_grid/domain)  := VogelaarWijken == 1[uint2] 
-																			// ? B_dens_0612 > 0f 
-																			? B_dens_0612 < 0f 
-																				// ? B_dens_0612
-																				? 1f
-																				: 0f
-																			: 0f;
-			attribute<float32>   B_dens_vogel_1218  (NL_grid/domain)  := VogelaarWijken == 1[uint2] 
-																			// ? B_dens_1218 > 0f 
-																			? B_dens_1218 < 0f 
-																				// ? B_dens_1218
-																				? 1f
-																				: 0f
-																			: 0f;
-			
-			attribute<nrwonha>   B_dens_0006            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20002006 : 0f;
-			attribute<nrwonha>   B_grey_0006            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20002006 : 0f;
-			attribute<nrwonha>   B_green_0006           (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20002006 : 0f;
-			attribute<nrwonha>   N_dens_0006            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20002006 : 0f;
-			attribute<nrwonha>   N_grey_0006            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20002006 : 0f;
-			attribute<nrwonha>   N_green_0006           (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20002006 : 0f;
-			
-			attribute<nrwonha>   B_dens_0612            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20062012 : 0f;
-			attribute<nrwonha>   B_grey_0612            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20062012 : 0f;
-			attribute<nrwonha>   B_green_0612           (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20062012 : 0f;
-			attribute<nrwonha>   N_dens_0612            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20062012 : 0f;
-			attribute<nrwonha>   N_grey_0612            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20062012 : 0f;
-			attribute<nrwonha>   N_green_0612           (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20062012 : 0f;
-			
-			attribute<nrwonha>   B_dens_1218            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20122018 : 0f;
-			attribute<nrwonha>   B_grey_1218            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20122018 : 0f;
-			attribute<nrwonha>   B_green_1218           (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20122018 : 0f;
-			attribute<nrwonha>   N_dens_1218            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20122018 : 0f;
-			attribute<nrwonha>   N_grey_1218            (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20122018 : 0f;
-			attribute<nrwonha>   N_green_1218           (NL_grid/domain)  := SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20122018 : 0f;
-			
-			unit<uint32> Sub_B_grey := subset(B_grey == 1u2)
-			{
-				attribute<uint2>     B_grey                   := ../B_grey[nr_OrgEntity];
-				attribute<nrwonha>   B_grey_0006            := ../B_grey_0006[nr_OrgEntity];
-				attribute<nrwonha>   B_grey_0612         := ../B_grey_0612[nr_OrgEntity];
-				attribute<nrwonha>   B_grey_1218            := ../B_grey_1218[nr_OrgEntity];
-
-			}
-			
-			attribute<nrwonha>   won2000                (NL_grid/domain) := SourceData/CBS_vierkanten/woningen2000;
-			
-			attribute<uint2>     VinexPlans             (NL_grid/domain) := SourceData/Spatial_data/Dani/VinexPlans[uint2];
-			attribute<uint2>     NatureArea             (NL_grid/domain) := SourceData/Spatial_data/Dani/Natura2000[uint2];
-			attribute<uint2>     BundlingZones          (NL_grid/domain) := SourceData/Spatial_data/Dani/Bundelingsgebieden[uint2];
-			attribute<uint2>     VogelaarWijken         (NL_grid/domain) := SourceData/Spatial_data/Dani/Vogelaar_wijken == 40 ? 1[uint2] : 0[uint2];
-			attribute<uint2>     Randstad               (NL_grid/domain) := SourceData/regios/Randstad/src/per_grid[uint2];
-		
-			attribute<float32>   Traveltime_trainstation2006_min  (NL_grid/domain) := SourceData/Spatial_data/Dani/Reistijd_stations_edit;
-			attribute<uint32>    UAI_2002               (NL_grid/domain) := SourceData/Spatial_data/Dani/UAI;
-			attribute<float32>   Traveltime_100k_inh_2004    (NL_grid/domain) := SourceData/Spatial_data/Dani/Traveltime_100k_inh_value;
-			
-			attribute<float32>   LU_Diversity_10m           (NL_grid/domain) := SourceData/bestand_bodem_gebruik/src/landuse_type_2000/diversity;
-			attribute<float32>   LU_Share_green_10m         (NL_grid/domain) := SourceData/bestand_bodem_gebruik/src/landuse_type_2000/urbangreen + SourceData/bestand_bodem_gebruik/src/landuse_type_2000/agriculture + SourceData/bestand_bodem_gebruik/src/landuse_type_2000/nature;
-			attribute<float32>   LU_Share_residential_10m   (NL_grid/domain) := SourceData/bestand_bodem_gebruik/src/landuse_type_2000/residential;
-			attribute<float32>   LU_Share_construction_10m  (NL_grid/domain) := SourceData/bestand_bodem_gebruik/src/landuse_type_2000/construction;
-			attribute<float32>   LU_Share_otherbuiltup_10m  (NL_grid/domain) := SourceData/bestand_bodem_gebruik/src/landuse_type_2000/otherbuiltup;
-			
-			attribute<float32>   Landprice              (NL_grid/domain) := IsDefined(/SourceData/regios/Postcode_gebieden/Postcode4_areas/landprice_grid) ? /SourceData/regios/Postcode_gebieden/Postcode4_areas/landprice_grid : 0f;
-			attribute<int16>     sd_bouwjaar            (NL_grid/domain) := Analyse/bouwjaar/sd_bouwjaar;
+			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20182024, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
 		}
 	}
 }

@@ -41,11 +41,20 @@ container classifications : using = "units"
 	
 	unit<uint8> UrbanisationK : nrofrows = 3
 	{
-		attribute<string>    Label        :  ['Urban', 'PeriUrban','Peripheral'], DialogType = "LabelText";
-		// attribute<uint32>    PenColor     := Brushcolor, DialogType = "PenColor";
-		// attribute<uint32>    BrushColor   :  [rgb(200,0,0),rgb(0,200,0), rgb(128,128,128)] , DialogType = "BrushColor";
-		attribute<uint32>    BrushColor   :  [rgb(200,0,0),rgb(0,200,0), rgb(128,128,128)] , DialogType = "BrushColor";
+		attribute<string>    Label        :  ['High', 'Medium','Low'], DialogType = "LabelText";
+		attribute<uint32>    PenColor     := const(rgb(150,150,150),.), DialogType = "PenColor";
+		attribute<uint32>    BrushColor   :  [rgb(237,80,40), rgb(168,164,164),rgb(166,207,138)] , DialogType = "BrushColor";
+		// attribute<uint32>    SymbolColor   :  [rgb(200,0,0), rgb(128,128,128),rgb(0,200,0)] , DialogType = "SymbolColor";
 		
 		container V := for_each_nedv(Label, 'value('+string(id(.))+', ..)', void, .);
+	}
+	
+	unit<uint8> OAD_Klassen := cat_range(0b, 5b)
+	, URL = "https://www.cbs.nl/nl-nl/onze-diensten/methoden/begrippen/stedelijkheid--van-een-gebied--#:~:text=%2D%20sterk%20stedelijk%3A%20gemiddelde%20oad%20van,dan%20500%20adressen%20per%20km2."
+	{
+		attribute<string> name  : ['Niet stedelijk', 'Weinig stedelijk', 'Matig stedelijk', 'Sterk stedelijk', 'Zeer sterk stedelijk'];
+		attribute<string> label := name;
+		attribute<uint32> LB    : [0, 500, 1000, 1500, 2500];
+		attribute<UrbanisationK> UrbanisationK_rel := union_data(., UrbanisationK/v/low, UrbanisationK/v/medium, UrbanisationK/v/medium, UrbanisationK/v/high, UrbanisationK/v/high);
 	}
 }

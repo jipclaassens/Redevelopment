@@ -1,103 +1,151 @@
 // Set directory Jip
-cd "D:\OneDrive\OneDrive - Objectvision\VU\Projects\202008-RedevelopmentPaper"
+cd "C:\Users\JipClaassens\OneDrive - Objectvision\VU\Projects\202008-RedevelopmentPaper" //ovsrv08
+cd "D:\OneDrive\OneDrive - Objectvision\VU\Projects\202008-RedevelopmentPaper" //laptop
 
 ssc install outreg2 //install outreg2 voor het wegschrijven van regressie resultaten naar word/excel/etc.
 
-global filedate = 20250314  // 20241211  20250226
+global filedate = 20250603  // 20241211  20250226
 
 import delimited Data\Analyse_PerWijk_${filedate}.csv, clear
 // ==================================================== //
 // ===============  DATA PREPERATION  ================= //
 // ==================================================== //
 
-local replaceNullList = "oad p_huurcorp landprice modus_buildingyear_2012" 
-foreach x of local replaceNullList{
-	replace `x' = "" if `x' == "null"
-	destring `x', replace
-}
+// local replaceNullList = "oad p_huurcorp modus_buildingyear_2012" 
+// foreach x of local replaceNullList{
+// 	replace `x' = "" if `x' == "null"
+// 	destring `x', replace
+// }
 
 rename modus_buildingyear_2012 bouwjaar
+rename mean_uai uai
+rename total_area total_area
+// rename wegspoor wegspoor_area
+// rename water_ water_area
+rename pandfootprint pandfootprint
+rename opp_besch opp_beschermdestaddorpgezicht
 
-// g d_constr_unknown = 0
-// replace d_constr_unknown = 1 if bouwjaar == .  
-// g d_constrlt1920 = 0
-// replace d_constrlt1920 = 1 if bouwjaar <= 1919 & bouwjaar != .  
-// g d_constr19201944 = 0 
-// replace d_constr19201944 = 1 if bouwjaar >= 1920 & bouwjaar <= 1944
-// g d_constr19451959 = 0 
-// replace d_constr19451959 = 1 if bouwjaar >= 1945 & bouwjaar <= 1959
-// g d_constr19601973 = 0 
-// replace d_constr19601973 = 1 if bouwjaar >= 1960 & bouwjaar <= 1973
-// g d_constr19741990 = 0 
-// replace d_constr19741990 = 1 if bouwjaar >= 1974 & bouwjaar <= 1990
-// g d_constr19911997 = 0 
-// replace d_constr19911997 = 1 if bouwjaar >= 1991 & bouwjaar <= 1997
-// g d_constrgt1997 = 0 
-// replace d_constrgt1997 = 1 if bouwjaar >= 1998 & bouwjaar != .
-
-///standard version
-// g construction_period_label = ""
-// replace construction_period_label = "Construction before 1920" if bouwjaar <= 1919 & bouwjaar != . 
-// replace construction_period_label = "Construction 1920-1944" if bouwjaar >= 1920 & bouwjaar <= 1944
-// replace construction_period_label = "Construction 1945-1959" if bouwjaar >= 1945 & bouwjaar <= 1959
-// replace construction_period_label = "Construction 1960-1973" if bouwjaar >= 1960 & bouwjaar <= 1973
-// replace construction_period_label = "Construction 1974-1990" if bouwjaar >= 1974 & bouwjaar <= 1990
-// replace construction_period_label = "Construction 1991-1997" if bouwjaar >= 1991 & bouwjaar <= 1997
-// replace construction_period_label = "Construction 1998 and later " if bouwjaar >= 1998 & bouwjaar != .
-// encode construction_period_label, generate(construction_period)
 
 ///nieuwe version op basis van analyse verderop.
+// g construction_period_label = ""
+// replace construction_period_label = "Construction 1929 and earlier" if bouwjaar <= 1929 & bouwjaar != . 
+// replace construction_period_label = "Construction 1930-1957" if bouwjaar >= 1930 & bouwjaar <= 1957
+// replace construction_period_label = "Construction 1958-1968" if bouwjaar >= 1958 & bouwjaar <= 1968
+// replace construction_period_label = "Construction 1969-1975" if bouwjaar >= 1969 & bouwjaar <= 1975
+// replace construction_period_label = "Construction 1976-1985" if bouwjaar >= 1976 & bouwjaar <= 1985
+// replace construction_period_label = "Construction 1986-1995" if bouwjaar >= 1986 & bouwjaar <= 1995
+// replace construction_period_label = "Construction 1996-2008" if bouwjaar >= 1996 & bouwjaar <= 2008
+// replace construction_period_label = "Construction 2009 and later " if bouwjaar >= 2009 & bouwjaar != .
+// encode construction_period_label, generate(construction_period)
+//
 g construction_period_label = ""
 replace construction_period_label = "Construction 1929 and earlier" if bouwjaar <= 1929 & bouwjaar != . 
-replace construction_period_label = "Construction 1930-1957" if bouwjaar >= 1930 & bouwjaar <= 1957
-replace construction_period_label = "Construction 1958-1968" if bouwjaar >= 1958 & bouwjaar <= 1968
-replace construction_period_label = "Construction 1969-1975" if bouwjaar >= 1969 & bouwjaar <= 1975
-replace construction_period_label = "Construction 1976-1985" if bouwjaar >= 1976 & bouwjaar <= 1985
-replace construction_period_label = "Construction 1986-1995" if bouwjaar >= 1986 & bouwjaar <= 1995
-replace construction_period_label = "Construction 1996-2008" if bouwjaar >= 1996 & bouwjaar <= 2008
-replace construction_period_label = "Construction 2009 and later " if bouwjaar >= 2009 & bouwjaar != .
+replace construction_period_label = "Construction 1930-1945" if bouwjaar >= 1930 & bouwjaar <= 1945
+replace construction_period_label = "Construction 1946-1960" if bouwjaar >= 1946 & bouwjaar <= 1960
+replace construction_period_label = "Construction 1961-1970" if bouwjaar >= 1961 & bouwjaar <= 1970
+replace construction_period_label = "Construction 1971-1980" if bouwjaar >= 1971 & bouwjaar <= 1980
+replace construction_period_label = "Construction 1981-1990" if bouwjaar >= 1981 & bouwjaar <= 1990
+replace construction_period_label = "Construction 1991-2000" if bouwjaar >= 1991 & bouwjaar <= 2000
+replace construction_period_label = "Construction 2000-2012" if bouwjaar >= 2001 & bouwjaar != .
 encode construction_period_label, generate(construction_period)
 
-g p_woninggroei = ((count_woon_y2024 - count_woon_y2012) / count_woon_y2024) * 100
 
-g count_total_proces_pluschange = count_sn_nieuwbouw + count_nieuwbouw + count_toevoeging + count_transformatiep
-g count_total_proces_minchange  = count_sn_sloop + count_sn_sloop_nw + count_onttrekking + count_transformatiem + count_sloop
 
-g p_sn_nb = (count_sn_nieuwbouw / count_total_proces_pluschange) * 100
-g p_nb = (count_nieuwbouw / count_total_proces_pluschange) * 100
-g p_toev = (count_toevoeging / count_total_proces_pluschange) * 100
-g p_transf = (count_transformatiep / count_total_proces_pluschange) * 100
+/*
+* Bouwperiode-labels en condities
+local labels 1929_earlier 1930_1945 1945_1960 1961_1970 1971_1980 1981_1990 1991_2000 2001_2012
+
+local conds  bouwjaar<=1929 ///
+             inrange(bouwjaar,1930,1945) ///
+             inrange(bouwjaar,1946,1960) ///
+             inrange(bouwjaar,1961,1970) ///
+             inrange(bouwjaar,1971,1980) ///
+             inrange(bouwjaar,1981,1990) ///
+             inrange(bouwjaar,1991,2000) ///
+             bouwjaar>=2000
+
+local nice_labels "≤1929 1930–1945 1946–1960 1961–1970 1971–1980 1981–1990 1991–2000 2000-2012"
+local n : word count `labels'
+
+forvalues i = 1/`n' {
+    local varname   : word `i' of `labels'
+    local condition : word `i' of `conds'
+    local labtxt    : word `i' of `nice_labels'
+
+    gen bouwperiode_`varname' = `condition' if !missing(bouwjaar)
+    label var bouwperiode_`varname' "Bouwperiode: `labtxt'"
+}
+*/
+
+g count_total_proces_pluschange = count_sn_nieuwbouw + count_nieuwbouw + count_toevoeging + count_transformatie_plus
+// g count_total_proces_minchange  = count_sn_sloop + count_sn_sloop_nw + count_onttrekking + count_transformatiem + count_sloop
+
+g land_area =  total_area - water_area
+g land_area_ha = land_area * 100
+
+// g p_woninggroei = ((count_woon_y2025 - count_woon_y2012) / count_woon_y2025) * 100
+// g count_woninggroei   = count_woon_y2025 - count_woon_y2012
+// g count_woninggroei_ha   = count_woninggroei / land_area_ha
+
+g ln_cnt_wgr_ha_plus = ln(count_total_proces_pluschange / land_area_ha)
+
+g ln_cnt_wgr_ha_sn   = ln((count_sn_nieuwbouw - count_sn_sloop)  / land_area_ha)
+g ln_cnt_wgr_ha_div  = ln((count_toevoeging - count_onttrekking) / land_area_ha)
+g ln_cnt_wgr_ha_trf  = ln((count_transformatie_p - count_transformatie_m) / land_area_ha)
+g ln_cnt_wgr_ha_nb   = ln(count_nieuwbouw / land_area_ha)
+
+g ln_cnt_wgr_ha_snnb  = ln(count_sn_nieuwbouw / land_area_ha)
+g ln_cnt_wgr_ha_snsl  = ln(count_sn_sloop / land_area_ha)
+g ln_cnt_wgr_ha_toev  = ln(count_toevoeging / land_area_ha)
+g ln_cnt_wgr_ha_ontt  = ln(count_onttrekking / land_area_ha)
+g ln_cnt_wgr_ha_trfp  = ln(count_transformatie_p / land_area_ha)
+g ln_cnt_wgr_ha_trfm  = ln(count_transformatie_m / land_area_ha)
+
+
+
+// g p_sn_nb = (count_sn_nieuwbouw / count_total_proces_pluschange) * 100
+// g p_nb = (count_nieuwbouw / count_total_proces_pluschange) * 100
+// g p_toev = (count_toevoeging / count_total_proces_pluschange) * 100
+// g p_transf = (count_transformatiep / count_total_proces_pluschange) * 100
 
 // replace area = area / 1000000
 
-g lnlandprice = ln(landprice)
+// g lnlandprice = ln(landprice)
 // g lnOAD = ln(oad)
 // g lnArea = ln(area)
-g lnP_woninggroei = ln(p_woninggroei)
-g p_beschermd = share_besc * 100
+// g lnP_woninggroei = ln(p_woninggroei)
+
+g p_beschermd = opp_besch / land_area * 100
 replace p_beschermd = 100 if p_beschermd > 100
-rename mean_uai uai
 replace uai = uai * 100
 
+// g p_beschikbaar = ((land_area - wegspoor) / land_area) * 100
+g p_onbebouwd   = ((land_area - wegspoor - pandfootprint) / land_area) * 100
+
 //plus list
-local types "sn_nieuwbouw nieuwbouw toevoeging transformatiep"
-foreach t of local types{ 
-	g P_`t' = (count_`t' / count_total_proces_pluschange) * 100
-}
+// local types "sn_nieuwbouw nieuwbouw toevoeging transformatiep"
+// foreach t of local types{ 
+// 	g P_`t' = (count_`t' / count_total_proces_pluschange) * 100
+// }
 
 //minus list
-local types "sn_sloop sn_sloop_nw sloop onttrekking transformatiem"
-foreach t of local types{ 
-	g P_`t' = (count_`t' / count_total_proces_minchange) * 100
-}
+// local types "sn_sloop sn_sloop_nw sloop onttrekking transformatiem"
+// foreach t of local types{ 
+// 	g P_`t' = (count_`t' / count_total_proces_minchange) * 100
+// }
 
-// label var area "Opp van wijk in km2"
-label var oad "Gemiddelde omgevingsadressendichtheid in wijk"
+label var total_area "Opp van wijk in km2"
+label var wegspoor_area "Opp van weg en spoor in wijk in km2"
+label var water_area "Opp van water in wijk in km2"
+label var land_area "Opp van land in wijk in km2"
+label var land_area_ha "Opp van land in wijk in ha"
+label var pandfootprint "Pandfootprint in wijk in km2"
+// label var oad "Gemiddelde omgevingsadressendichtheid in wijk"
 label var p_huurcorp "Percentage huurcorporatie woningen in wijk"
-label var landprice "Gemiddelde residuele grondwaarde in 2007 in wijk"
+// label var landprice "Gemiddelde residuele grondwaarde in 2007 in wijk"
 label var bouwjaar "Gemiddelde bouwjaar in 2012 in wijk"
 // label var count_woon_y2012 "Aantal woningen in 2012 in wijk"
-// label var count_woon_y2024 "Aantal woningen in 2024 in wijk"
+// label var count_woon_y2025 "Aantal woningen in 2025 in wijk"
 // label var count_sn_sloop "Aantal gesloopte woningen via sloop-nieuwbouw"
 // label var count_sn_sloop_nw "Aantal gesloopte niet-woningen via sloop-nieuwbouw"
 // label var count_sn_nieuwbouw "Aantal nieuw gebouwde woningen via sloop-nieuwbouw"
@@ -108,41 +156,43 @@ label var bouwjaar "Gemiddelde bouwjaar in 2012 in wijk"
 // label var count_nieuwbouw "Aantal nieuw gebouwde woningen zonder opvolgende sloop"
 // label var count_sloop "Aantal gesloopte woningen zonder opvolgende nieuwbouw"
 // label var count_onveranderd "Aantal onveranderde woningen"
-// label var d_constr_unknown "Gem. bouwjaar in 2012 onbekend"
-// label var d_constrlt1920 "Gem. bouwjaar in 2012 voor 1920"
-// label var d_constr19201944 "Gem. bouwjaar in 2012 tussen 1920-1944"
-// label var d_constr19451959 "Gem. bouwjaar in 2012 tussen 1945-1959"
-// label var d_constr19601973 "Gem. bouwjaar in 2012 tussen 1960-1973"
-// label var d_constr19741990 "Gem. bouwjaar in 2012 tussen 1974-1990"
-// label var d_constr19911997 "Gem. bouwjaar in 2012 tussen 1991-1997"
-// label var d_constrgt1997 "Gem. bouwjaar in 2012 na 1997"
+label var construction_period "Gem. bouwjaar categorie"
 
-label var p_woninggroei "Percentage woninggroei tussen 2012-2024 in wijk"
-label var p_sn_nb "Percentage sloop-nieuwbouw van totale positieve verandering"
-label var p_nb "Percentage nieuwbouw van totale positieve verandering"
-label var p_toev "Percentage toevoeging van totale positieve verandering"
-label var p_transf "Percentage transformatie van totale positieve verandering"
-label var lnP_woninggroei "log (Percentage woninggroei tussen 2012-2024 in wijk)"
-label var lnlandprice "log (Gemiddelde residuele grondwaarde in 2007 in wijk)"
+// label var p_woninggroei "Percentage woninggroei tussen 2012-2024 in wijk"
+// label var count_woninggroei "Aantal woningverandering tussen 2012-2024 in wijk"
+// label var count_woninggroei_ha "Aantal woningverandering per ha tussen 2012-2024 in wijk"
+// label var count_woninggroei_ha_plus "Aantal positieve woningverandering per ha tussen 2012-2024 in wijk"
+// label var p_sn_nb "Percentage sloop-nieuwbouw van totale positieve verandering"
+// label var p_nb "Percentage nieuwbouw van totale positieve verandering"
+// label var p_toev "Percentage toevoeging van totale positieve verandering"
+// label var p_transf "Percentage transformatie van totale positieve verandering"
+// label var lnP_woninggroei "log (Percentage woninggroei tussen 2012-2024 in wijk)"
+// label var lnlandprice "log (Gemiddelde residuele grondwaarde in 2007 in wijk)"
 label var uai "Gemiddelde urban attractivity index in 2012 in wijk"
-label var p_groei_woon "Percentage woninggroei tussen 2012-2024 in provincie"
+// label var p_groei_woon "Percentage woninggroei tussen 2012-2024 in provincie"
 label var p_beschermd "Percentage oppervlak beschermd stad- en dorpsgezicht in wijk"
+// label var p_beschikbaar "Percentage landoppervlak niet weg of spoor in wijk"
+label var p_onbebouw "Percentage landoppervlak niet weg, spoor of pand in wijk"
 
-drop wk_code areamegameter2 count_woon_y2012 count_woon_y2024 count_sn_sloop count_sn_sloop_nw count_sn_nieuwbouw count_nieuwbouw count_toevoeging count_onttrekking count_transformatiep count_transformatiem count_sloop count_onveranderd count_total_process provincie_rel opp_beschermdestaddorpgezichtenm share_beschermdestaddorpgezichte  count_total_proces_pluschange count_total_proces_minchange
+drop wk_code     count_sn_nieuwbouw count_nieuwbouw count_toevoeging  count_transformatie_p     opp_beschermdestaddorpgezic  count_total_proces_pluschange 
+
+save Temp/PerWijk.dta, replace
 
 //////////////////////////////////////////////////////////////////////
 **# ////////////////////////// ANALYSES //////////////////////////////
 //////////////////////////////////////////////////////////////////////
 
-pwcorr lnP_woninggroei oad p_huurcorp lnlandprice p_beschermd uai
-pwcorr p_woninggroei oad p_huurcorp landprice p_beschermd uai
-pwcorr lnP_woninggroei p_huurcorp lnlandprice uai
-pwcorr lnP_woninggroei oad p_huurcorp p_beschermd uai
+//====== per type
+reg  c.ln_cnt_wgr_ha_plus c.p_huurcorp c.uai c.p_beschermd c.p_onbebouwd ib5.construction_period, r allbaselevels
+outreg2 using output/PerWijk_${filedate}_lncnt_nose_main_jr70, excel cttop (ln(all)) label dec(3) nose replace
+reg  c.ln_cnt_wgr_ha_plus c.p_huurcorp##i.urbanisationk_rel c.uai##i.urbanisationk_rel  c.p_beschermd c.p_onbebouwd##i.urbanisationk_rel ib5.construction_period, r allbaselevels
+outreg2 using output/PerWijk_${filedate}_lncnt_nose_main_jr70, excel cttop (ln(all)) label dec(3) nose 
 
-fvset base 7 construction_period  //1 is oud, 7 in nieuwe opzet na 2009
 
-// local types "sn_nieuwbouw nieuwbouw toevoeging transformatiep sn_sloop sn_sloop_nw sloop onttrekking transformatiem"
-local types "sn_nieuwbouw nieuwbouw toevoeging transformatiep"
+use Temp/PerWijk.dta, clear
+
+
+local types "sn nb div trf"
 foreach t of local types{ 
     display ""
     display ""
@@ -151,38 +201,170 @@ foreach t of local types{
     display "-- Regressing redev type = `t' --"
     display "---------------------------------------------"
     display "---------------------------------------------"
-	reg  P_`t' lnP_woninggroei lnlandprice, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei p_huurcorp, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei uai, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei p_beschermd, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei i.construction_period, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
 	
-	reg  P_`t' lnP_woninggroei lnlandprice i.construction_period, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei p_huurcorp i.construction_period, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei uai i.construction_period, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei p_beschermd i.construction_period, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	
-	reg  P_`t' lnP_woninggroei lnlandprice uai i.construction_period, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei p_huurcorp lnlandprice uai i.construction_period, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei lnlandprice p_beschermd uai i.construction_period, r	
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	
-	reg  P_`t' lnP_woninggroei p_huurcorp lnlandprice p_beschermd i.construction_period, r
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
-	reg  P_`t' lnP_woninggroei oad p_huurcorp lnlandprice p_beschermd uai i.construction_period, r
-	outreg2 using output/PerWijk_${filedate}_nose_`t', excel cttop (`t') label dec(3) nose
+	reg  c.ln_cnt_wgr_ha_`t' c.p_huurcorp c.uai c.p_beschermd c.p_onbebouwd ib5.construction_period, r allbaselevels
+	outreg2 using output/PerWijk_${filedate}_lncnt_nose_main_jr70, excel cttop (ln(`t')) label dec(3) nose
+	reg  c.ln_cnt_wgr_ha_`t' c.p_huurcorp##i.urbanisationk_rel c.uai##i.urbanisationk_rel  c.p_beschermd c.p_onbebouwd##i.urbanisationk_rel ib5.construction_period, r allbaselevels
+	outreg2 using output/PerWijk_${filedate}_lncnt_nose_main_jr70, excel cttop (ln(`t')) label dec(3) nose
 }
+
+local types "snnb snsl toev ontt trfp trfm" 
+foreach t of local types{ 
+    display ""
+    display ""
+    display "---------------------------------------------"
+    display "---------------------------------------------"
+    display "-- Regressing redev type = `t' --"
+    display "---------------------------------------------"
+    display "---------------------------------------------"
+	
+	reg  ln_cnt_wgr_ha_`t' p_huurcorp uai p_beschermd p_onbebouwd ib5.construction_period, r allbaselevels
+	outreg2 using output/PerWijk_${filedate}_lncnt_nose_sub_jr70, excel cttop (ln(`t')) label dec(3) nose
+}
+
+**# Margins
+reg  c.ln_cnt_wgr_ha_plus c.p_huurcorp##i.urbanisationk_rel c.uai##i.urbanisationk_rel  c.p_beschermd c.p_onbebouwd##i.urbanisationk_rel ib5.construction_period, r allbaselevels
+margins urbanisationk_rel, dydx(p_huurcorp uai p_onbebouwd)
+reg  c.ln_cnt_wgr_ha_sn   c.p_huurcorp##i.urbanisationk_rel c.uai##i.urbanisationk_rel  c.p_beschermd c.p_onbebouwd##i.urbanisationk_rel ib5.construction_period, r allbaselevels
+margins urbanisationk_rel, dydx(p_huurcorp uai p_onbebouwd)
+reg  c.ln_cnt_wgr_ha_nb   c.p_huurcorp##i.urbanisationk_rel c.uai##i.urbanisationk_rel  c.p_beschermd c.p_onbebouwd##i.urbanisationk_rel ib5.construction_period, r allbaselevels
+margins urbanisationk_rel, dydx(p_huurcorp uai p_onbebouwd)
+reg  c.ln_cnt_wgr_ha_div  c.p_huurcorp##i.urbanisationk_rel c.uai##i.urbanisationk_rel  c.p_beschermd c.p_onbebouwd##i.urbanisationk_rel ib5.construction_period, r allbaselevels
+margins urbanisationk_rel, dydx(p_huurcorp uai p_onbebouwd)
+reg  c.ln_cnt_wgr_ha_trf  c.p_huurcorp##i.urbanisationk_rel c.uai##i.urbanisationk_rel  c.p_beschermd c.p_onbebouwd##i.urbanisationk_rel ib5.construction_period, r allbaselevels
+margins urbanisationk_rel, dydx(p_huurcorp uai p_onbebouwd)
+
+
+
+* --------------------------------------
+* Voorbereiding
+* --------------------------------------
+
+putexcel set "margins_matrix.xlsx", sheet("margins") replace
+putexcel A1 = ("effect") B1 = ("all") C1 = ("sn") D1 = ("nb") E1 = ("div") F1 = ("trf")
+
+local models all sn nb div trf
+local deps ln_cnt_wgr_ha_plus ln_cnt_wgr_ha_sn ln_cnt_wgr_ha_nb ln_cnt_wgr_ha_div ln_cnt_wgr_ha_trf
+local rowlabels huurcorp_high huurcorp_med huurcorp_low ///
+                uai_high uai_med uai_low ///
+                onbebouwd_high onbebouwd_med onbebouwd_low
+
+* Zet rijlabels in kolom A
+local row = 2
+foreach rlabel of local rowlabels {
+    putexcel A`row' = "`rlabel'"
+    local ++row
+}
+
+* --------------------------------------
+* Loop over modellen
+* --------------------------------------
+
+forvalues i = 1/5 {
+    local model : word `i' of `models'
+    local depvar : word `i' of `deps'
+    local col = char(65 + `i')  // B=66 -> B, C, D, E, F
+
+    di ">>> Bezig met model `model'..."
+
+    * Regressie
+    quietly regress `depvar' c.p_huurcorp##i.urbanisationk_rel c.uai##i.urbanisationk_rel ///
+                           c.p_beschermd c.p_onbebouwd##i.urbanisationk_rel ib5.construction_period, r allbaselevels
+
+    * Margins
+    quietly margins urbanisationk_rel, dydx(p_huurcorp uai p_onbebouwd)
+
+    * Opslaan resultaten
+    matrix mfx = r(b)
+    matrix pval = r(table)
+
+    local row = 2
+    forvalues j = 1/3 {
+        * p_huurcorp
+        local val = mfx[1,`j']
+        local p = pval[4,`j']
+        local stars = cond(`p' < 0.001, "***", cond(`p' < 0.01, "**", cond(`p' < 0.05, "*", "")))
+        local cellval = strofreal(`val', "%05.3f") + "`stars'"
+        putexcel `col'`row' = "`cellval'"
+        local ++row
+    }
+    forvalues j = 4/6 {
+        * uai
+        local val = mfx[1,`j']
+        local p = pval[4,`j']
+        local stars = cond(`p' < 0.001, "***", cond(`p' < 0.01, "**", cond(`p' < 0.05, "*", "")))
+        local cellval = strofreal(`val', "%05.3f") + "`stars'"
+        putexcel `col'`row' = "`cellval'"
+        local ++row
+    }
+    forvalues j = 7/9 {
+        * p_onbebouwd
+        local val = mfx[1,`j']
+        local p = pval[4,`j']
+        local stars = cond(`p' < 0.001, "***", cond(`p' < 0.01, "**", cond(`p' < 0.05, "*", "")))
+        local cellval = strofreal(`val', "%05.3f") + "`stars'"
+        putexcel `col'`row' = "`cellval'"
+        local ++row
+    }
+
+    di "Model `model' opgeslagen in kolom `col'"
+}
+
+
+
+
+
+//tst vraag Jan
+**# Bookmark #2
+reg  p_woninggroei   p_huurcorp uai p_beschermd p_onbebouwd ib8.construction_period, r allbaselevels
+reg  lnP_woninggroei p_huurcorp uai p_beschermd p_onbebouwd ib8.construction_period, r allbaselevels
+
+
+//descriptives
+ssc install estout
+estpost sum count_woninggroei_ha_plus cnt_wgr_ha_sn cnt_wgr_ha_nb cnt_wgr_ha_div cnt_wgr_ha_trf p_huurcorp uai p_beschermd p_onbebouwd p_woninggroei bouwperiode_*  
+esttab using output/sum_PerWijk_${filedate}.rtf, cells("count(fmt(0)) mean(fmt(2)) sd(fmt(2)) min(fmt(0)) max(fmt(0))") label nomtitle nonumber replace
+
+
+
+
+
+* --------------------------------------------------------
+* PCA via factoranalyse met varimax-rotatie
+* Toepassing op wijkniveau met 5 ruimtelijke variabelen
+* --------------------------------------------------------
+
+* Stap 1: Factoranalyse uitvoeren met 2 factoren
+factor oad p_huurcorp uai p_beschermd p_onbebouwd bouwperiode_*, factors(2)
+
+* Stap 2: Rotatie toepassen (varimax) voor betere interpretatie
+rotate, varimax
+
+* (Optioneel) Stap 3: Bekijk geroteerde loadings
+* Geeft inzicht in welke variabelen het sterkst laden op elke factor
+mat load = e(L)
+matlist load, format(%6.3f)
+
+* Stap 4: Genereer scores (componentwaarden) per observatie (wijk)
+* Deze nieuwe variabelen zijn lineaire combinaties van de originele variabelen
+predict f1 f2
+
+* (Optioneel) Hernoemen voor duidelijkere interpretatie
+rename f1 stedelijkheid
+rename f2 sociaal_profiel
+
+* Stap 5: Regressie met gegenereerde componenten
+* Hier met voorbeeld-variabele 'lnP_woninggroei' als afhankelijke variabele
+regress lnP_woninggroei stedelijkheid sociaal_profiel
+
+* (Alternatief) Regressie met woninggroei per hectare
+regress count_woninggroei_ha stedelijkheid sociaal_profiel
+
+* (Optioneel) Componentenscores visualiseren
+scatter sociaal_profiel stedelijkheid, mlabel(wk_code) title("Typologie van wijken op basis van ruimtelijke dimensies")
+
+* Einde van script
+* --------------------------------------------------------
 
 
 
@@ -320,3 +502,40 @@ export excel bouwjaar_klasse min_bouwjaar max_bouwjaar count using bouwjaar_data
 restore  
 
 display "Summary table successfully exported to bouwjaar_data_alleobs.xlsx!"
+
+
+
+
+
+
+
+/// onderzoek van multicollineariteit
+// pwcorr p_huurcorp uai p_beschermd p_onbebouwd bouwperiode_1929_earlier bouwperiode_1930_1957 bouwperiode_1958_1968 bouwperiode_1969_1975 bouwperiode_1976_1985 bouwperiode_1986_1995 bouwperiode_1996_2008
+// collin p_huurcorp uai p_beschermd p_onbebouwd bouwperiode_1929_earlier bouwperiode_1930_1957 bouwperiode_1958_1968 bouwperiode_1969_1975 bouwperiode_1976_1985 bouwperiode_1986_1995 bouwperiode_1996_2008
+
+**2025-03-28 
+// De VIF's zijn allemaal acceptabel (hoogste is 7.19),
+// De condition number is 55.5, wat wijst op matige multicollineariteit, maar geen paniekgebied,
+// De determinant van de correlatiematrix is positief (0.0074), dus het model is identificeerbaar.
+// De hoogste VIF is voor bouwperiode_1969_1975 (VIF = 7.19). Dat is niet verrassend:
+// Deze dummy is negatief gecorreleerd met veel andere bouwperiodes (zoals uit je pwcorr blijkt),
+// Maar waarschijnlijk komt die ook vaak voor in je data (denk: veel wijken gebouwd in die tijd),
+// Hij overlapt dus statistisch sterk met de andere tijdvakken, vooral 1958–1968 en 1976–1985.
+// Toch: een VIF tot 10 wordt vaak als acceptabel beschouwd, en jij zit op gemiddeld 3.32 → helemaal prima.
+
+// reg  ln_cnt_wgr_ha_plus p_huurcorp uai p_beschermd p_onbebouwd ib8.construction_period, r allbaselevels
+
+
+// R² = 0.60 → verklaart 60% van de variantie in count_woninggroei_ha_plus
+// Alle kernvariabelen (behalve p_beschermd) zijn significant
+// Geen serieuze multicollineariteit (VIF's allemaal < 7.2, mean VIF = 3.37)
+// 📌 Conclusie: Je hebt een goed functionerend model met losse variabelen, zonder noodzaak tot PCA.
+//
+// p_huurcorp	+0.026	Corporatiewijken groeien juist sterker (verrassend maar consistent in jouw data)
+// uai	+0.31	Aantrekkelijke wijken (voorzieningen) groeien meer
+// p_onbebouwd	–0.11	Meer open ruimte correleert met minder woninggroei/ha (logisch)
+// p_woninggroei	+0.042	Sterke samenhang: waar meer groeit in totaal, is ook de dichtheidsgroei hoger
+// p_beschermd	Niet sig.	→ geen consistent zelfstandig effect
+
+
+

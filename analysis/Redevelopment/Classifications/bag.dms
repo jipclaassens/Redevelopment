@@ -48,7 +48,7 @@ container BAG: using = "units"
 		attribute<string> name_src :
 		[
 			'bijeenkomstfunctie','celfunctie','gezondheidszorgfunctie','industriefunctie','kantoorfunctie','logiesfunctie'
-			,'onderwijsfunctie','overige gebruiksfunctie','sportfunctie','winkelfunctie','woonfunctie'
+			,'onderwijsfunctie','overige gebruiksfunctie','sportfunctie','winkelfunctie','woonfunctie','utiliteit combi'
 		];
 		attribute<string> name := replace(replace(name_src,' ','_'), 'functie','');
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);

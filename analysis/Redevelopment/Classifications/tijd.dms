@@ -146,20 +146,20 @@ container Tijd: isHidden = "True", using = "units"
 		// container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	// }
 	
-	// unit<uint32> jaren00_11 := range(uint32, 2000, 2012)
-	// {
-		// attribute<string> label   := name , DialogType = "LabelText";
-		// attribute<string> name    := 'Y' + string(id(.));
-		// attribute<uint32> value   := id(.);
-		// container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
-	// }
+	unit<uint32> jaren00_11 := range(uint32, 2000, 2012)
+	{
+		attribute<string> label   := name , DialogType = "LabelText";
+		attribute<string> name    := 'Y' + string(id(.));
+		attribute<uint32> value   := id(.);
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
 	
-	// unit<uint32> jaren00_12 := range(uint32, 2000, 2013)
-	// {
-		// attribute<string> label   := name , DialogType = "LabelText";
-		// attribute<string> name    := 'Y' + string(id(.));
-		// attribute<uint32> value   := id(.);
-	// }
+	unit<uint32> jaren00_12 := range(uint32, 2000, 2013)
+	{
+		attribute<string> label   := name , DialogType = "LabelText";
+		attribute<string> name    := 'Y' + string(id(.));
+		attribute<uint32> value   := id(.);
+	}
 	
 	// unit<uint32> jaren12_18 := range(uint32, 2012, 2019)
 	// {

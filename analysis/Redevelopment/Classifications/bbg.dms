@@ -63,7 +63,7 @@ container BBG : isHidden = "True", using = "units"
 		attribute<gg_10K>        gg_10k_rel        := Elements/Text[value(UInt32(ID(.))* nrAttr + 5, Elements)][uint8];
 		attribute<uint8>        onbebouwbaar      := Elements/Text[value(UInt32(ID(.))* nrAttr + 6, Elements)][uint8];
 		attribute<uint8>        potentiaal        := Elements/Text[value(UInt32(ID(.))* nrAttr + 7, Elements)][uint8];
-		attribute<gg_10K_anders>        gg_10k_anders_rel := Elements/Text[value(UInt32(ID(.))* nrAttr + 8, Elements)][uint8];
+		attribute<gg_10K_anders> gg_10k_anders_rel := Elements/Text[value(UInt32(ID(.))* nrAttr + 8, Elements)][uint8];
 		attribute<begr_beb_geb> begr_beb_geb_rel  := Elements/Text[value(UInt32(ID(.))* nrAttr + 9, Elements)][uint8];
 		attribute<uint8>        IsGroen_src       := Elements/Text[value(UInt32(ID(.))* nrAttr + 10, Elements)][uint8];
 		attribute<bool>         IsGroen           := IsGroen_src == 1b ? TRUE : FALSE;
@@ -76,6 +76,8 @@ container BBG : isHidden = "True", using = "units"
 		attribute<uint32>       SymbolColor     := BrushColor, DialogType = "SymbolColor";
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		parameter<uint32> nrAttr := 11;
+		
+		attribute<bool> IsGreyBrownField := id(.) == v/bedrijfsterreinen || id(.) == v/stortplaatsen || id(.) == v/wrakkenopslagplaatsen || id(.) == v/delfstoffenwinning;
 	}
 	
 	unit<uint8> begr_beb_geb: nrofrows = 5

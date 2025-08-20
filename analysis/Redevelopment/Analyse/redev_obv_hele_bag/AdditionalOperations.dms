@@ -25,12 +25,14 @@ container AdditionalOperations
 		attribute<jaar>    pand_bouwjaar           := union_data(., PrepDomains/S/domain/pand_bouwjaar, PrepDomains/S_nw/domain/pand_bouwjaar);
 		attribute<uint64>  vbo_bag_nr              := union_data(., PrepDomains/S/domain/vbo_bag_nr, PrepDomains/S_nw/domain/vbo_bag_nr);
 		attribute<int32>   MutatieMaand            := union_data(., PrepDomains/S/domain/MutatieMaand, PrepDomains/S_nw/domain/MutatieMaand);
+		
+		attribute<bool>    IsWoon                  := union_data(., const(TRUE, PrepDomains/S/domain), const(FALSE, PrepDomains/S_nw/domain));
 
 		unit<uint32>          intersect_met_SN     := bg_overlay_polygon(pand_geometry, SN/Result/geometry_rd);
 		attribute<bool>       HeeftOverlapmet_SN   := IsDefined(rlookup(id(.),intersect_met_SN/first_rel));
 		
 		//Als sloop al is geindetificeerd als SN wil je die hier niet ook meenemen
-		unit<uint32>  Result   := select_with_org_rel(NOT(HeeftOverlapmet_SN))
+		unit<uint32>  Result   := select_with_org_rel(NOT(HeeftOverlapmet_SN) && IsWoon)
 		{
 			attribute<rdc>    pand_geometry (poly) := ../pand_geometry[org_rel];
 			attribute<rdc>    vbo_geometry         := ../vbo_geometry[org_rel];
@@ -38,6 +40,9 @@ container AdditionalOperations
 			attribute<int32>  vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
 			attribute<jaar>   pand_bouwjaar        := ../pand_bouwjaar[org_rel];
 			attribute<uint64> vbo_bag_nr           := ../vbo_bag_nr[org_rel];
+			
+			//adhoc
+			attribute<bool>   ZitVBOookalinSNSloop   := IsDefined(rlookup(vbo_bag_nr, AdditionalOperations/SN/Result/Sloop_Objecten/vbo_bag_nr));
 		}
 	}
 	
@@ -213,6 +218,7 @@ container AdditionalOperations
 		}
 		
 		unit<uint32> Result                       := bp_split_union_polygon(Union_with_original_geometry/geometry[rdc_cm])
+		, DialogData = "geometry_rd", DialogType = "map"
 		{
 			attribute<rdc> geometry_rd               (poly) := geometry[rdc];
 			
@@ -249,6 +255,10 @@ container AdditionalOperations
 				attribute<jaar>   pand_bouwjaar        := Sloop/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../sloop_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Sloop/vbo_bag_nr[org_rel];
+				
+				//adhoc
+				attribute<bool>   ZitVBOookalinSloop   := IsDefined(rlookup(vbo_bag_nr, AdditionalOperations/Sloop/Result/vbo_bag_nr));
+				
 			}
 			unit<uint32> Sloop_NW_Objecten     := select_with_org_rel(IsDefined(Sloop_NW_rel))
 			{

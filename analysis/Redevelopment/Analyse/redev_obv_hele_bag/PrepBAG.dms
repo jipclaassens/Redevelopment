@@ -16,6 +16,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<int32>                einddatum                     := BAG_Tabel_path/einddatum;
 		attribute<vbo_gebruiksdoel_ext> prev_gebruiksdoel_rel         := gebruiksdoel_rel[pv_begin_eind_rel];
 		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel              := BAG_Tabel_path/gebruiksdoel_rel;
+		attribute<vbo_gebruiksdoel_ext> pand_modus_gebruiksdoel_rel   := uq_pand_nr/modus_gebruiksdoel_rel[uq_pand_nr_rel];
 		attribute<bool>                 WasOverigeGebruiksfunctie     := prev_gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks; //tbv TM corrigeren van garageboxen wonen>ovfuncties
 		attribute<bool>                 IsOverigeGebruiksfunctie      := gebruiksdoel_rel == vbo_gebruiksdoel_ext/v/overige_gebruiks;//tbv TM corrigeren van garageboxen wonen>ovfuncties
 		
@@ -44,7 +45,10 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<uint32>               pand_count_new_WoonFuncties       := sum(VBO_IsWonen && vbo_IsVoorraad && not(ActiefOp_StartBAG) ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
 		
 		attribute<uq_pand_nr>              uq_pand_nr_rel        := rlookup(pand_bag_nr, uq_pand_nr/values);
-		unit<uint32>                       uq_pand_nr            := unique(pand_bag_nr);
+		unit<uint32>                       uq_pand_nr            := unique(pand_bag_nr)
+		{
+			attribute<vbo_gebruiksdoel_ext> modus_gebruiksdoel_rel := modus(../gebruiksdoel_rel,uq_pand_nr_rel); 
+		}
 		
 		unit<uint32> Onveranderd_Woon := select_with_org_rel(IsOnveranderd_Woon_Voorraad)
 		{

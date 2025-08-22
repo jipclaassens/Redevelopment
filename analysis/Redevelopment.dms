@@ -42,7 +42,7 @@ container Redevelopment
 		
 		parameter<string> BRT_file_date  := '20250318';
 		parameter<string> BRK_file_date  := '20231206';
-		parameter<string> BAG_file_date  := '20250115'; //'20240708'; 20250115
+		parameter<string> BAG_file_date  := '20250710'; //'20240708'; 20250115
 
 	}
 	

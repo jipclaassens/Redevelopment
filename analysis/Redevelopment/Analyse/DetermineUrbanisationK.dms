@@ -1,32 +1,34 @@
 container DetermineUrbanisationK
 {
 	unit<uint32> Wijken := 	SourceData/RegioIndelingen/Impl/CBS/Y2012/Wijk
+	, DialogData = "geometry"
+	, DialogType = "map"
 	{
 		attribute<uint32>        OAD_src             := MakeDefined(OAD, 0);
 		attribute<OAD_Klassen>   OAD_K_rel           := Classify(OAD_src, OAD_Klassen/LB);
 		attribute<UrbanisationK> UrbanisationK_rel   := OAD_Klassen/UrbanisationK_rel[OAD_K_rel];
 	}
 
-	unit<uint32> Urban := select_with_org_rel(Wijken/UrbanisationK_rel == UrbanisationK/v/urban)
-	{
-		attribute<rdc>      geometry (poly) := org_rel -> geometry;
-		attribute<string>   label           := org_rel -> statnaam;
-		attribute<km2>      area            := area(geometry, m2)[km2];
-		parameter<km2>      sum_area        := sum(area);
-	}
-	unit<uint32> Intermediate := select_with_org_rel(Wijken/UrbanisationK_rel == UrbanisationK/v/Intermediate)
-	{
-		attribute<rdc>      geometry (poly) := org_rel -> geometry;
-		attribute<string>   label           := org_rel -> statnaam;
-		attribute<km2>      area            := area(geometry, m2)[km2];
-		parameter<km2>      sum_area        := sum(area);
-	}
+	// unit<uint32> Urban := select_with_org_rel(Wijken/UrbanisationK_rel == UrbanisationK/v/urban)
+	// {
+		// attribute<rdc>      geometry (poly) := org_rel -> geometry;
+		// attribute<string>   label           := org_rel -> statnaam;
+		// attribute<km2>      area            := area(geometry, m2)[km2];
+		// parameter<km2>      sum_area        := sum(area);
+	// }
+	// unit<uint32> Intermediate := select_with_org_rel(Wijken/UrbanisationK_rel == UrbanisationK/v/Intermediate)
+	// {
+		// attribute<rdc>      geometry (poly) := org_rel -> geometry;
+		// attribute<string>   label           := org_rel -> statnaam;
+		// attribute<km2>      area            := area(geometry, m2)[km2];
+		// parameter<km2>      sum_area        := sum(area);
+	// }
 	
-	unit<uint32> Peripheral := select_with_org_rel(Wijken/UrbanisationK_rel == UrbanisationK/v/Peripheral)
-	{
-		attribute<rdc>      geometry (poly) := org_rel -> geometry;
-		attribute<string>   label           := org_rel -> statnaam;
-		attribute<km2>      area            := area(geometry, m2)[km2];
-		parameter<km2>      sum_area        := sum(area);
-	}
+	// unit<uint32> Peripheral := select_with_org_rel(Wijken/UrbanisationK_rel == UrbanisationK/v/Peripheral)
+	// {
+		// attribute<rdc>      geometry (poly) := org_rel -> geometry;
+		// attribute<string>   label           := org_rel -> statnaam;
+		// attribute<km2>      area            := area(geometry, m2)[km2];
+		// parameter<km2>      sum_area        := sum(area);
+	// }
 }

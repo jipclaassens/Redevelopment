@@ -159,6 +159,9 @@ container geography : using = "units"
 				attribute<NL_grid/domain_25m>   grid_25m_rel     := id(.)[NL_grid/domain_25m];
 				attribute<NL_grid/domain_100m>  grid_100m_rel    := id(.)[NL_grid/domain_100m];
 				attribute<NL_grid/domain_500m>  grid_500m_rel    := id(.)[NL_grid/domain_500m];
+				
+				parameter<ha>                   NrHaPerCell     := convert(gridsize * gridsize, ha);
+				parameter<km2>                  NrKm2PerCell    := NrHaPerCell[km2];
 			}
 			
 			unit<uint32> points := select_uint32_with_org_rel(isDefined(domain/id))

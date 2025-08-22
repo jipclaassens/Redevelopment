@@ -18,6 +18,8 @@ container N2000_Analyse :  using = "units;classifications/bag;geography"
 		unit<uint32> StikstofGevoelig := select_with_org_rel(IsStikstofGevoelig)
 		{
 			attribute<rdc> geometry (poly) := org_rel -> geometry;
+			
+			unit<uint32> seq2point := sequence2points(geometry);
 		}
 	}
 	
@@ -102,6 +104,34 @@ container N2000_Analyse :  using = "units;classifications/bag;geography"
 				attribute<...> F2 := org_rel -> second_rel;
 				unit<uint32>   connected_parts := connected_parts(F1, F2);
 			}
+		}
+	}
+	
+	unit<uint32> IsochronenMap_Gemeente := SourceData/RegioIndelingen/Impl/CBS/Y2024/Gemeente
+	{
+		attribute<uint32>          GM_CODE                           := gem_nr;
+		attribute<string>          GM_NAAM                           := name;
+		attribute<.>               per_10m_grid (NL_grid/domain_10m) := poly2grid(geometry, NL_grid/domain_10m);
+		attribute<km2>             area                              := area(geometry, m2)[km2];
+		//opp van afstandsband tot n2000 gebied
+		attribute<km2>             opp_0m                := sum_uint32(impl/Dist2N2000 == 0[m]                                , per_10m_grid)[float32] * NL_grid/domain_10m/NrKm2PerCell;
+		attribute<km2>             opp_0_50m             := sum_uint32(impl/Dist2N2000 > 0[m]    && impl/Dist2N2000 <= 50[m]  , per_10m_grid)[float32] * NL_grid/domain_10m/NrKm2PerCell;
+		attribute<km2>             opp_50_100m           := sum_uint32(impl/Dist2N2000 > 50[m]   && impl/Dist2N2000 <= 100[m] , per_10m_grid)[float32] * NL_grid/domain_10m/NrKm2PerCell;
+		attribute<km2>             opp_100_500m          := sum_uint32(impl/Dist2N2000 > 100[m]  && impl/Dist2N2000 <= 500[m] , per_10m_grid)[float32] * NL_grid/domain_10m/NrKm2PerCell;
+		attribute<km2>             opp_500_1000m         := sum_uint32(impl/Dist2N2000 > 500[m]  && impl/Dist2N2000 <= 1000[m], per_10m_grid)[float32] * NL_grid/domain_10m/NrKm2PerCell;
+		attribute<km2>             opp_1000_2500m        := sum_uint32(impl/Dist2N2000 > 1000[m] && impl/Dist2N2000 <= 2500[m], per_10m_grid)[float32] * NL_grid/domain_10m/NrKm2PerCell;
+		attribute<km2>             opp_2500_5000m        := sum_uint32(impl/Dist2N2000 > 2500[m] && impl/Dist2N2000 <= 5000[m], per_10m_grid)[float32] * NL_grid/domain_10m/NrKm2PerCell;
+		attribute<km2>             opp_5000m_grt         := sum_uint32(impl/Dist2N2000 > 5000[m], per_10m_grid)[float32]                               * NL_grid/domain_10m/NrKm2PerCell;
+		
+		unit<uint32> impl := N2000/StikstofGevoelig/seq2point
+		{
+			attribute<rdc>                geometry                             := N2000/StikstofGevoelig/seq2point/point;
+			attribute<NL_grid/domain_10m> grid_rel                             := geometry[NL_grid/domain_10m];
+			attribute<bool>               IsN2000         (NL_grid/domain_10m) := IsDefined(poly2grid(N2000/StikstofGevoelig/geometry, NL_grid/domain_10m));
+			attribute<m>                  DistTo          (NL_grid/domain_10m) := GridDist(resistance_grid, grid_rel, const(0, ., m));
+			attribute<m>                  resistance_grid (NL_grid/domain_10m) := const(10, NL_grid/domain_10m, m);
+			
+			attribute<m>                  Dist2N2000      (NL_grid/domain_10m) := IsN2000 ? 0[m] : DistTo;
 		}
 	}
 }

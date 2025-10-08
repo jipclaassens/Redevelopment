@@ -28,7 +28,7 @@ container SourceData :  using = "units;geography;classifications"
 			attribute<rdc> geometry (poly);
 			attribute<string>    name := AsItemName(naam_n2k);
 			attribute<string>    label := name;
-
+			attribute<bool> per_100m (rdc_100m) := IsDefined(poly2grid(geometry, rdc_100m));
 			unit<uint32> PointSet := sequence2points(geometry);
 			
 			// attribute<.>    per_25m            (NL_grid/domain_25m) := poly2grid(Geometry, NL_grid/domain_25m);

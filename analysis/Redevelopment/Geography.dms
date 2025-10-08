@@ -15,6 +15,10 @@ container geography : using = "units"
 	parameter<m> y_min := 300000[m];
 	parameter<m> y_max := 625000[m];
 	
+	unit<ipoint> rdc_100m := NL_grid/domain_100m;
+	unit<ipoint> rdc_25m  := NL_grid/domain_25m;
+	
+	
 	unit<uint32> BoundingBox_NL : nrofrows = 1
 	{
 		parameter<rdc> top_left     := point_xy(x_min, y_max, rdc); //XY

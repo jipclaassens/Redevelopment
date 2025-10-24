@@ -323,7 +323,13 @@ container Spatial_data
 	,	StorageType     = "gdal.vect"
 	,	StorageReadOnly = "True"
 	, 	SyncMode = "AllTables"
-	, 	DialogData = "rdc";
+	, 	DialogData = "rdc"
+	{
+		unit<uint32> ProtectedSite
+		{
+			attribute<uint32> Year := substr(date, 0, 4)[uint32];
+		}
+	}
 	
 	attribute<bool> IsNNN (rdc_100m) := IsDefined(poly2grid(NNN_2023/ProtectedSite/geometry, rdc_100m));
 	

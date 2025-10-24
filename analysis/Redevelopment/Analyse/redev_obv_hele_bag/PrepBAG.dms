@@ -42,7 +42,9 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<int32>                LastDatum_BouwvergunningVerleend     := last(Datum_BouwvergunningVerleend, uq_pand_nr_rel)[uq_pand_nr_rel];
 
 		
-		attribute<uint32>               pand_count_new_WoonFuncties       := sum(VBO_IsWonen && vbo_IsVoorraad && not(ActiefOp_StartBAG) ? 1 : 0, uq_pand_nr_rel)[uq_pand_nr_rel];
+		attribute<uint32>               pand_count_WoonFuncties           := sum_uint32(VBO_IsWonen, uq_pand_nr_rel)[uq_pand_nr_rel];
+		attribute<uint32>               pand_count_WoonFuncties_Voorraad  := sum_uint32(VBO_IsWonen && vbo_IsVoorraad, uq_pand_nr_rel)[uq_pand_nr_rel];
+		attribute<uint32>               pand_count_new_WoonFuncties       := sum_uint32(VBO_IsWonen && vbo_IsVoorraad && not(ActiefOp_StartBAG), uq_pand_nr_rel)[uq_pand_nr_rel];
 		
 		attribute<uq_pand_nr>              uq_pand_nr_rel        := rlookup(pand_bag_nr, uq_pand_nr/values);
 		unit<uint32>                       uq_pand_nr            := unique(pand_bag_nr)

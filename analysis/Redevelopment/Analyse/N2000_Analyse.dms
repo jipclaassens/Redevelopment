@@ -118,6 +118,9 @@ container N2000_Analyse :  using = "units;classifications/bag;geography"
 		attribute<pand_status> Last_pand_status_rel                 := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_status_rel, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
 		attribute<jaar>        Last_pand_bouwjaar                   := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_bouwjaar, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
 		attribute<vbo_gebruiksdoel_ext> Last_pand_gebruiksdoel_rel  := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_modus_gebruiksdoel_rel, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
+		attribute<uint32>      Last_pand_count_woonobj              := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_count_WoonFuncties, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
+		attribute<uint32>      Last_pand_count_woonobj_voorraad     := last(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_count_WoonFuncties_voorraad, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
+		attribute<uint32>      Max_pand_count_woonobj               := max(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_count_WoonFuncties, Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/uq_pand_nr_rel);
 		
 		attribute<bool>        IsNieuwbouw      := IsDefined(rlookup(values, Nieuwbouw/pand_bag_nr));
 		attribute<bool>        IsOoitBVverleend := IsDefined(Last_Datum_BouwvergunningVerleend);
@@ -150,6 +153,8 @@ container N2000_Analyse :  using = "units;classifications/bag;geography"
 		attribute<string>      last_pand_status                        := pand_status/name[Uq_Pand_Nr/Last_pand_status_rel[org_rel]];
 		attribute<string>      last_gebruiksdoel                       := vbo_gebruiksdoel_ext/name[Uq_Pand_Nr/Last_pand_gebruiksdoel_rel[org_rel]];
 		attribute<jaar>        pand_bouwjaar                           := Uq_Pand_Nr/Last_pand_bouwjaar[org_rel];
+		attribute<uint32>      last_aantal_woon_obj                    := Uq_Pand_Nr/Last_pand_count_woonobj[org_rel];
+		attribute<uint32>      last_aantal_woon_obj_voorraad           := Uq_Pand_Nr/Last_pand_count_woonobj_voorraad[org_rel];
 		
 		attribute<uint32>      dist2N2000_m                            := uint32(dist_info(N2000/geometry, centroid));
 		attribute<uint32>      dist2N2000_stikstof_m                   := uint32(dist_info(N2000/StikstofGevoelig/geometry, centroid));

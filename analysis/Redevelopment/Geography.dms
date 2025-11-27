@@ -1,7 +1,7 @@
 container geography : using = "units"
 {
-	unit<fpoint> rdc_base         : SpatialReference = "EPSG:28992", 	DialogData = "ngr_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
-	unit<fpoint> rdc              := range(rdc_base, point_xy(x_min,y_min), point_xy(x_max,y_max));
+	unit<dpoint> rdc_base         : SpatialReference = "EPSG:28992", 	DialogData = "ngr_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
+	unit<dpoint> rdc              := range(rdc_base, point_xy(x_min,y_min), point_xy(x_max,y_max));
 	unit<ipoint> rdc_mm           := gridset(rdc, point_xy(0.001,0.001), point_xy(0.0, 0.0), ipoint);
 	unit<ipoint> rdc_cm           := gridset(rdc, point_xy(0.01,0.01), point_xy(0.0, 0.0), ipoint);
 	unit<dpoint> wgs84_base       : SpatialReference = "EPSG:4326";

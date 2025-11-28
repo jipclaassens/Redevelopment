@@ -34,7 +34,7 @@ container Redevelopment
 		parameter<m>       highrise_threshold              := 30[m];
 		// parameter<m>       verdiepinghoogte                := 2.8[m];
 		parameter<m2>      minimum_site_area               := 25[m2];
-		parameter<float32> minimum_SN_area_share           := 0.01f;
+		parameter<float64> minimum_SN_area_share           := 0.01d;
 		
 		parameter<int32>     VBO_opp_truncation              := 500i;
 		parameter<int32>     VBO_opp_truncation_lower        := 10i;

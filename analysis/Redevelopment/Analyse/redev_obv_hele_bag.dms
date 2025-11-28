@@ -712,11 +712,11 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				attribute<float32>   upper_y                    (..) := pointRow(SE);
 				attribute<m2>        area                       (..) := area(pand_geometry, m2);
 				
-				attribute<bool>      pand_selection_condition   (..) := ='X_ext < 1000f && Y_ext < 1000f' //panden met een grotere x/y range dan 1km eruit
-																						'&& lower_x < 300000f && lower_x > 0f'
-																						'&& upper_x < 300000f && upper_x > 0f'
-																						'&& lower_y < 620000f && lower_y > 300000f'
-																						'&& upper_y < 620000f && upper_y > 300000f' //binnen NL
+				attribute<bool>      pand_selection_condition   (..) := ='X_ext < 1000d && Y_ext < 1000d' //panden met een grotere x/y range dan 1km eruit
+																						'&& lower_x < 300000d && lower_x > 0d'
+																						'&& upper_x < 300000d && upper_x > 0d'
+																						'&& lower_y < 620000d && lower_y > 300000d'
+																						'&& upper_y < 620000d && upper_y > 300000d' //binnen NL
 																						'&& area < 50000[m2]';
 			}
 			

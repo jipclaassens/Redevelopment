@@ -181,9 +181,9 @@ container AdditionalOperations
 			attribute<bool>              HasNBpanden_BBGwoon_Panden (dissolve) := NBpanden_BBGwoon_Pand_Area > 0[m2];
 			
 			attribute<m2>                Site_Area                  (dissolve) := area(Deflate, m2);
-			attribute<float32>           Share_S_pand_op_site       (dissolve) := Sloop_Pand_Area / Site_Area;
-			attribute<float32>           Share_N_pand_op_site       (dissolve) := Nieuwbouw_Pand_Area / Site_Area;
-			attribute<float32>           Share_NB_BBG_pand_op_site  (dissolve) := NBpanden_BBGwoon_Pand_Area / Site_Area;
+			attribute<float64>           Share_S_pand_op_site       (dissolve) := Sloop_Pand_Area / Site_Area;
+			attribute<float64>           Share_N_pand_op_site       (dissolve) := Nieuwbouw_Pand_Area / Site_Area;
+			attribute<float64>           Share_NB_BBG_pand_op_site  (dissolve) := NBpanden_BBGwoon_Pand_Area / Site_Area;
 			
 			attribute<bool>              HasLargeEnoughSN_shares    (dissolve) := Share_S_pand_op_site > Parameters/minimum_SN_area_share && Share_N_pand_op_site > Parameters/minimum_SN_area_share;
 			attribute<bool>              HasLargeEnoughSN_BBG_share (dissolve) := Share_NB_BBG_pand_op_site > Parameters/minimum_SN_area_share;

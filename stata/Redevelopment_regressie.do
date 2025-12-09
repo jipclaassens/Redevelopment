@@ -174,9 +174,42 @@ label var p_beschermd "Percentage oppervlak beschermd stad- en dorpsgezicht in w
 // label var p_beschikbaar "Percentage landoppervlak niet weg of spoor in wijk"
 label var p_onbebouw "Percentage landoppervlak niet weg, spoor of pand in wijk"
 
+
+//tbv scatters OAD vs shares, vraag Eric. Maar levert geen interessante inzichten op.
+// g net_sn = 0
+// replace net_sn = count_sn_nieuwbouw - count_sn_sloop
+// g net_ib = 0 //inbuilding addtion
+// replace net_ib = count_toevoeging - count_onttrekking
+// g net_nb = 0 
+// replace net_nb = count_nieuwbouw
+// g net_tr = 0 
+// replace net_tr = count_transformatie_plus - count_transformatie_min
+// g net_addition = 0
+// replace net_addition = net_sn+net_ib+net_nb+net_tr
+//
+// g sh_sn = 0
+// replace sh_sn = net_sn / net_addition
+// g sh_ib = 0
+// replace sh_ib = net_ib / net_addition
+// g sh_nb = 0
+// replace sh_nb = net_nb / net_addition
+// g sh_tr = 0
+// replace sh_tr = net_tr / net_addition
+//
+// g ln_sh_sn = 0
+// replace ln_sh_sn = ln(sh_sn)
+// tw sc oad ln_sh_sn
+//
+// tw sc oad sh_sn if sh_sn >= 0
+// tw sc oad sh_ib if sh_ib >= 0
+// tw sc oad sh_nb if sh_nb >= 0
+// tw sc oad sh_tr if sh_tr >= 0
+
 drop wk_code     count_sn_nieuwbouw count_nieuwbouw count_toevoeging  count_transformatie_p     opp_beschermdestaddorpgezic  count_total_proces_pluschange 
 
 save Temp/PerWijk.dta, replace
+
+
 
 //////////////////////////////////////////////////////////////////////
 **# ////////////////////////// ANALYSES //////////////////////////////

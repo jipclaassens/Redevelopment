@@ -127,13 +127,13 @@ container VolledigeBAG : using = "classifications/BAG"
 		unit<uint32> vbo_domein := vbos/vbo;
 		
 		unit<uint32> import
-		:	StorageName = "= Result_FSS_dir + '/pand.fss'"
+		:	StorageName = "= Result_FSS_dir + '/pand.mmd'"
 		,	StorageReadOnly = "True"
 		{
-			attribute<rdc_mm>                       geometry_mm (poly);
+			// attribute<rdc_mm>                       geometry_mm (poly);
 			attribute<rdc>                          geometry (poly) := geometry_mm[rdc];
-			attribute<string>                       identificatie;
-			attribute<jaar>                         bouwjaar;
+			// attribute<string>                       identificatie;
+			// attribute<jaar>                         bouwjaar;
 
 			container meta := meta_src_template(., pand_status);
 		}
@@ -151,11 +151,11 @@ container VolledigeBAG : using = "classifications/BAG"
 			attribute<jaar>                         bouwjaar_trunc               := =replace(parameters/bouwjaar_truncation_expr, '@YYYY@', '2025');
 			
 			attribute<bool>                         IsMogelijkWoningCorporatiePand       := Read_IsMogelijkWoningCorporatiePand;
-			attribute<bool>                         Write_IsMogelijkWoningCorporatiePand := IsDefined(rlookup(id(.), Identify_StudentenPanden/second_rel)), StorageName = "=Result_FSS_dir + '/IsMogelijkWoningCorporatiePand.fss'";
-			attribute<bool>                         Read_IsMogelijkWoningCorporatiePand  : StorageName = "=Result_FSS_dir + '/IsMogelijkWoningCorporatiePand.fss'", StorageReadOnly = "true";
+			attribute<bool>                         Write_IsMogelijkWoningCorporatiePand := IsDefined(rlookup(id(.), Identify_StudentenPanden/second_rel)), StorageName = "=Result_FSS_dir + '/IsMogelijkWoningCorporatiePand.mmd'";
+			attribute<bool>                         Read_IsMogelijkWoningCorporatiePand  : StorageName = "=Result_FSS_dir + '/IsMogelijkWoningCorporatiePand.mmd'", StorageReadOnly = "true";
 			
 			unit<uint32> Identify_StudentenPanden := point_in_all_polygons(/SourceData/EigendomStaat/Corporatiebezit_data/geometry, geometry);
-			unit<uint32> Select_StudentenPanden := select_with_org_rel(IsDefined(rlookup(id(.), Identify_StudentenPanden/second_rel)))
+			unit<uint32> Select_StudentenPanden   := select_with_org_rel(IsDefined(rlookup(id(.), Identify_StudentenPanden/second_rel)))
 			{
 				attribute<rdc>                          geometry (poly)              :=  ../geometry[org_rel];
 			}
@@ -218,7 +218,7 @@ container VolledigeBAG : using = "classifications/BAG"
 					attribute<rdc>                  geometry (poly)                := org_rel -> geometry;
 					attribute<pand_status>          pand_status_rel                := org_rel -> pand_status_rel;
 					attribute<jaar>                 bouwjaar                       := org_rel -> bouwjaar;
-					attribute<float32>              monumentale_panden  (NL_grid/domain) := sum_uint32(bouwjaar <= 1900s, NL_grid_domain_rel)[float32];
+					attribute<float32>              monumentale_panden  (NL_grid/domain) := sum_uint32(bouwjaar <= 1900w, NL_grid_domain_rel)[float32];
 					attribute<float32>              count_ha            (NL_grid/domain) := pcount(NL_grid_domain_rel)[float32];
 					attribute<NL_grid/domain>       NL_grid_domain_rel                   := centroid_or_mid(geometry)[NL_grid/domain];
 				}
@@ -231,7 +231,7 @@ container VolledigeBAG : using = "classifications/BAG"
 	{
 		//import the source BAG files
 		unit<uint32> import
-		:	StorageName = "= Result_FSS_dir + '/vbo.fss'"
+		:	StorageName = "= Result_FSS_dir + '/vbo.mmd'"
 		,	StorageReadOnly = "True"
 		{
 			attribute<rdc_mm>                     geometry_mm;
@@ -430,7 +430,7 @@ container VolledigeBAG : using = "classifications/BAG"
 	{
 		//import the source BAG files
 		unit<uint32> import
-		:	StorageName = "= Result_FSS_dir + '/standplaats.fss'"
+		:	StorageName = "= Result_FSS_dir + '/standplaats.mmd'"
 		,	StorageReadOnly = "True"
 		{
 			attribute<rdc_mm>                     geometry_mm (poly);
@@ -463,19 +463,19 @@ container VolledigeBAG : using = "classifications/BAG"
 			{
 				attribute<rdc>       NW                         (..) := lower_bound(geometry);
 				attribute<rdc>       SE                         (..) := upper_bound(geometry);
-				attribute<float32>   X_ext                      (..) := sub_or_null(PointCol(SE),PointCol(NW));
-				attribute<float32>   Y_ext                      (..) := sub_or_null(PointRow(SE),PointRow(NW));
+				attribute<float64>   X_ext                      (..) := sub_or_null(PointCol(SE),PointCol(NW));
+				attribute<float64>   Y_ext                      (..) := sub_or_null(PointRow(SE),PointRow(NW));
  
-				attribute<float32>   lower_x                    (..) := pointCol(NW);
-				attribute<float32>   upper_x                    (..) := pointCol(SE);
-				attribute<float32>   lower_y                    (..) := pointRow(NW);
-				attribute<float32>   upper_y                    (..) := pointRow(SE);
+				attribute<float64>   lower_x                    (..) := pointCol(NW);
+				attribute<float64>   upper_x                    (..) := pointCol(SE);
+				attribute<float64>   lower_y                    (..) := pointRow(NW);
+				attribute<float64>   upper_y                    (..) := pointRow(SE);
 				
-				attribute<bool>      selection_condition        (..) := ='X_ext < 1000f && Y_ext < 1000f' //panden met een grotere x/y range dan 1km eruit
-																						'&& lower_x < 300000f && lower_x > 0f'
-																						'&& upper_x < 300000f && upper_x > 0f'
-																						'&& lower_y < 620000f && lower_y > 300000f'
-																						'&& upper_y < 620000f && upper_y > 300000f'; //binnen NL
+				attribute<bool>      selection_condition        (..) := ='X_ext < 1000d && Y_ext < 1000d' //panden met een grotere x/y range dan 1km eruit
+																						'&& lower_x < 300000d && lower_x > 0d'
+																						'&& upper_x < 300000d && upper_x > 0d'
+																						'&& lower_y < 620000d && lower_y > 300000d'
+																						'&& upper_y < 620000d && upper_y > 300000d'; //binnen NL
 			}
 			
 			
@@ -487,7 +487,7 @@ container VolledigeBAG : using = "classifications/BAG"
 	{
 		//import the source BAG files
 		unit<uint32> import
-		:	StorageName = "= Result_FSS_dir + '/ligplaats.fss'"
+		:	StorageName = "= Result_FSS_dir + '/ligplaats.mmd'"
 		,	StorageReadOnly = "True"
 		{
 			attribute<rdc_mm>                     geometry_mm (poly);
@@ -514,7 +514,7 @@ container VolledigeBAG : using = "classifications/BAG"
 	{
 		//import the source BAG files
 		unit<uint32> import
-		:	StorageName = "= Result_FSS_dir + '/Nummeraanduiding.fss'"
+		:	StorageName = "= Result_FSS_dir + '/Nummeraanduiding.mmd'"
 		,	StorageReadOnly = "True"
 		{
 			attribute<string> identificatie;

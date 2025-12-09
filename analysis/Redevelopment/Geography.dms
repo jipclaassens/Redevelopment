@@ -76,7 +76,7 @@ container geography : using = "units"
 		{
 			parameter<m>       gridgrootte;
 			parameter<m>       afkapstraal;
-			parameter<float32> straal                 := afkapstraal / gridgrootte;
+			parameter<float32> straal                 := float32(afkapstraal / gridgrootte);
 			unit<spoint>       potRange               := range(spoint, point_xy(-straal[int16], -straal[int16]), point_xy(straal[int16] + 1s, straal[int16] + 1s))
 			{
 				attribute<Dist2Range> distMatr        := dist2(point_xy(0s, 0s, potRange), Dist2Range);
@@ -102,11 +102,11 @@ container geography : using = "units"
 		unit<uint32> makepoly:= union_unit(., ., ., ., .) 
 		{
 			attribute<rdc>                point   := union_data(., 
-														geometry + const(point_xy(-500f,  500f, rdc), .., rdc), 
-														geometry + const(point_xy( 500f,  500f, rdc), .., rdc), 
-														geometry + const(point_xy( 500f, -500f, rdc), .., rdc), 
-														geometry + const(point_xy(-500f, -500f, rdc), .., rdc),
-														geometry + const(point_xy(-500f,  500f, rdc), .., rdc));
+														geometry + const(point_xy(-500d,  500d, rdc), .., rdc), 
+														geometry + const(point_xy( 500d,  500d, rdc), .., rdc), 
+														geometry + const(point_xy( 500d, -500d, rdc), .., rdc), 
+														geometry + const(point_xy(-500d, -500d, rdc), .., rdc),
+														geometry + const(point_xy(-500d,  500d, rdc), .., rdc));
 			attribute<..>                 SeqNr   := union_data(., id(..), id(..), id(..), id(..), id(..));
 			attribute<uint32>             Ordinal := id(.) / #..;
 		}
@@ -158,7 +158,7 @@ container geography : using = "units"
 				),	DialogData = "rdc"
 			{
 				attribute<.>                    id               := id(.);
-				attribute<rdc>                  point_rd         := id[rdc] + point_xy(0.5f * gridsize, -0.5f * gridsize, rdc);
+				attribute<rdc>                  point_rd         := id[rdc] + point_xy(0.5d * gridsize, -0.5d * gridsize, rdc);
 				attribute<uint32>               id_nr            := (pointcol(id)[uint32] + 1) + ((pointrow(id)[uint32]) * (x_max[uint32] / gridsize[uint32]));
 				attribute<NL_grid/domain_25m>   grid_25m_rel     := id(.)[NL_grid/domain_25m];
 				attribute<NL_grid/domain_100m>  grid_100m_rel    := id(.)[NL_grid/domain_100m];

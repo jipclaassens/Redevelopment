@@ -387,10 +387,11 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<km2>                   opp_BeschStadDorpgezichten2020 := RegioUnit_Wijk12/opp_BeschermdeStadDorpgezichten[km2];
 		// attribute<float32>               P_woning_groei                 := (float32(count_woon_y2025) - float32(count_woon_y2012)) / float32(count_woon_y2012) * 100f;
 		attribute<UrbanisationK>         UrbanisationK_rel              := Analyse/DetermineUrbanisationK/Wijken/UrbanisationK_rel;
+		attribute<uint32>                OAD                            := Analyse/DetermineUrbanisationK/Wijken/OAD_src;
 
-		attribute<float32>               avg_tt_100k_inw                := mean(/SourceData/Spatial_data/Jip/Reistijd_100k_inw_edit, per_NL_grid_domain);
-		attribute<float32>               avg_tt_500k_inw                := mean(/SourceData/Spatial_data/Jip/Reistijd_500k_inw_edit, per_NL_grid_domain);
-		attribute<float32>               avg_tt_1000k_inw               := mean(/SourceData/Spatial_data/Jip/Reistijd_1000k_inw_edit, per_NL_grid_domain);
+		// attribute<float32>               avg_tt_100k_inw                := mean(/SourceData/Spatial_data/Jip/Reistijd_100k_inw_edit, per_NL_grid_domain);
+		// attribute<float32>               avg_tt_500k_inw                := mean(/SourceData/Spatial_data/Jip/Reistijd_500k_inw_edit, per_NL_grid_domain);
+		// attribute<float32>               avg_tt_1000k_inw               := mean(/SourceData/Spatial_data/Jip/Reistijd_1000k_inw_edit, per_NL_grid_domain);
 
 		// attribute<uint32>                count_woon_y2012               := sum_uint32(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsWonen && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/Wijk12_rel);
 		// attribute<uint32>                count_nietwoon_y2012           := sum_uint32(NOT(Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsWonen) && Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/VBO_IsVoorraad, /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2012/select/Wijk12_rel);
@@ -703,13 +704,13 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			{
 				attribute<rdc>       NW                         (..) := lower_bound(pand_geometry);
 				attribute<rdc>       SE                         (..) := upper_bound(pand_geometry);
-				attribute<float32>   X_ext                      (..) := sub_or_null(PointCol(SE),PointCol(NW));
-				attribute<float32>   Y_ext                      (..) := sub_or_null(PointRow(SE),PointRow(NW));
+				attribute<float64>   X_ext                      (..) := sub_or_null(PointCol(SE),PointCol(NW));
+				attribute<float64>   Y_ext                      (..) := sub_or_null(PointRow(SE),PointRow(NW));
  
-				attribute<float32>   lower_x                    (..) := pointCol(NW);
-				attribute<float32>   upper_x                    (..) := pointCol(SE);
-				attribute<float32>   lower_y                    (..) := pointRow(NW);
-				attribute<float32>   upper_y                    (..) := pointRow(SE);
+				attribute<float64>   lower_x                    (..) := pointCol(NW);
+				attribute<float64>   upper_x                    (..) := pointCol(SE);
+				attribute<float64>   lower_y                    (..) := pointRow(NW);
+				attribute<float64>   upper_y                    (..) := pointRow(SE);
 				attribute<m2>        area                       (..) := area(pand_geometry, m2);
 				
 				attribute<bool>      pand_selection_condition   (..) := ='X_ext < 1000d && Y_ext < 1000d' //panden met een grotere x/y range dan 1km eruit
@@ -727,7 +728,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				// attribute<m2> area_percelen := area(perceel/geometry, m2)[first_rel];
 				// attribute<m2> area_panden   := area(zonder_afwijkende_pand_geometrieen/pand_geometry, m2)[second_rel];
 				
-				// attribute<float32> share_pand_op_perceel := area_panden / area_percelen;
+				// attribute<float64> share_pand_op_perceel := area_panden / area_percelen;
 			// }
 		} 
 	}

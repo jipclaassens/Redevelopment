@@ -6,7 +6,7 @@ container MaakVolledigeBAG : using = "classifications/BAG"
 	//
 	// parameter<string>  FSSDir              := '%BAG_DataDir%/' + Snapshot_Date_Input + '/fss'; //regular local folder
 	// parameter<string>  FSSDir              := 'D:/OneDrive/Objectvision/Object Vision - SourceData/BAG/' + Snapshot_Date_Input + ''; //shared folder
-	parameter<string>  FSSDir              := 'C:/Users/Jip Claassens/Objectvision/Object Vision - SourceData/BAG/' + Snapshot_Date_Input + ''; //shared folder
+	parameter<string>  FSSDir              := 'C:/Users/JipClaassens/Objectvision/Object Vision - SourceData/BAG/' + Snapshot_Date_Input + ''; //shared folder
 	parameter<string>  Result_FSS_dir      := '%BAG_DataDir%/VolledigeTabel_' + Snapshot_Date_Input;
 	parameter<string>  FileNeeded          := expand(., FSSDir) + '/pand/nr_fss.csv';
 	parameter<bool>    isValidFSSDir       := ExistingFile('missing', FileNeeded) == FileNeeded;

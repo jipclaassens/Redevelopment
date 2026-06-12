@@ -1,10 +1,18 @@
 container SourceData :  using = "units;geography;classifications"
 {
-	#include <bag.dms>
-	#include <bbg.dms>
+	container Vastgoed
+	{
+		#include <bag.dms>
+	}
+	
+	container Grondgebruik
+	{
+		#include <bbg.dms>
+		// #include <brk.dms>
+		#include <brt.dms>
+	}
+		
 	#include <begrbebgeb.dms>
-	// #include <brk.dms>
-	#include <brt.dms>
 	// #include <nvm.dms>
 	// #include <overig.dms>
 	#include <regios.dms>
@@ -14,6 +22,105 @@ container SourceData :  using = "units;geography;classifications"
 	
 	container overig
 	{
+		unit<UInt32> Logistiek_panden
+		:	StorageName     = "%Redev_DataDir%/Vastgoed/LogistiekBuildings/buildings2021NL_rdc.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		,	DialogData      = "rdc_meter"
+		,	url             = "%RSo_DataDir%/Vastgoed/LogistiekBuildings/buildings2021NL_meta.txt"
+		,	SyncMode        = "none"
+		, 	Descr           = "Bag panden geklassificeerd in logistiek functies door Merten Nefs (Nefs, M. (2022). Dutch Distribution Centres 2021 Geodata. Rotterdam: 4TU. ResearchData. DOI, 10(19361018), v1). Ontvangen van Eric Koomen op 28 maart 2022"
+		{
+			attribute<rdc_meter> geometry (poly);
+			attribute<UInt32>    function_n;
+			attribute<String>    function;
+			attribute<String>    bag_id;
+			attribute<uint64>    pand_bag_nr := uint64(bag_id);
+			attribute<UInt32>    constr_yea;
+			
+			unit<UInt32> Logistics := select_with_attr_by_cond(., function_n != 3)
+			{
+			}
+		}
+	
+		attribute<UInt8>  Kaveldichtheid_src (rdc_100m) : StorageName = "%Redev_DataDir%/Omgeving/Kaveldichtheid2018.tif", Descr = "Aantal kavels per hectare in de buurt (1km) van de cel", StorageType = "gdal.grid", StorageReadOnly = "True";
+		attribute<UInt32> Kaveldichtheid      (rdc_25m) := value(Kaveldichtheid_src, uint32)[rdc_25m/rdc_100m_rel], Descr = "Kaveldichtheid (aantal kavels per hectare), van de Basiskaart Kadaster 2017.";
+		
+		attribute<s>      Reistijd5kInw       (rdc_25m) : StorageName = "%Alt_DataDir%/SpatialData/Reistijd5kInw.tif" , Descr = "Reistijd naar 5.000 inwoners, met speciale behandeling voor IJburg (waar geen reistijden beschikbaar zijn).", StorageType = "gdal.grid", StorageReadOnly = "True";
+		
+		attribute<s>      Reistijd_500k_inw_2024 (rdc_25m)
+		:	StorageName     = "%Redev_DataDir%/Omgeving/TraveltimeTo500k_Population_2024_From_100m_Points.tif"
+		,	Descr           = "Jip Claassens - Reistijd per auto over het OpenStreetMap-autonetwerk NL/BE/DE van 10 dec 2025 naar 500.000 inwoners op basis van de CBS Vierkanten van 1 januari 2024 geclusterd op 500m punten"
+		, 	URL             = "https://github.com/ObjectVision/AccessibilityModelling" 
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+		
+		attribute<min> tt_500kinhab_min (rdc_25m) :=
+			convert(MakeDefined(Reistijd_500k_inw_2024, max(Reistijd_500k_inw_2024)), min) > 120[min]
+				? 120[min] 
+				: convert(MakeDefined(Reistijd_500k_inw_2024, max(Reistijd_500k_inw_2024)), min) < 1[min] 
+					? 1[min] 
+					: convert(MakeDefined(Reistijd_500k_inw_2024, max(Reistijd_500k_inw_2024)), min), Descr = "Reistijd naar 500.000 inwoners, gemaximeerd op 120 minuten";
+		
+		attribute<min> Reistijd_Trainstation_2006_min (rdc_25m)
+		: StorageName = "%Redev_DataDir%/Omgeving/reistijd_minuten_station_2006.tif"
+		, Descr           = "Reistijd per auto naar het dichtstbijzijnde NS station in 2006"
+		, StorageReadOnly = "True";
+		
+		attribute<min> tt_Trainstation_2006_min     (rdc_25m) := Reistijd_Trainstation_2006_min == 0[min] ? (0/0)[min] : Reistijd_Trainstation_2006_min
+		, Descr = "Reistijd naar dichtstbijzijnde station in minuten, undefined wanneer reistijd 0 is";
+		
+		attribute<bool>      BBG_groen_100mbuff       (rdc_25m) : StorageName = "%Alt_DataDir%/Overig/BBG_groen_100mbuff.tif";
+		// attribute<bool>      BBG_groen_100mbuff_100m       (rdc_100m) := modus(BBG_groen_100mbuff, rdc_25m/rdc_100m_rel);
+		
+		
+		container DraagkrachtKwel
+		: Descr = "Bepalen van de draagkracht en kwelgevoeligheid van de bodem en op basis daarvan of er anders gebouwd moet worden of dat er met maatregelen gebouwd kan worden."
+		, Source = "Expert judgement Gilbert Maas, WUR, via Arjen Koekoek, stichting CAS, voorjaar 2019"
+		{
+			parameter<String> SrcRef := '%Redev_DataDir%/Omgeving/Bodem/risico_draagkracht_openformat';
+			
+			attribute<m> DraagkrachtSrc (rdc_100m)
+			:	StorageName     = "= SrcRef + '/DANK024a_draagkracht_totale_zetting1.tif'"
+			,	StorageType     = "gdal.grid"
+			,	StorageReadOnly = "True";
+			
+			attribute<m> Draagkracht (rdc_100m) := DraagkrachtSrc = -9999[m] ? (0/0)[m] : DraagkrachtSrc;
+			
+			attribute<Float32> KwelSrc (rdc_100m)
+			:	StorageName     = "= SrcRef + '/PKS_Klimaateffecten_Wateroverlast_Kwel_en_infiltratie_Huidig_v15_t0_uit1.tif'"
+			,	StorageType     = "gdal.grid"
+			,	StorageReadOnly = "True";
+			
+			attribute<Float32> Kwel (rdc_100m) := KwelSrc > -50f ? KwelSrc : (0/0)[float32];
+			
+			attribute<Float32> RisicoklasseDikteVeenlaagFlevoland0 (rdc_100m)
+			:	StorageName     = "= SrcRef + '/DikteVeenlaag1.tif'"
+			,	StorageType     = "gdal.grid"
+			,	StorageReadOnly = "True";
+			attribute<Float32> RisicoklasseDikteVeenlaagFlevoland (rdc_100m) := RisicoklasseDikteVeenlaagFlevoland0 < 0.01f ? null_f : RisicoklasseDikteVeenlaagFlevoland0;
+			
+			attribute<Float32> RisicoklassePleistoceenFlevoland0 (rdc_100m)
+			:	StorageName     = "= SrcRef + '/TopPleistoceen.tif'"
+			,	StorageType     = "gdal.grid"
+			,	StorageReadOnly = "True";
+			attribute<Float32> RisicoklassePleistoceenFlevoland (rdc_100m) := RisicoklassePleistoceenFlevoland0 < -1000f ? null_f : RisicoklassePleistoceenFlevoland0;
+
+			attribute<Bool> AndersBouwen (rdc_100m) := 
+				Draagkracht >= 0.5[m] ||
+				Kwel <= -2f ||
+				(RisicoklassePleistoceenFlevoland <= -10f ||
+				RisicoklasseDikteVeenlaagFlevoland > 180f);
+			
+			attribute<Bool> BouwenMetMaatregelen (rdc_100m) :=
+				(Draagkracht >= 0.1[m] && Draagkracht < 0.5[m]) ||
+				(Kwel > -2f && Kwel <= -0.5f) &&
+				!AndersBouwen;
+		}
+			
+		
+		
+		
 		unit<uint32> Natura2000:
 			StorageName     = "%Redev_DataDir%/Beleid/EU/Natura2000_20200524_RD_reproject.gdb"
 		,	StorageType     = "gdal.vect"
@@ -75,7 +182,7 @@ container SourceData :  using = "units;geography;classifications"
 		{
 			attribute<uint32> jaar            := id(.);
 			attribute<string> name            := 'Y'+string(jaar);
-			attribute<string> code_veld       := jaar >= 2019 ? 'gwb_code' : 'wkcode';
+			attribute<string> code_veld       := jaar >= 2019 ? 'gwb_code' : 'bucode'; //wkcode bucode
 		}
 		
 		container Read :=
@@ -99,6 +206,7 @@ container SourceData :  using = "units;geography;classifications"
 			,	StorageReadOnly = "True"
 			{
 				attribute<string> WKCODE := IsNUll(BU_CODE) ? 'WK'+GM_CODE+WK_CODE : Null_str; 
+				attribute<string> BUCODE := IsNUll(BU_CODE) ? Null_str : 'BU'+GM_CODE+WK_CODE+BU_CODE; 
 				attribute<string> CODE   := =code_veld; 
 			}
 		}

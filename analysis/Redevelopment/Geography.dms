@@ -2,6 +2,7 @@ container geography : using = "units"
 {
 	unit<dpoint> rdc_base         : SpatialReference = "EPSG:28992", 	DialogData = "ngr_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
 	unit<dpoint> rdc              := range(rdc_base, point_xy(x_min,y_min), point_xy(x_max,y_max));
+	unit<dpoint> rdc_meter        := rdc;
 	unit<ipoint> rdc_mm           := gridset(rdc, point_xy(0.001,0.001), point_xy(0.0, 0.0), ipoint);
 	unit<ipoint> rdc_cm           := gridset(rdc, point_xy(0.01,0.01), point_xy(0.0, 0.0), ipoint);
 	unit<dpoint> wgs84_base       : SpatialReference = "EPSG:4326";
@@ -15,8 +16,11 @@ container geography : using = "units"
 	parameter<m> y_min := 300000[m];
 	parameter<m> y_max := 625000[m];
 	
+	unit<ipoint> AllocDomain := NL_grid/domain_100m;
+	unit<ipoint> AdminDomain  := NL_grid/domain_25m;
 	unit<ipoint> rdc_100m := NL_grid/domain_100m;
 	unit<ipoint> rdc_25m  := NL_grid/domain_25m;
+	unit<ipoint> rdc_5m   := NL_grid/domain_5m;
 	
 	
 	unit<uint32> BoundingBox_NL : nrofrows = 1
@@ -71,6 +75,7 @@ container geography : using = "units"
 		container pot50000m  := potrange_T(100[m],50000[m]);
 		container pot100000m  := potrange_T(100[m],100000[m]);
 		container pot5000m_25m  := potrange_T(25[m],5000[m]);
+		container pot2000m_25m  := potrange_T(25[m],2000[m]);
 
 		Template potrange_T
 		{
@@ -157,12 +162,23 @@ container geography : using = "units"
 					,point_xy(nr_cols, nr_rows)
 				),	DialogData = "rdc"
 			{
+				parameter<Float64>              gridsize        := ../gridsize;
+				parameter<Int32>                nr_cols         := ../nr_cols;
+			
 				attribute<.>                    id               := id(.);
 				attribute<rdc>                  point_rd         := id[rdc] + point_xy(0.5d * gridsize, -0.5d * gridsize, rdc);
 				attribute<uint32>               id_nr            := (pointcol(id)[uint32] + 1) + ((pointrow(id)[uint32]) * (x_max[uint32] / gridsize[uint32]));
-				attribute<NL_grid/domain_25m>   grid_25m_rel     := id(.)[NL_grid/domain_25m];
-				attribute<NL_grid/domain_100m>  grid_100m_rel    := id(.)[NL_grid/domain_100m];
-				attribute<NL_grid/domain_500m>  grid_500m_rel    := id(.)[NL_grid/domain_500m];
+				
+				unit<UInt32>                    id_key          := range(uint32, 0, uint32(#domain));
+				attribute<UInt32>               id_rel          := value(uint32(PointRow(id(.))) * uint32(nr_cols) + uint32(PointCol(id(.))), id_key);
+				
+				
+				attribute<rdc_25m>              rdc_25m_rel     := mapping(., rdc_25m);
+				attribute<rdc_100m>             rdc_100m_rel    := mapping(., rdc_100m);
+				
+				// attribute<NL_grid/domain_25m>   grid_25m_rel     := id(.)[NL_grid/domain_25m];
+				// attribute<NL_grid/domain_100m>  grid_100m_rel    := id(.)[NL_grid/domain_100m];
+				// attribute<NL_grid/domain_500m>  grid_500m_rel    := id(.)[NL_grid/domain_500m];
 				
 				parameter<ha>                   NrHaPerCell     := convert(gridsize * gridsize, ha);
 				parameter<km2>                  NrKm2PerCell    := NrHaPerCell[km2];

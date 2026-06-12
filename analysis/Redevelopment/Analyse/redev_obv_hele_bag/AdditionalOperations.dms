@@ -7,6 +7,8 @@ container AdditionalOperations
 		
 		//Als nieuwbouw al is geindetificeerd als SN wil je die hier niet ook meenemen
 		unit<uint32>  Result   := select_with_org_rel(NOT(HeeftOverlapmet_SN))
+		, DialogData = "pand_geometry"
+		, DialogTYpe = "map"
 		{
 			attribute<rdc>    pand_geometry (poly) := ../pand_geometry[org_rel];
 			attribute<rdc>    vbo_geometry         := ../vbo_geometry[org_rel];
@@ -14,9 +16,32 @@ container AdditionalOperations
 			attribute<int32>  vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
 			attribute<jaar>   pand_bouwjaar        := ../pand_bouwjaar[org_rel];
 			attribute<uint64> vbo_bag_nr           := ../vbo_bag_nr[org_rel];
+			attribute<string> pand_docnum          := ../pand_docnum[org_rel];
+
+			attribute<string> Site_ID              := 'NB_'+string(Site_rel);
+			attribute<m2>     site_size            := cluster_panden_docnum/site_size[Site_rel];
+			attribute<m2>     site_sum_footprint   := sum(pand_footprint, Site_rel)[Site_rel];
+			attribute<m2>     pand_footprint       := area(pand_geometry, m2);
+			
+			attribute<cluster_panden_docnum> Site_rel          := point_in_polygon(vbo_geometry, cluster_panden_docnum/Deflate);
+			attribute<cluster_panden_docnum> uq_pand_docnr_rel := rlookup(pand_docnum, cluster_panden_docnum/values);
+			
+			unit<uint32> cluster_panden_docnum := unique(pand_docnum)
+			{
+				attribute<rdc> geometry          (poly) := geos_union_polygon(pand_geometry, ../uq_pand_docnr_rel);
+				attribute<rdc> inflate           (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+				attribute<rdc> dissolve          (poly) := geos_union_polygon(inflate, id(.));
+				attribute<rdc> Outer             (poly) := bg_outer_multi_polygon(Dissolve);
+				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 16b);
+				
+				attribute<m2>  site_size                := area(Deflate, m2);
+			}
 		}
 	}
+	
 	unit<uint32> Sloop := union_unit(PrepDomains/S/domain, PrepDomains/S_nw/domain)
+	, DialogData = "pand_geometry"
+	, DialogTYpe = "map"
 	{
 		attribute<rdc>     pand_geometry    (poly) := union_data(., PrepDomains/S/domain/pand_geometry, PrepDomains/S_nw/domain/pand_geometry);
 		attribute<uint64>  pand_bag_nr             := union_data(., PrepDomains/S/domain/pand_bag_nr, PrepDomains/S_nw/domain/pand_bag_nr);
@@ -25,6 +50,7 @@ container AdditionalOperations
 		attribute<jaar>    pand_bouwjaar           := union_data(., PrepDomains/S/domain/pand_bouwjaar, PrepDomains/S_nw/domain/pand_bouwjaar);
 		attribute<uint64>  vbo_bag_nr              := union_data(., PrepDomains/S/domain/vbo_bag_nr, PrepDomains/S_nw/domain/vbo_bag_nr);
 		attribute<int32>   MutatieMaand            := union_data(., PrepDomains/S/domain/MutatieMaand, PrepDomains/S_nw/domain/MutatieMaand);
+		attribute<string>  pand_docnum             := union_data(., PrepDomains/S/domain/pand_docnum, PrepDomains/S_nw/domain/pand_docnum);
 		
 		attribute<bool>    IsWoon                  := union_data(., const(TRUE, PrepDomains/S/domain), const(FALSE, PrepDomains/S_nw/domain));
 
@@ -33,6 +59,8 @@ container AdditionalOperations
 		
 		//Als sloop al is geindetificeerd als SN wil je die hier niet ook meenemen
 		unit<uint32>  Result   := select_with_org_rel(NOT(HeeftOverlapmet_SN) && IsWoon)
+		, DialogData = "pand_geometry"
+		, DialogTYpe = "map"
 		{
 			attribute<rdc>    pand_geometry (poly) := ../pand_geometry[org_rel];
 			attribute<rdc>    vbo_geometry         := ../vbo_geometry[org_rel];
@@ -40,9 +68,36 @@ container AdditionalOperations
 			attribute<int32>  vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
 			attribute<jaar>   pand_bouwjaar        := ../pand_bouwjaar[org_rel];
 			attribute<uint64> vbo_bag_nr           := ../vbo_bag_nr[org_rel];
-			
+			// attribute<string> Site_ID              := 'S_'+string(id(.));
+			// attribute<m2>     site_size            := area(pand_geometry, m2);
+			// attribute<m2>     site_sum_footprint   := site_size;
+
 			//adhoc
 			attribute<bool>   ZitVBOookalinSNSloop   := IsDefined(rlookup(vbo_bag_nr, AdditionalOperations/SN/Result/Sloop_Objecten/vbo_bag_nr));
+
+
+			attribute<string> pand_docnum          := ../pand_docnum[org_rel];
+			
+			attribute<string> Site_ID              := 'S_'+string(Site_rel);
+			attribute<m2>     site_size            := cluster_panden_docnum/site_size[Site_rel];
+			attribute<m2>     site_sum_footprint   := sum(pand_footprint, Site_rel)[Site_rel];
+			attribute<m2>     pand_footprint       := area(pand_geometry, m2);
+			
+			attribute<cluster_panden_docnum> Site_rel          := point_in_polygon(vbo_geometry, cluster_panden_docnum/Deflate);
+			attribute<cluster_panden_docnum> uq_pand_docnr_rel := rlookup(pand_docnum, cluster_panden_docnum/values);
+			
+			unit<uint32> cluster_panden_docnum := unique(pand_docnum)
+			{
+				attribute<rdc> geometry          (poly) := geos_union_polygon(pand_geometry, ../uq_pand_docnr_rel);
+				attribute<rdc> inflate           (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+				attribute<rdc> dissolve          (poly) := geos_union_polygon(inflate, id(.));
+				attribute<rdc> Outer             (poly) := bg_outer_multi_polygon(Dissolve);
+				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 16b);
+				
+				attribute<m2>  site_size                := area(Deflate, m2);
+			}
+			
+			
 		}
 	}
 	
@@ -220,7 +275,7 @@ container AdditionalOperations
 		unit<uint32> Result                       := geos_split_union_polygon(Union_with_original_geometry/geometry)
 		, DialogData = "geometry_rd", DialogType = "map"
 		{
-			attribute<rdc> geometry_rd               (poly) := geometry[rdc];
+			attribute<rdc>           geometry_rd                 (poly) := geometry[rdc]; //site geometry
 			
 			unit<uint32>             Sloop                              := PrepDomains/S/domain;
 			unit<uint32>             Sloop_NW                           := PrepDomains/S_NW/domain;
@@ -232,7 +287,11 @@ container AdditionalOperations
 			
 			attribute<bool>          IsSN_door_BBG                      := IsNull(invert(Sloop_rel)) && IsNull(invert(Sloop_NW_rel)) && IsDefined(invert(Nieuwbouw_rel));
 			
-			attribute<m2>            area                               := area(geometry_rd, m2);
+			attribute<m2>            site_size                          := area(geometry_rd, m2);
+			attribute<m2>            site_sum_sloop_footprint           := sum(area(Sloop/pand_geometry, m2), Sloop_rel);
+			attribute<m2>            site_sum_sloop_nw_footprint        := sum(area(Sloop_NW/pand_geometry, m2), Sloop_NW_rel);
+			attribute<m2>            site_sum_sloop_nb_footprint        := sum(area(Nieuwbouw/pand_geometry, m2), Nieuwbouw_rel);
+			
 			attribute<jaar>          Avg_bouwjaar                       := mean(Sloop/pand_bouwjaar, Sloop_rel);
 			attribute<jaar>          SD_bouwjaar                        := sd(Sloop/pand_bouwjaar, Sloop_rel);
 			attribute<int32>         First_Nieuwbouw_MutatieMaand       := min(IsDefined(Nieuwbouw/MutatieMaand) ? Nieuwbouw/MutatieMaand : 99999999i, Nieuwbouw_rel);
@@ -255,6 +314,8 @@ container AdditionalOperations
 				attribute<jaar>   pand_bouwjaar        := Sloop/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../sloop_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Sloop/vbo_bag_nr[org_rel];
+				attribute<m2>     site_size            := ../site_size[../sloop_rel][org_rel];
+				attribute<m2>     site_sum_footprint   := ../site_sum_sloop_footprint[../sloop_rel][org_rel];
 				
 				//adhoc
 				attribute<bool>   ZitVBOookalinSloop   := IsDefined(rlookup(vbo_bag_nr, AdditionalOperations/Sloop/Result/vbo_bag_nr));
@@ -269,6 +330,8 @@ container AdditionalOperations
 				attribute<jaar>   pand_bouwjaar        := Sloop_NW/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../Sloop_NW_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Sloop_NW/vbo_bag_nr[org_rel];
+				attribute<m2>     site_size            := ../site_size[../Sloop_NW_rel][org_rel];
+				attribute<m2>     site_sum_footprint   := ../site_sum_sloop_nw_footprint[../Sloop_NW_rel][org_rel];
 			}
 			unit<uint32> Nieuwbouw_Objecten := select_with_org_rel(IsDefined(Nieuwbouw_rel))
 			{
@@ -279,6 +342,8 @@ container AdditionalOperations
 				attribute<jaar>   pand_bouwjaar        := Nieuwbouw/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../Nieuwbouw_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Nieuwbouw/vbo_bag_nr[org_rel];
+				attribute<m2>     site_size            := ../site_size[../Nieuwbouw_rel][org_rel];
+				attribute<m2>     site_sum_footprint   := ../site_sum_sloop_nb_footprint[../Nieuwbouw_rel][org_rel];
 			}
 		}
 	}

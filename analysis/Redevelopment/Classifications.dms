@@ -57,4 +57,25 @@ container classifications : using = "units"
 		attribute<uint32> LB    : [0, 500, 1000, 1500, 2500];
 		attribute<UrbanisationK> UrbanisationK_rel := union_data(., UrbanisationK/v/low, UrbanisationK/v/medium, UrbanisationK/v/medium, UrbanisationK/v/high, UrbanisationK/v/high);
 	}
+	
+	container PriceComponents
+	{
+		unit<UInt32> GrondproductieModelVarianten : NrOfRows = 3
+		{
+			attribute<String> name :
+			[
+				'BouwWoonrijp',
+				'Bovenwijks',
+				'PlanProces'
+			];
+			attribute<String> Label := name;
+			container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+		}
+	
+	
+	
+	}
+	
+	
+	
 }

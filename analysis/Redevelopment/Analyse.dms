@@ -7,6 +7,7 @@ container Analyse : using = "units;classifications;geography;classifications/bag
 	// #include <sloop_nieuwbouw_snapshots_kwartalen.dms>
 	#include <UAI.dms>
 	#include <verschil_per_ha.dms> // jaarlijkse verdichting analyse en paper 1
+	#include <PriceComponents.dms> // jaarlijkse verdichting analyse en paper 1
 	
 	container OppervlakVanNieuwbouw
 	{

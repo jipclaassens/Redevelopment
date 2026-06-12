@@ -1,7 +1,7 @@
 container PrepBAG : using = "AdditionalClassifications"
 {
 	// unit<uint32> BAG_Tabel_path := /SourceData/BAG/VolledigeBAG/Historische_Join/Condense_based_on_SF/SelectChainEndPoints;
-	unit<uint32> BAG_Tabel_path := /SourceData/BAG/VolledigeBAG/Historische_Join/SelectNonOverlappingPeriods;
+	unit<uint32> BAG_Tabel_path := SourceData/Vastgoed/BAG/VolledigeBAG/Historische_Join/SelectNonOverlappingPeriods;
 
 	unit<uint32> BAG_Tabel := BAG_Tabel_path, KeepData = "true"
 	{
@@ -14,6 +14,10 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<int32>                begindatum                    := BAG_Tabel_path/begindatum;
 		attribute<jaar>                 begin_jaar                    := (begindatum / 10000i)[jaar];
 		attribute<int32>                einddatum                     := BAG_Tabel_path/einddatum;
+		
+		attribute<string>               pand_docnum                   := BAG_Tabel_path/pand_docnum;
+		attribute<string>               vbo_docnum                    := BAG_Tabel_path/vbo_docnum;
+		
 		attribute<vbo_gebruiksdoel_ext> prev_gebruiksdoel_rel         := gebruiksdoel_rel[pv_begin_eind_rel];
 		attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel              := BAG_Tabel_path/gebruiksdoel_rel;
 		attribute<vbo_gebruiksdoel_ext> pand_modus_gebruiksdoel_rel   := uq_pand_nr/modus_gebruiksdoel_rel[uq_pand_nr_rel];
@@ -32,10 +36,10 @@ container PrepBAG : using = "AdditionalClassifications"
 
 		attribute<bool>                 IsMogelijkWoningCorporatiePand   := BAG_Tabel_path/IsMogelijkWoningCorporatiePand;
 		attribute<bool>                 IsMutated                        := IsDefined(rlookup(vbo_bag_nr, FinalMutationTable/vbo_bag_nr));
-		attribute<bool>                 IsOnveranderd_Woon_Voorraad      := not(IsMutated) && VBO_IsWonen && VBO_IsVoorraad && EINDDATUM == /SourceData/BAG/VolledigeBAG/MaxDatum;
+		attribute<bool>                 IsOnveranderd_Woon_Voorraad      := not(IsMutated) && VBO_IsWonen && VBO_IsVoorraad && EINDDATUM == /SourceData/Vastgoed/BAG/VolledigeBAG/MaxDatum;
 		// attribute<bool>                 IsOnveranderd_Woon_Voorraad      := not(IsMutated) && VBO_IsWonen && VBO_IsVoorraad ;
-		attribute<bool>                 IsOnveranderd_NietWoon_Voorraad  := not(IsMutated) && not(VBO_IsWonen) && not(IsOverigeGebruiksfunctie) && VBO_IsVoorraad && EINDDATUM == /SourceData/BAG/VolledigeBAG/MaxDatum;
-		attribute<bool>                 LigtOpStandplaats_Start_20162017 := IsDefined(point_in_polygon(geometry, /SourceData/BAG/VolledigeBAG/Standplaatsen/src/SelectieMoment/geometry)), Descr = "Er is een sloop piek in 2016/2017, dit betrof foutieve toevoeging van stacaravans als pand. Deze zijn toen allemaal 'gesloopt'. Deze kunnen we vervolgens identiferen doordat ze als nieuwe standplaats zijn toegevoegd aan de BAG.";
+		attribute<bool>                 IsOnveranderd_NietWoon_Voorraad  := not(IsMutated) && not(VBO_IsWonen) && not(IsOverigeGebruiksfunctie) && VBO_IsVoorraad && EINDDATUM == /SourceData/Vastgoed/BAG/VolledigeBAG/MaxDatum;
+		attribute<bool>                 LigtOpStandplaats_Start_20162017 := IsDefined(point_in_polygon(geometry, SourceData/Vastgoed/BAG/VolledigeBAG/Standplaatsen/src/SelectieMoment/geometry)), Descr = "Er is een sloop piek in 2016/2017, dit betrof foutieve toevoeging van stacaravans als pand. Deze zijn toen allemaal 'gesloopt'. Deze kunnen we vervolgens identiferen doordat ze als nieuwe standplaats zijn toegevoegd aan de BAG.";
 		
 		//laatste bouwvergunning_verleend datum, per pand.
 		attribute<int32>                Datum_BouwvergunningVerleend     := pand_status_rel == pand_status/v/bouwvergunning_verleend ? begindatum : null_i;
@@ -60,7 +64,7 @@ container PrepBAG : using = "AdditionalClassifications"
 			attribute<rdc>                 pand_geometry (poly) := ../pand_geometry[org_rel];
 			attribute<jaar>                pand_bouwjaar        := ../pand_bouwjaar[org_rel];
 			attribute<uq>                  uq_rel               := rlookup(vbo_bag_nr, uq/values);
-			 
+
 			unit<uint32> uq := unique(vbo_bag_nr)
 			{
 				attribute<uint64>              vbo_bag_nr           := values;
@@ -146,7 +150,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<bool>                 IsWaarschijnlijkCorrectieVanStacaravans_Wonen     := VBO_WasVoorraad && not(VBO_IsVoorraad)
 																								&& Pand_WasVoorraad && not(Pand_IsVoorraad)
 																								&& begindatum < 20170201i && begindatum > 20160101i
-																								&& IsDefined(point_in_polygon(geometry, /SourceData/bestand_bodem_gebruik/BBG/BBG_Reeks_1996_2017/IsVerblijfsrecreatie_2017/geometry))
+																								&& IsDefined(point_in_polygon(geometry, /SourceData/grondgebruik/bestand_bodem_gebruik/BBG/BBG_Reeks_1996_2017/IsVerblijfsrecreatie_2017/geometry))
 																								, Descr = "afname: vbo+pand uit voorraad gehaald, periode 201601-201702, binnen BBG verblijfsrec" //kan elke functie zijn! 
 																											"Er is een sloop piek in 2016/2017, dit betrof foutieve toevoeging van stacaravans als pand. Deze zijn toen allemaal 'gesloopt'.";
 		
@@ -603,6 +607,10 @@ container PrepBAG : using = "AdditionalClassifications"
 			attribute<int32>                   vbo_oppervlakte       := src/vbo_oppervlakte[org_rel];
 			attribute<int32>                   MutatieMaand          := const(datum / 100i, .);
 			attribute<int32>                   begindatum            := src/begindatum[org_rel];
+			
+			attribute<string>                  vbo_docnum            := src/vbo_docnum[org_rel];
+			attribute<string>                  pand_docnum           := src/pand_docnum[org_rel];
+			
 			attribute<vbo_status>              prev_vbo_status_rel   := src/prev_vbo_status_rel[org_rel];
 			attribute<vbo_status>              vbo_status_rel        := src/vbo_status_rel[org_rel];
 			attribute<pand_status_w_Undefined> prev_pand_status_rel  := src/prev_pand_status_rel[org_rel];
@@ -1137,13 +1145,17 @@ container PrepBAG : using = "AdditionalClassifications"
 	}
 	
 	unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
-	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
+	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.mmd'"
 	{
 		attribute<rdc>                      geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
 		attribute<rdc>                      pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
 		attribute<uint64>                   vbo_bag_nr            := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_bag_nr')+')';
 		attribute<jaar>                     pand_bouwjaar         := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bouwjaar')+')';
 		attribute<uint64>                   pand_bag_nr           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
+		
+		attribute<string>                   pand_docnum           := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_docnum')+')';
+		attribute<string>                   vbo_docnum            := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_docnum')+')';
+		
 		attribute<int32>                    vbo_oppervlakte       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_oppervlakte')+')';
 		attribute<int32>                    MutatieMaand          := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
 		attribute<pand_status>              pand_status_rel       := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_status_rel')+')';
@@ -1154,21 +1166,21 @@ container PrepBAG : using = "AdditionalClassifications"
 	}
 	
 	unit<uint32> Read_FinalMutationTable
-	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
+	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.mmd'"
 	, StorageReadOnly = "true"
 	{
-		attribute<rdc>                      geometry;
-		attribute<rdc>                      pand_geometry (poly);
-		attribute<uint64>                   vbo_bag_nr;
-		attribute<jaar>                     pand_bouwjaar;
-		attribute<uint64>                   pand_bag_nr;
-		attribute<int32>                    vbo_oppervlakte;
-		attribute<pand_status>              pand_status_rel;
-		attribute<int32>                    LastDatum_BouwvergunningVerleend;
-		attribute<int32>                    MutatieMaand;
-		attribute<MutatieTypen>             MutatieTypen_rel_src;
-		attribute<MutatieTypen_UnID>        MutatieTypen_UnID_rel;
-		attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel;
+		// attribute<rdc>                      geometry;
+		// attribute<rdc>                      pand_geometry (poly);
+		// attribute<uint64>                   vbo_bag_nr;
+		// attribute<jaar>                     pand_bouwjaar;
+		// attribute<uint64>                   pand_bag_nr;
+		// attribute<int32>                    vbo_oppervlakte;
+		// attribute<pand_status>              pand_status_rel;
+		// attribute<int32>                    LastDatum_BouwvergunningVerleend;
+		// attribute<int32>                    MutatieMaand;
+		// attribute<MutatieTypen>             MutatieTypen_rel_src;
+		// attribute<MutatieTypen_UnID>        MutatieTypen_UnID_rel;
+		// attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel;
 		attribute<MutatieTypen>             MutatieTypen_rel      := switch(
 																		 case(MutatieTypen_rel_src == MutatieTypen/v/Cplus, MutatieTypen/V/T)
 																		,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)
@@ -1182,8 +1194,8 @@ container PrepBAG : using = "AdditionalClassifications"
 																		 , null_b
 																	);
 		
-		attribute<Read_PerObject_Export>    Read_PerObject_Export_rel := rlookup(vbo_bag_nr, Read_PerObject_Export/vbo_bag_nr);
-		attribute<bool>                     IsNotCategorised          := IsNull(Read_PerObject_Export_rel) ;
+		// attribute<Read_PerObject_Export>    Read_PerObject_Export_rel := rlookup(vbo_bag_nr, Read_PerObject_Export/vbo_bag_nr);
+		// attribute<bool>                     IsNotCategorised          := IsNull(Read_PerObject_Export_rel) ;
 		
 		// attribute<bool>                    LigtInLigplaats                 := IsDefined(point_in_polygon(geometry, /SourceData/BAG/VolledigeBAG/Standplaatsen/standplaats/geometry));
 		// attribute<bool>                    LigtInLigplaats_start_2016_2017 := IsDefined(point_in_polygon(geometry, /SourceData/BAG/VolledigeBAG/Standplaatsen/src/SelectieMoment/geometry));

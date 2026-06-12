@@ -39,7 +39,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				attribute<int32>       vbo_oppervlakte          := union_data(., T/domain/vbo_oppervlakte, Cplus/domain/vbo_oppervlakte);
 				attribute<string>      label                    := string(pand_bag_nr);
 				attribute<rdc>         pand_geometry     (poly) := union_data(., T/domain/pand_geometry, Cplus/domain/pand_geometry);
-				attribute<jaar>        pand_bouwjaar            := union_data(., T/domain/pand_bouwjaar, Cplus/domain/pand_bouwjaar);
+				attribute<Yr>          pand_bouwjaar            := union_data(., T/domain/pand_bouwjaar, Cplus/domain/pand_bouwjaar);
 				attribute<uint64>      pand_bag_nr              := union_data(., T/domain/pand_bag_nr, Cplus/domain/pand_bag_nr);
 				attribute<uint64>      vbo_bag_nr               := union_data(., T/domain/vbo_bag_nr, Cplus/domain/vbo_bag_nr);
 				attribute<string>      Site_ID                  := 'T_'+string(id(.));
@@ -58,7 +58,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				attribute<int32>       vbo_oppervlakte          := union_data(., O/domain/vbo_oppervlakte, Cmin/domain/vbo_oppervlakte);
 				attribute<string>      label                    := string(pand_bag_nr);
 				attribute<rdc>         pand_geometry     (poly) := union_data(., O/domain/pand_geometry, Cmin/domain/pand_geometry);
-				attribute<jaar>        pand_bouwjaar            := union_data(., O/domain/pand_bouwjaar, Cmin/domain/pand_bouwjaar);
+				attribute<Yr>          pand_bouwjaar            := union_data(., O/domain/pand_bouwjaar, Cmin/domain/pand_bouwjaar);
 				attribute<uint64>      pand_bag_nr              := union_data(., O/domain/pand_bag_nr, Cmin/domain/pand_bag_nr);
 				attribute<uint64>      vbo_bag_nr               := union_data(., O/domain/vbo_bag_nr, Cmin/domain/vbo_bag_nr);
 				attribute<string>      Site_ID                  := 'O_'+string(id(.));
@@ -106,7 +106,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// ### Site characteristics (incumbent state)
 		attribute<m2>                site_size                       := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_size')+')';
 		attribute<m2>                site_sum_footprint              := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_sum_footprint')+')';
-		attribute<jaar>              obj_building_year               := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bouwjaar')+')';
+		attribute<yr>                obj_building_year               := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bouwjaar')+')';
 		attribute<int32>             obj_floor_area_res_m2           := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_oppervlakte')+')';
 		attribute<WP4>               obj_housetype                   := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/wp4_rel')+')';
 
@@ -177,7 +177,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			attribute<int32>       vbo_oppervlakte                             := org_rel -> vbo_oppervlakte;
 			attribute<string>      label                                       := string(vbo_bag_nr);
 			attribute<rdc>         pand_geometry  (poly)                       := org_rel -> pand_geometry;
-			attribute<jaar>        pand_bouwjaar                               := org_rel -> pand_bouwjaar;
+			attribute<Yr>          pand_bouwjaar                               := org_rel -> pand_bouwjaar;
 			attribute<pand_status> pand_status_rel                             := org_rel -> pand_status_rel;//tbv n2000 paper
 			attribute<int32>       LastDatum_BouwvergunningVerleend                := org_rel -> LastDatum_BouwvergunningVerleend; //tbv n2000 paper
 			attribute<uint64>      vbo_bag_nr                                  := org_rel -> vbo_bag_nr;

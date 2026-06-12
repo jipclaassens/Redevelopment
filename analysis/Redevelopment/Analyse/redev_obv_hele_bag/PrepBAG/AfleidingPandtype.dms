@@ -24,12 +24,12 @@ container AfleidingPandtype
 	{
 		attribute<rdc>          NW     (domain) := lower_bound(domain/pand_geometry);
 		attribute<rdc>          SE     (domain) := upper_bound(domain/pand_geometry);
-		attribute<float32>      X_ext  (domain) := PointCol(SE) - PointCol(NW);
-		attribute<float32>      Y_ext  (domain) := PointRow(SE) - PointRow(NW);
+		attribute<float64>      X_ext  (domain) := PointCol(SE) - PointCol(NW);
+		attribute<float64>      Y_ext  (domain) := PointRow(SE) - PointRow(NW);
 	}
 	
 	
-	unit<uint32> functioneel_pand := select_with_org_rel(domain/count_vbos > 0 && extents/X_ext < 1000f && extents/Y_ext < 1000f)
+	unit<uint32> functioneel_pand := select_with_org_rel(domain/count_vbos > 0 && extents/X_ext < 1000d && extents/Y_ext < 1000d)
 	{
 		attribute<rdc>    geometry (poly) := org_rel -> pand_geometry;
 		// attribute<rdc>    geometry_inflated_20cm (poly) := org_rel -> geometry_inflated_20cm;
@@ -81,10 +81,10 @@ container AfleidingPandtype
 		
 		// for visualisation
 		attribute<rdc> geometry (poly) := points2sequence(point_set/point, point_set/sequence_rel); //, point_set/ordinal);
-		attribute<rdc> top_left     := point_xy(float32(min_x), float32(max_y), rdc); 
-		attribute<rdc> top_right    := point_xy(float32(max_x), float32(max_y), rdc);
-		attribute<rdc> bottom_left  := point_xy(float32(min_x), float32(min_y), rdc);
-		attribute<rdc> bottom_right := point_xy(float32(max_x), float32(min_y), rdc);
+		attribute<rdc> top_left     := point_xy(float64(min_x), float64(max_y), rdc); 
+		attribute<rdc> top_right    := point_xy(float64(max_x), float64(max_y), rdc);
+		attribute<rdc> bottom_left  := point_xy(float64(min_x), float64(min_y), rdc);
+		attribute<rdc> bottom_right := point_xy(float64(max_x), float64(min_y), rdc);
 		
 		unit<uint32> point_set := union_unit(.,.,.,.,.)
 		{

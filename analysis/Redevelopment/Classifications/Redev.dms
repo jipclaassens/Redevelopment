@@ -113,7 +113,7 @@ container Redev: isHidden = "True", using = "units"
 		}
 	}
 	
-	unit<uint8> Redev_Types : nrofrows = 111
+	unit<uint8> Redev_Types : nrofrows = 11
 	{
 		attribute<string> name : ['SN_Woon_Woon','SN_NietWoon_Woon','SN_Mixed_Woon'
 									, 'Toevoeging_Woon', 'Onttrekking_Woon'

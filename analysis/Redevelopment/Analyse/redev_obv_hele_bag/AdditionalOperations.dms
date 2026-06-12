@@ -14,7 +14,7 @@ container AdditionalOperations
 			attribute<rdc>    vbo_geometry         := ../vbo_geometry[org_rel];
 			attribute<int32>  MutatieMaand         := ../MutatieMaand[org_rel];
 			attribute<int32>  vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
-			attribute<jaar>   pand_bouwjaar        := ../pand_bouwjaar[org_rel];
+			attribute<Yr>     pand_bouwjaar        := ../pand_bouwjaar[org_rel];
 			attribute<uint64> vbo_bag_nr           := ../vbo_bag_nr[org_rel];
 			attribute<string> pand_docnum          := ../pand_docnum[org_rel];
 
@@ -29,7 +29,7 @@ container AdditionalOperations
 			unit<uint32> cluster_panden_docnum := unique(pand_docnum)
 			{
 				attribute<rdc> geometry          (poly) := geos_union_polygon(pand_geometry, ../uq_pand_docnr_rel);
-				attribute<rdc> inflate           (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+				attribute<rdc> inflate           (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 4b);
 				attribute<rdc> dissolve          (poly) := geos_union_polygon(inflate, id(.));
 				attribute<rdc> Outer             (poly) := bg_outer_multi_polygon(Dissolve);
 				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 16b);
@@ -47,7 +47,7 @@ container AdditionalOperations
 		attribute<uint64>  pand_bag_nr             := union_data(., PrepDomains/S/domain/pand_bag_nr, PrepDomains/S_nw/domain/pand_bag_nr);
 		attribute<rdc>     vbo_geometry            := union_data(., PrepDomains/S/domain/vbo_geometry, PrepDomains/S_nw/domain/vbo_geometry);
 		attribute<int32>   vbo_oppervlakte         := union_data(., PrepDomains/S/domain/vbo_oppervlakte, PrepDomains/S_nw/domain/vbo_oppervlakte);
-		attribute<jaar>    pand_bouwjaar           := union_data(., PrepDomains/S/domain/pand_bouwjaar, PrepDomains/S_nw/domain/pand_bouwjaar);
+		attribute<Yr>      pand_bouwjaar           := union_data(., PrepDomains/S/domain/pand_bouwjaar, PrepDomains/S_nw/domain/pand_bouwjaar);
 		attribute<uint64>  vbo_bag_nr              := union_data(., PrepDomains/S/domain/vbo_bag_nr, PrepDomains/S_nw/domain/vbo_bag_nr);
 		attribute<int32>   MutatieMaand            := union_data(., PrepDomains/S/domain/MutatieMaand, PrepDomains/S_nw/domain/MutatieMaand);
 		attribute<string>  pand_docnum             := union_data(., PrepDomains/S/domain/pand_docnum, PrepDomains/S_nw/domain/pand_docnum);
@@ -66,7 +66,7 @@ container AdditionalOperations
 			attribute<rdc>    vbo_geometry         := ../vbo_geometry[org_rel];
 			attribute<int32>  MutatieMaand         := ../MutatieMaand[org_rel];
 			attribute<int32>  vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
-			attribute<jaar>   pand_bouwjaar        := ../pand_bouwjaar[org_rel];
+			attribute<Yr>     pand_bouwjaar        := ../pand_bouwjaar[org_rel];
 			attribute<uint64> vbo_bag_nr           := ../vbo_bag_nr[org_rel];
 			// attribute<string> Site_ID              := 'S_'+string(id(.));
 			// attribute<m2>     site_size            := area(pand_geometry, m2);
@@ -89,10 +89,10 @@ container AdditionalOperations
 			unit<uint32> cluster_panden_docnum := unique(pand_docnum)
 			{
 				attribute<rdc> geometry          (poly) := geos_union_polygon(pand_geometry, ../uq_pand_docnr_rel);
-				attribute<rdc> inflate           (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+				attribute<rdc> inflate           (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 4b);
 				attribute<rdc> dissolve          (poly) := geos_union_polygon(inflate, id(.));
 				attribute<rdc> Outer             (poly) := bg_outer_multi_polygon(Dissolve);
-				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 16b);
+				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 4b);
 				
 				attribute<m2>  site_size                := area(Deflate, m2);
 			}
@@ -128,10 +128,10 @@ container AdditionalOperations
 			attribute<m2>      area_pand                        := area(geometry, m2);
 			
 			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de nieuwbouw panden.
-			attribute<rdc> inflate                       (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+			attribute<rdc> inflate                       (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 4b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
-			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
 			unit<uint32> PandenBuffer_x_WegSpoor_Split          := geos_split_union_polygon(PandenBuffer_x_WegSpoor/geometry)
 			{
 				attribute<rdc> geometry_rd               (poly) := geometry;
@@ -152,10 +152,10 @@ container AdditionalOperations
 			attribute<m2>                       area_pand                    := area(geometry, m2);
 			
 			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de sloop panden.
-			attribute<rdc> inflate                       (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+			attribute<rdc> inflate                       (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 4b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
-			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
 			unit<uint32> PandenBuffer_x_WegSpoor_Split          := geos_split_union_polygon(PandenBuffer_x_WegSpoor/geometry)
 			{
 				attribute<rdc> geometry_rd               (poly) := geometry;
@@ -169,7 +169,7 @@ container AdditionalOperations
 			}
 		}
 		
-		unit<uint32>  BestaandWoongebiedIn2000   := select_with_org_rel(/SourceData/bestand_bodem_gebruik/BBG/BBG_Reeks_1996_2017/IsWoongebied_2000)
+		unit<uint32>  BestaandWoongebiedIn2000   := select_with_org_rel(/SourceData/Grondgebruik/bestand_bodem_gebruik/BBG/BBG_Reeks_1996_2017/IsWoongebied_2000)
 		{
 			attribute<rdc> geometry (poly) := org_rel -> geometry;
 			attribute<m2>  area_vlak       := area(geometry, m2);
@@ -184,10 +184,10 @@ container AdditionalOperations
 			attribute<rdc>     pand_geometry (poly)         := NieuwbouwPanden/geometry[first_rel];
 			
 			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de sloop panden.
-			attribute<rdc>     inflate               (poly) := geos_buffer_multi_polygon(pand_geometry,  parameters/big_inflate_m[float64], 16b);
+			attribute<rdc>     inflate               (poly) := geos_buffer_multi_polygon(pand_geometry,  parameters/big_inflate_m[float64], 4b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
-			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
 			unit<uint32> PandenBuffer_x_WegSpoor_Split          := geos_split_union_polygon(PandenBuffer_x_WegSpoor/geometry)
 			{
 				attribute<rdc> geometry_rd               (poly) := geometry;
@@ -209,8 +209,8 @@ container AdditionalOperations
 			//opschonen van de geometry
 			unit<uint32>   Dissolve                             := geos_split_union_polygon(geometry), DialogData = "Deflate", DialogType = "map";
 			attribute<rdc> Outer               (poly, dissolve) := bg_outer_multi_polygon(Dissolve/geometry);
-			attribute<rdc> Inflate             (poly, dissolve) := geos_buffer_multi_polygon(Outer, parameters/big_inflate_m[float64], 16b);
-			attribute<rdc> Deflate             (poly, dissolve) := geos_buffer_multi_polygon(Inflate, -parameters/big_inflate_m[float64], 16b);
+			attribute<rdc> Inflate             (poly, dissolve) := geos_buffer_multi_polygon(Outer, parameters/big_inflate_m[float64], 4b);
+			attribute<rdc> Deflate             (poly, dissolve) := geos_buffer_multi_polygon(Inflate, -parameters/big_inflate_m[float64], 4b);
 			
 			
 			//nu willen we alleen die polygon overhouden die sloop EN nieuwbouw panden bevatten.
@@ -292,8 +292,8 @@ container AdditionalOperations
 			attribute<m2>            site_sum_sloop_nw_footprint        := sum(area(Sloop_NW/pand_geometry, m2), Sloop_NW_rel);
 			attribute<m2>            site_sum_sloop_nb_footprint        := sum(area(Nieuwbouw/pand_geometry, m2), Nieuwbouw_rel);
 			
-			attribute<jaar>          Avg_bouwjaar                       := mean(Sloop/pand_bouwjaar, Sloop_rel);
-			attribute<jaar>          SD_bouwjaar                        := sd(Sloop/pand_bouwjaar, Sloop_rel);
+			attribute<Yr>            Avg_bouwjaar                       := mean(Sloop/pand_bouwjaar, Sloop_rel);
+			attribute<Yr>            SD_bouwjaar                        := sd(Sloop/pand_bouwjaar, Sloop_rel);
 			attribute<int32>         First_Nieuwbouw_MutatieMaand       := min(IsDefined(Nieuwbouw/MutatieMaand) ? Nieuwbouw/MutatieMaand : 99999999i, Nieuwbouw_rel);
 			attribute<int32>         First_Sloop_MutatieMaand           := min(IsDefined(Sloop/MutatieMaand)     ? Sloop/MutatieMaand     : 99999999i, Sloop_rel);
 			attribute<int32>         Last_Nieuwbouw_MutatieMaand        := max(IsDefined(Nieuwbouw/MutatieMaand) ? Nieuwbouw/MutatieMaand : 9999i, Nieuwbouw_rel);
@@ -311,7 +311,7 @@ container AdditionalOperations
 				attribute<rdc>    vbo_geometry         := Sloop/vbo_geometry[org_rel];
 				attribute<int32>  MutatieMaand         := Sloop/MutatieMaand[org_rel];
 				attribute<int32>  vbo_oppervlakte      := Sloop/vbo_oppervlakte[org_rel];
-				attribute<jaar>   pand_bouwjaar        := Sloop/pand_bouwjaar[org_rel];
+				attribute<Yr>     pand_bouwjaar        := Sloop/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../sloop_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Sloop/vbo_bag_nr[org_rel];
 				attribute<m2>     site_size            := ../site_size[../sloop_rel][org_rel];
@@ -327,7 +327,7 @@ container AdditionalOperations
 				attribute<rdc>    vbo_geometry         := Sloop_NW/vbo_geometry[org_rel];
 				attribute<int32>  MutatieMaand         := Sloop_NW/MutatieMaand[org_rel];
 				attribute<int32>  vbo_oppervlakte      := Sloop_NW/vbo_oppervlakte[org_rel];
-				attribute<jaar>   pand_bouwjaar        := Sloop_NW/pand_bouwjaar[org_rel];
+				attribute<Yr>     pand_bouwjaar        := Sloop_NW/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../Sloop_NW_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Sloop_NW/vbo_bag_nr[org_rel];
 				attribute<m2>     site_size            := ../site_size[../Sloop_NW_rel][org_rel];
@@ -339,7 +339,7 @@ container AdditionalOperations
 				attribute<rdc>    vbo_geometry         := Nieuwbouw/vbo_geometry[org_rel];
 				attribute<int32>  MutatieMaand         := Nieuwbouw/MutatieMaand[org_rel];
 				attribute<int32>  vbo_oppervlakte      := Nieuwbouw/vbo_oppervlakte[org_rel];
-				attribute<jaar>   pand_bouwjaar        := Nieuwbouw/pand_bouwjaar[org_rel];
+				attribute<Yr>     pand_bouwjaar        := Nieuwbouw/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../Nieuwbouw_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Nieuwbouw/vbo_bag_nr[org_rel];
 				attribute<m2>     site_size            := ../site_size[../Nieuwbouw_rel][org_rel];

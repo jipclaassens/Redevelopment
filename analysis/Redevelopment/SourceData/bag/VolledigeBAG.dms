@@ -16,7 +16,7 @@ container VolledigeBAG : using = "classifications/BAG"
 		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[second_rel];
 		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[first_rel];
 		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte_trunc[first_rel][int32];
-		attribute<jaar>        pand_bouwjaar                  := panden/pand/bouwjaar_trunc[second_rel][jaar];
+		attribute<Yr>          pand_bouwjaar                  := panden/pand/bouwjaar_trunc[second_rel];
 		// attribute<WP4>         pand_type                      := panden/pand/WP4_rel[second_rel];
 		
 		attribute<bool>        IsMogelijkWoningCorporatiePand := panden/pand/IsMogelijkWoningCorporatiePand[second_rel];
@@ -63,7 +63,7 @@ container VolledigeBAG : using = "classifications/BAG"
 			attribute<vbo_gebruiksdoel_ext> gebruiksdoel_rel      := org_rel -> gebruiksdoel_rel;
 			attribute<int32>       begindatum                     := max_elem(pand_begindatum, vbo_begindatum);
 			attribute<int32>       einddatum                      := min_elem(pand_einddatum, vbo_einddatum);
-			attribute<jaar>        pand_bouwjaar                  := org_rel -> pand_bouwjaar;
+			attribute<Yr>          pand_bouwjaar                  := org_rel -> pand_bouwjaar;
 			// attribute<WP4>         pand_type                      := org_rel -> pand_type;
 		
 			attribute<string>      vbo_docnum                     := org_rel -> vbo_docnum;
@@ -137,7 +137,7 @@ container VolledigeBAG : using = "classifications/BAG"
 		:	StorageName = "= Result_FSS_dir + '/pand.mmd'"
 		,	StorageReadOnly = "True"
 		{
-			attribute<rdc_mm>                       geometry_mm_simpl      (poly) := geos_buffer_multi_polygon(geometry_mm, 100d, 16b);
+			attribute<rdc_mm>                       geometry_mm_simpl      (poly) := geos_buffer_multi_polygon(geometry_mm, 100d, 4b);
 			attribute<rdc_meter>                    geometry               (poly) := geometry_mm[rdc_meter], DisableStorage = "TRUE";
 			attribute<rdc_meter>                    geometry_simpl         (poly) := geometry_mm_simpl[rdc_meter], DisableStorage = "TRUE";
 			attribute<rdc_meter>                    geometry_inflated_20cm (poly) := geos_buffer_multi_polygon(src/geometry, 0.2d, 4b), Descr = "tbv pand typering"; //use the geometry from src that is corrected for inverted winding order. 
@@ -240,7 +240,7 @@ container VolledigeBAG : using = "classifications/BAG"
 				, Descr = "selectie vooraad alle gebruiksdoelen"
 				{
 					attribute<rdc>                  geometry (poly)                := pand/geometry[org_rel];
-					attribute<jaar>                 bouwjaar                       := pand/bouwjaar_trunc[org_rel];
+					attribute<Yr>                   bouwjaar                       := pand/bouwjaar_trunc[org_rel];
 					attribute<pand_status>          pand_status_rel                := pand/status_rel[org_rel]; 
 					attribute<m2>                   footprint                      := area(geometry, m2);
 					attribute<bool>                 HasVBO                         := ='IsDefined(invert(point_in_polygon(VBOs/vbo/Stand_per_Jaar/Y'+string(Year)+'/select_alle_doelen/geometry, geometry)))';
@@ -250,7 +250,7 @@ container VolledigeBAG : using = "classifications/BAG"
 				{
 					attribute<rdc>                  geometry (poly)                := org_rel -> geometry;
 					attribute<pand_status>          pand_status_rel                := org_rel -> pand_status_rel;
-					attribute<jaar>                 bouwjaar                       := org_rel -> bouwjaar;
+					attribute<Yr>                   bouwjaar                       := org_rel -> bouwjaar;
 					attribute<float32>              monumentale_panden  (NL_grid/domain) := sum_uint32(bouwjaar <= Parameters/PandVanafMonumentaalJaar, NL_grid_domain_rel)[float32];
 					attribute<float32>              count_ha            (NL_grid/domain) := pcount(NL_grid_domain_rel)[float32];
 					attribute<NL_grid/domain>       NL_grid_domain_rel                   := centroid_or_mid(geometry)[NL_grid/domain];
@@ -501,7 +501,7 @@ container VolledigeBAG : using = "classifications/BAG"
 		,	StorageReadOnly = "True"
 		{
 			// attribute<rdc_mm>                     geometry_mm (poly);
-			// attribute<rdc>                        geometry    (poly) := geometry_mm[rdc];
+			attribute<rdc>                           geometry    (poly) := geometry_mm[rdc];
 			// attribute<string>                     identificatie;
 			// attribute<string>                     nevenadres;
 			// attribute<int32>                      nummeraanduiding_id;
@@ -513,7 +513,7 @@ container VolledigeBAG : using = "classifications/BAG"
 		unit<uint32> src := import
 		{
 			attribute<rdc>                        geometry (poly) := import/geometry;
-			attribute<standplaats_status>         status_rel      := import/meta/status_rel;
+			attribute<standplaats_status>         status_rel      := rlookup(lowercase(meta/STATUS), lowercase(standplaats_status/label));
 			attribute<uint64>                     bag_nr          := uint64(identificatie);
 			attribute<int32>                      begindataum     := meta/begindatum;
 			

@@ -7,7 +7,7 @@ container classifications : using = "units"
 	// #include<klassen.dms>
 	// #include<osm.dms>
 	// #include<nvm.dms>
-	// #include<redev.dms>
+	#include<redev.dms>
 	#include<tijd.dms>
 	
 	// unit<uint32> Eigendom : nrofrows = 3
@@ -30,14 +30,14 @@ container classifications : using = "units"
 		attribute<string> next_name : ['NA'];
 		attribute<string> prev_name : ['NA'];
 	}
-	// unit<uint8> NoData_uint8: NrOfrows = 1
-	// {
-		// attribute<string> name      : ['NA'];
-		// attribute<string> Label     := name, DialogType = "LabelText";
-		// attribute<uint32> value     := const(0,.);
-		// attribute<string> next_name : ['NA'];
-		// attribute<string> prev_name : ['NA'];
-	// }
+	unit<uint8> NoData_uint8: NrOfrows = 1
+	{
+		attribute<string> name      : ['NA'];
+		attribute<string> Label     := name, DialogType = "LabelText";
+		attribute<uint32> value     := const(0,.);
+		attribute<string> next_name : ['NA'];
+		attribute<string> prev_name : ['NA'];
+	}
 	
 	unit<uint8> UrbanisationK : nrofrows = 3
 	{

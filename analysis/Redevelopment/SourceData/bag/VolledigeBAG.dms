@@ -12,7 +12,7 @@ container VolledigeBAG : using = "classifications/BAG"
 	unit<uint32> Historische_Join := join_equal_values(vbo_uq_pand_nr_rel, pand_uq_pand_nr_rel)
 	{
 		attribute<rdc>         geometry                       := vbos/vbo/geometry[first_rel];
-		attribute<rdc>         pand_geometry (poly)           := panden/pand/geometry[second_rel];
+		attribute<rdc>         pand_geometry (poly)           := panden/pand/geometry_simpl[second_rel];
 		attribute<uint64>      pand_bag_nr                    := panden/pand/pand_bag_nr[second_rel];
 		attribute<uint64>      vbo_bag_nr                     := vbos/vbo/vbo_bag_nr[first_rel];
 		attribute<int32>       vbo_oppervlakte                := vbos/vbo/oppervlakte_trunc[first_rel][int32];

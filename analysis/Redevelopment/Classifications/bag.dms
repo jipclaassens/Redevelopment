@@ -212,6 +212,7 @@ container BAG: using = "units"
 		attribute<String>                            name                 : ['Totaal'];
 		attribute<String>                            Label                := name, DialogType = "LabelText";
 		attribute<UInt32>                            BrushColor           : [rgb(255,60,60)], DialogType = "BrushColor";
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	
 	unit<uint8> pand_status : nrofrows = 10

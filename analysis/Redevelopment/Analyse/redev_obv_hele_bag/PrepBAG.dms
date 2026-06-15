@@ -59,10 +59,13 @@ container PrepBAG : using = "AdditionalClassifications"
 		unit<uint32> Onveranderd_Woon := select_with_org_rel(IsOnveranderd_Woon_Voorraad)
 		{
 			attribute<uint64>              vbo_bag_nr           := ../vbo_bag_nr[org_rel];
+			attribute<uint64>              pand_bag_nr          := ../pand_bag_nr[org_rel];
 			attribute<int32>               vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
 			attribute<rdc>                 geometry             := ../geometry[org_rel];
 			attribute<rdc>                 pand_geometry (poly) := ../pand_geometry[org_rel];
 			attribute<Yr>                  pand_bouwjaar        := ../pand_bouwjaar[org_rel];
+			attribute<string>              pand_docnum          := ../pand_docnum[org_rel];
+			attribute<string>              vbo_docnum           := ../vbo_docnum[org_rel];
 			attribute<uq>                  uq_rel               := rlookup(vbo_bag_nr, uq/values);
 
 			unit<uint32> uq := unique(vbo_bag_nr)
@@ -70,12 +73,16 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<uint64>              vbo_bag_nr           := values;
 				attribute<rdc>                 vbo_geometry         := first(../geometry, uq_rel);
 				attribute<rdc>                 pand_geometry (poly) := ../pand_geometry[invert(uq_rel)];
+				attribute<uint64>              pand_bag_nr          := last(../pand_bag_nr, uq_rel);
 				attribute<int32>               MutatieMaand         := const(null_i,.);
 				attribute<int32>               vbo_oppervlakte      := last(../vbo_oppervlakte, uq_rel);
 				attribute<Yr>                  pand_bouwjaar        := last(../pand_bouwjaar, uq_rel);
-				
+				attribute<string>              pand_docnum          := last(../pand_docnum, uq_rel);
+				attribute<string>              vbo_docnum           := last(../vbo_docnum, uq_rel);
+				attribute<WP4>                 wp4_rel              := ='Per1Jan/'+last(classifications/Tijd/Jaren/name)+'/select/uq_pand_nr/pand_type[rlookup(pand_bag_nr, Per1Jan/'+last(classifications/Tijd/Jaren/name)+'/select/uq_pand_nr/values)]', Descr = "WP4-type obv stand 1 jan van het laatste jaar; onveranderde voorraad bestaat per definitie op dat moment.";
+
 				attribute<bool> IsAmsterdam := IsDefined(point_in_polygon(vbo_geometry, /SourceData/RegioIndelingen/Gemeente/Amsterdam/geometry));
-				
+
 				unit<uint32> Amsterdam := select_with_org_rel(IsAmsterdam)
 				, DialogData = "pand_geometry"
 				, DialogType = "map"
@@ -473,7 +480,7 @@ container PrepBAG : using = "AdditionalClassifications"
 					// attribute<Yr>    mean_bouwjaar (wijk12) := mean(pand_bouwjaar, wijk12_rel);
 					// attribute<Yr>    modus_bouwjaar (wijk12) := modus(pand_bouwjaar, wijk12_rel);
 					// attribute<Yr>    pand_mean_bouwjaar     := mean_bouwjaar[wijk12_rel];
-					unit<uint8>        WP4                    := /classifications/BAG/type_woonpand_4;
+					unit<uint8>        WP4                    := /classifications/BAG/WP4;
 					attribute<WP4>     pand_type              := AfleidingPandtype/results/WP4_rel;
 					
 					// attribute<float32> chi_square    (wijk12) := sum(sqr(pand_bouwjaar[float32] - pand_mean_bouwjaar[float32]) / pand_mean_bouwjaar[float32], wijk12_rel), Descr = "Pearson's chi-square om de mate van uniformiteit te bepalen", URL = "https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test";
@@ -1163,8 +1170,41 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<MutatieTypen>             MutatieTypen_rel_src  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
 		attribute<MutatieTypen_UnID>        MutatieTypen_UnID_rel := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_UnID_rel')+')';
 		attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_Uitgesloten_rel')+')';
+
+		attribute<WP4>                      pand_type             := PandTypering_Mutaties/pand_type;
 	}
-	
+
+	container PandTypering_Mutaties
+	: Descr = "WP4-pandtype per mutatierij, obv de Per1Jan-typeringen (AfleidingPandtype). "
+			  "Plus-mutaties (nieuwbouw/toevoeging/transformatie+) typeren op de stand van 1 jan ná de mutatie; "
+			  "min-mutaties (sloop/onttrekking/transformatie-) op de stand van 1 jan van het mutatiejaar zelf."
+	{
+		unit<uint32> MutTable := Write_FinalMutationTable;
+
+		parameter<int32> FirstJaar := min(int32(classifications/Tijd/Jaren/value));
+		parameter<int32> LastJaar  := max(int32(classifications/Tijd/Jaren/value));
+
+		attribute<bool>   IsPlus            (MutTable) := switch(
+																 case(IsDefined(MutTable/MutatieTypen_rel_src),         MutatieTypen/IsPlus[MutTable/MutatieTypen_rel_src])
+																,case(IsDefined(MutTable/MutatieTypen_UnID_rel),        MutatieTypen_UnID/IsPlus[MutTable/MutatieTypen_UnID_rel])
+																,case(IsDefined(MutTable/MutatieTypen_Uitgesloten_rel), MutatieTypen_Uitgesloten/IsPlus[MutTable/MutatieTypen_Uitgesloten_rel])
+																,FALSE
+															);
+		attribute<int32>  MutatieJaar       (MutTable) := MutTable/MutatieMaand / 100i;
+		attribute<int32>  TyperingsJaar     (MutTable) := min_elem(max_elem(IsPlus ? MutatieJaar + 1i : MutatieJaar, FirstJaar), LastJaar);
+		attribute<uint16> TyperingsJaar_idx (MutTable) := uint16(TyperingsJaar - FirstJaar);
+
+		container perJaar :=
+			for_each_nedv(
+				classifications/Tijd/Jaren/name
+				, 'BAG_Tabel/Per1Jan/'+classifications/Tijd/Jaren/name+'/select/uq_pand_nr/pand_type[rlookup(MutTable/pand_bag_nr, BAG_Tabel/Per1Jan/'+classifications/Tijd/Jaren/name+'/select/uq_pand_nr/values)]'
+				, MutTable
+				, WP4
+			), Descr = "Per kalenderjaar het WP4-type van het pand van elke mutatierij, obv de stand per 1 jan van dat jaar.";
+
+		attribute<WP4> pand_type (MutTable) := ='merge(TyperingsJaar_idx, WP4, '+AsItemList('perJaar/'+classifications/Tijd/Jaren/name)+')';
+	}
+
 	unit<uint32> Read_FinalMutationTable
 	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.mmd'"
 	, StorageReadOnly = "true"
@@ -1181,6 +1221,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		// attribute<MutatieTypen>             MutatieTypen_rel_src;
 		// attribute<MutatieTypen_UnID>        MutatieTypen_UnID_rel;
 		// attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel;
+		attribute<WP4>                      pand_type; //kolom bestaat pas na regeneratie van de mmd (PandTypering_Mutaties)
 		attribute<MutatieTypen>             MutatieTypen_rel      := switch(
 																		 case(MutatieTypen_rel_src == MutatieTypen/v/Cplus, MutatieTypen/V/T)
 																		,case(MutatieTypen_rel_src == MutatieTypen/v/Cmin, MutatieTypen/V/O)

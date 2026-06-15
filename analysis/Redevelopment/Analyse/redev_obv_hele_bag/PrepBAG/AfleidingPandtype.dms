@@ -3,10 +3,9 @@ container AfleidingPandtype
 	parameter<uint32>  nr_x_tiles         :=  50; //oude setting 7   zie hier performance afweging: https://github.com/ObjectVision/GeoDMS/issues/816#issuecomment-2426041271
 	parameter<uint32>  nr_y_tiles         :=  50; //oude setting 13
 	parameter<float64> inflate_size       := 0.2d; //in meters
-	unit<uint8>        WP6                := /classifications/BAG/type_woonpand_src;
-	unit<uint8>        WP5                := /classifications/BAG/type_woonpand;
-	unit<uint8>        WP4                := /classifications/BAG/type_woonpand_4;
-		
+	unit<uint8>        WP5                := /classifications/BAG/WP5;
+	unit<uint8>        WP4                := /classifications/BAG/WP4;
+
 	unit<uint32> domain := ..
 	{
 		attribute<uint32> count_vbos        := sum(select/VBO_IsVoorraad ? 1 : 0, uq_pand_nr_rel);
@@ -14,9 +13,8 @@ container AfleidingPandtype
 	}
 	container results
 	{
-		attribute<uint32>        nr_buurpanden     (domain) := functioneel_pand/NeighbourCount[invert(functioneel_pand/org_rel)]; 
-		attribute<WP6>           WP6_rel           (domain) := functioneel_pand/WP6_rel[invert(functioneel_pand/org_rel)];
-		attribute<WP5>           WP5_rel           (domain) := WP6/WP5_rel[WP6_rel];
+		attribute<uint32>        nr_buurpanden     (domain) := functioneel_pand/NeighbourCount[invert(functioneel_pand/org_rel)];
+		attribute<WP5>           WP5_rel           (domain) := functioneel_pand/WP5_rel[invert(functioneel_pand/org_rel)];
 		attribute<WP4>           WP4_rel           (domain) := WP5/WP4_rel[WP5_rel];
 	}
 
@@ -33,7 +31,7 @@ container AfleidingPandtype
 	{
 		attribute<rdc>    geometry (poly) := org_rel -> pand_geometry;
 		// attribute<rdc>    geometry_inflated_20cm (poly) := org_rel -> geometry_inflated_20cm;
-		attribute<rdc>    geometry_inflated_20cm (poly) := bg_buffer_multi_polygon(geometry, 0.2d, 4b);
+		attribute<rdc>    geometry_inflated_20cm (poly) := geos_buffer_multi_polygon(geometry, 0.2d, 1b);
 		attribute<rdc>    NW              := extents/NW[org_rel];
 		attribute<rdc>    SE              := extents/SE[org_rel];
 	
@@ -50,15 +48,15 @@ container AfleidingPandtype
 		attribute<uint32> nr_woning := domain/count_woon_vbos[org_rel];
 
 		
-		attribute<WP6> WP6_rel  :=
-			  nr_woning == 0      ? WP6/V/geen_woonpand
-			: nr_woning >  1      ? WP6/V/appartement
-			: NeighbourCount == 0 ? WP6/V/vrijstaand
+		attribute<WP5> WP5_rel  :=
+			  nr_woning == 0      ? WP5/V/geen_woonpand
+			: nr_woning >  1      ? WP5/V/appartement
+			: NeighbourCount == 0 ? WP5/V/vrijstaand
 			: HasOneNeighbour
 				? IsSemiAttached
-					? WP6/V/twee_onder_1_kap
-					: WP6/V/hoekwoning
-			: WP6/V/tussenwoning;
+					? WP5/V/twee_onder_1_kap
+					: WP5/V/hoekwoning
+			: WP5/V/tussenwoning;
 	}
 
 	// parameter<uint32>  nr_x         := ModelParameters/BAG_woonpand_typering/nr_x_tiles;
@@ -110,7 +108,7 @@ container AfleidingPandtype
 
 		attribute<rdc> buffer (domain, poly) := domain/org_rel -> functioneel_pand/geometry_inflated_20cm; 
 
-		unit<uint32> neighbours := polygon_connectivity(buffer[rdc_cm])
+		unit<uint32> neighbours := geos_polygon_connectivity(buffer)
 		{
 			attribute<upoint> coded_pair := point_yx(domain/org_rel[F1], domain/org_rel[F2]);
 		}

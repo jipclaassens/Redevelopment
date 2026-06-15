@@ -16,7 +16,10 @@ container AdditionalOperations
 			attribute<int32>  vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
 			attribute<Yr>     pand_bouwjaar        := ../pand_bouwjaar[org_rel];
 			attribute<uint64> vbo_bag_nr           := ../vbo_bag_nr[org_rel];
+			attribute<uint64> pand_bag_nr          := ../pand_bag_nr[org_rel];
 			attribute<string> pand_docnum          := ../pand_docnum[org_rel];
+			attribute<string> vbo_docnum           := ../vbo_docnum[org_rel];
+			attribute<WP4>    wp4_rel              := ../wp4_rel[org_rel];
 
 			attribute<string> Site_ID              := 'NB_'+string(Site_rel);
 			attribute<m2>     site_size            := cluster_panden_docnum/site_size[Site_rel];
@@ -32,7 +35,7 @@ container AdditionalOperations
 				attribute<rdc> inflate           (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 4b);
 				attribute<rdc> dissolve          (poly) := geos_union_polygon(inflate, id(.));
 				attribute<rdc> Outer             (poly) := bg_outer_multi_polygon(Dissolve);
-				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 16b);
+				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 4b);
 				
 				attribute<m2>  site_size                := area(Deflate, m2);
 			}
@@ -51,6 +54,8 @@ container AdditionalOperations
 		attribute<uint64>  vbo_bag_nr              := union_data(., PrepDomains/S/domain/vbo_bag_nr, PrepDomains/S_nw/domain/vbo_bag_nr);
 		attribute<int32>   MutatieMaand            := union_data(., PrepDomains/S/domain/MutatieMaand, PrepDomains/S_nw/domain/MutatieMaand);
 		attribute<string>  pand_docnum             := union_data(., PrepDomains/S/domain/pand_docnum, PrepDomains/S_nw/domain/pand_docnum);
+		attribute<string>  vbo_docnum              := union_data(., PrepDomains/S/domain/vbo_docnum, PrepDomains/S_nw/domain/vbo_docnum);
+		attribute<WP4>     wp4_rel                 := union_data(., PrepDomains/S/domain/wp4_rel, PrepDomains/S_nw/domain/wp4_rel);
 		
 		attribute<bool>    IsWoon                  := union_data(., const(TRUE, PrepDomains/S/domain), const(FALSE, PrepDomains/S_nw/domain));
 
@@ -68,6 +73,7 @@ container AdditionalOperations
 			attribute<int32>  vbo_oppervlakte      := ../vbo_oppervlakte[org_rel];
 			attribute<Yr>     pand_bouwjaar        := ../pand_bouwjaar[org_rel];
 			attribute<uint64> vbo_bag_nr           := ../vbo_bag_nr[org_rel];
+			attribute<uint64> pand_bag_nr          := ../pand_bag_nr[org_rel];
 			// attribute<string> Site_ID              := 'S_'+string(id(.));
 			// attribute<m2>     site_size            := area(pand_geometry, m2);
 			// attribute<m2>     site_sum_footprint   := site_size;
@@ -77,7 +83,9 @@ container AdditionalOperations
 
 
 			attribute<string> pand_docnum          := ../pand_docnum[org_rel];
-			
+			attribute<string> vbo_docnum           := ../vbo_docnum[org_rel];
+			attribute<WP4>    wp4_rel              := ../wp4_rel[org_rel];
+
 			attribute<string> Site_ID              := 'S_'+string(Site_rel);
 			attribute<m2>     site_size            := cluster_panden_docnum/site_size[Site_rel];
 			attribute<m2>     site_sum_footprint   := sum(pand_footprint, Site_rel)[Site_rel];
@@ -314,6 +322,10 @@ container AdditionalOperations
 				attribute<Yr>     pand_bouwjaar        := Sloop/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../sloop_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Sloop/vbo_bag_nr[org_rel];
+				attribute<uint64> pand_bag_nr          := Sloop/pand_bag_nr[org_rel];
+				attribute<string> pand_docnum          := Sloop/pand_docnum[org_rel];
+				attribute<string> vbo_docnum           := Sloop/vbo_docnum[org_rel];
+				attribute<WP4>    wp4_rel              := Sloop/wp4_rel[org_rel];
 				attribute<m2>     site_size            := ../site_size[../sloop_rel][org_rel];
 				attribute<m2>     site_sum_footprint   := ../site_sum_sloop_footprint[../sloop_rel][org_rel];
 				
@@ -330,6 +342,10 @@ container AdditionalOperations
 				attribute<Yr>     pand_bouwjaar        := Sloop_NW/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../Sloop_NW_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Sloop_NW/vbo_bag_nr[org_rel];
+				attribute<uint64> pand_bag_nr          := Sloop_NW/pand_bag_nr[org_rel];
+				attribute<string> pand_docnum          := Sloop_NW/pand_docnum[org_rel];
+				attribute<string> vbo_docnum           := Sloop_NW/vbo_docnum[org_rel];
+				attribute<WP4>    wp4_rel              := Sloop_NW/wp4_rel[org_rel];
 				attribute<m2>     site_size            := ../site_size[../Sloop_NW_rel][org_rel];
 				attribute<m2>     site_sum_footprint   := ../site_sum_sloop_nw_footprint[../Sloop_NW_rel][org_rel];
 			}
@@ -342,6 +358,10 @@ container AdditionalOperations
 				attribute<Yr>     pand_bouwjaar        := Nieuwbouw/pand_bouwjaar[org_rel];
 				attribute<string> Site_ID              := ../Site_ID[../Nieuwbouw_rel][org_rel];
 				attribute<uint64> vbo_bag_nr           := Nieuwbouw/vbo_bag_nr[org_rel];
+				attribute<uint64> pand_bag_nr          := Nieuwbouw/pand_bag_nr[org_rel];
+				attribute<string> pand_docnum          := Nieuwbouw/pand_docnum[org_rel];
+				attribute<string> vbo_docnum           := Nieuwbouw/vbo_docnum[org_rel];
+				attribute<WP4>    wp4_rel              := Nieuwbouw/wp4_rel[org_rel];
 				attribute<m2>     site_size            := ../site_size[../Nieuwbouw_rel][org_rel];
 				attribute<m2>     site_sum_footprint   := ../site_sum_sloop_nb_footprint[../Nieuwbouw_rel][org_rel];
 			}

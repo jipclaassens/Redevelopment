@@ -42,6 +42,9 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				attribute<Yr>          pand_bouwjaar            := union_data(., T/domain/pand_bouwjaar, Cplus/domain/pand_bouwjaar);
 				attribute<uint64>      pand_bag_nr              := union_data(., T/domain/pand_bag_nr, Cplus/domain/pand_bag_nr);
 				attribute<uint64>      vbo_bag_nr               := union_data(., T/domain/vbo_bag_nr, Cplus/domain/vbo_bag_nr);
+				attribute<string>      pand_docnum              := union_data(., T/domain/pand_docnum, Cplus/domain/pand_docnum);
+				attribute<string>      vbo_docnum               := union_data(., T/domain/vbo_docnum, Cplus/domain/vbo_docnum);
+				attribute<WP4>         wp4_rel                  := union_data(., T/domain/wp4_rel, Cplus/domain/wp4_rel);
 				attribute<string>      Site_ID                  := 'T_'+string(id(.));
 				attribute<m2>          site_size                := area(pand_geometry, m2);
 				attribute<m2>          site_sum_footprint       := site_size;
@@ -61,6 +64,9 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				attribute<Yr>          pand_bouwjaar            := union_data(., O/domain/pand_bouwjaar, Cmin/domain/pand_bouwjaar);
 				attribute<uint64>      pand_bag_nr              := union_data(., O/domain/pand_bag_nr, Cmin/domain/pand_bag_nr);
 				attribute<uint64>      vbo_bag_nr               := union_data(., O/domain/vbo_bag_nr, Cmin/domain/vbo_bag_nr);
+				attribute<string>      pand_docnum              := union_data(., O/domain/pand_docnum, Cmin/domain/pand_docnum);
+				attribute<string>      vbo_docnum               := union_data(., O/domain/vbo_docnum, Cmin/domain/vbo_docnum);
+				attribute<WP4>         wp4_rel                  := union_data(., O/domain/wp4_rel, Cmin/domain/wp4_rel);
 				attribute<string>      Site_ID                  := 'O_'+string(id(.));
 				attribute<m2>          site_size                := area(pand_geometry, m2);
 				attribute<m2>          site_sum_footprint       := site_size;
@@ -94,6 +100,9 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// ### Identifiers
 		attribute<string>            site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_id')+')';
 		attribute<uint64>            vbo_bag_nr                      := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_bag_nr')+')';
+		attribute<uint64>            pand_bag_nr                     := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bag_nr')+')';
+		attribute<string>            pand_docnum                     := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_docnum')+')';
+		attribute<string>            vbo_docnum                      := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_docnum')+')';
 		attribute<upoint>            fdom_id                         := ='union_data(., '+AsList('point_yx(const('+string(id(Redev_ObjectTypes))+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten), id(FinalDomains/'+Redev_ObjectTypes/name+'_Objecten))',',')+')';
 		attribute<uint32>            x_coord                         := uint32(Get_X(geometry));
 		attribute<uint32>            y_coord                         := uint32(Get_Y(geometry));
@@ -117,13 +126,21 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// | `acq_cost_non_residential_eur` | numeric | € | core (stage 2) | WOZ-based price per m² × floor area, summed across non-residential units. **Specify aggregation level**: buurt, wijk, gemeente, with fallback rule. |
 		// | `acquisition_cost_total_eur` | numeric | € | core (stage 2) | Sum of the two above; primary stage-2 cost variable. |
 
+		// ### Regio identifiers
+		attribute<string>                gemeente_code                  := /SourceData/RegioIndelingen/Gemeente/GM_CODE[Gemeente_rel];
+		attribute<string>                wijk_code                      := Analyse/DetermineUrbanisationK/Wijken/WK_CODE[Wijk_rel];
+		attribute<string>                buurt_code                     := Analyse/DetermineUrbanisationK/Buurten/code[Buurt_rel];
+		attribute<string>                agglomeratie                   := /Classifications/Redev/UrbanCores_list/Agglomeration[UrbanCores_rel];
+
 		// ### Neighbourhood characteristics
 		attribute<float32>               p_owner_occupier_buurt         := Analyse/DetermineUrbanisationK/Buurten/p_owner_occupier_buurt[Buurt_rel];
 		attribute<float32>               p_socialhousing_buurt          := Analyse/DetermineUrbanisationK/Buurten/p_socialhousing_buurt[Buurt_rel];
-		attribute<float32>               UAI_2012                       := Analyse/UrbanAttractivityIndex/Read_Tiff[per_NL_grid_domain];
+		attribute<float32>               wijk_p_woningcorporatie        := Analyse/DetermineUrbanisationK/Wijken/P_HUURCORP[Wijk_rel];
+		attribute<float32>               UAI_2012                       := Analyse/UrbanAttractivityIndex/Read_Tiff[per_rdc_25m];
 		attribute<uint32>                OAD                            := Analyse/DetermineUrbanisationK/Buurten/OAD_src[Buurt_rel];
 		attribute<UrbanisationK>         UrbanisationK_rel              := Analyse/DetermineUrbanisationK/Buurten/UrbanisationK_rel[Buurt_rel];
 		attribute<bool>                  IsProtectHeritageArea          := IsDefined(point_in_polygon(geometry, /SourceData/overig/StadsDorpsGezichten/geometry));
+		attribute<bool>                  is_natura2000                  := IsDefined(point_in_polygon(geometry, /SourceData/overig/Natura2000/geometry));
 
 		// ### Friction proxies (stage 2)
 
@@ -131,8 +148,11 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// | `local_price_vol` | numeric | log-points | friction | Standard deviation of log house price growth in agglomeratie (or wijk) over 2000–2024. Real options proxy. **Spatial unit and window TBD.** |
 	
 	
-		attribute<DetermineUrbanisationK/Buurten> Buurt_rel           := point_in_polygon(geometry, DetermineUrbanisationK/Buurten/geometry), DisableStorage = "TRUE";
-		attribute<NL_grid/domain>                 per_NL_grid_domain  := geometry[NL_grid/domain];
+		attribute<DetermineUrbanisationK/Buurten>          Buurt_rel           := point_in_polygon(geometry, DetermineUrbanisationK/Buurten/geometry), DisableStorage = "TRUE";
+		attribute<DetermineUrbanisationK/Wijken>           Wijk_rel            := point_in_polygon(geometry, DetermineUrbanisationK/Wijken/geometry), DisableStorage = "TRUE";
+		attribute</SourceData/RegioIndelingen/Gemeente>    Gemeente_rel        := point_in_polygon(geometry, /SourceData/RegioIndelingen/Gemeente/geometry), DisableStorage = "TRUE";
+		attribute</Classifications/Redev/UrbanCores_list>  UrbanCores_rel      := rlookup(gemeente_code, /Classifications/Redev/UrbanCores_list/GM_CODE), DisableStorage = "TRUE";
+		attribute<rdc_25m>                                 per_rdc_25m         := geometry[rdc_25m];
 	}
 	
 	unit<uint32> Read_PerObject_Export
@@ -182,7 +202,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			attribute<int32>       LastDatum_BouwvergunningVerleend                := org_rel -> LastDatum_BouwvergunningVerleend; //tbv n2000 paper
 			attribute<uint64>      vbo_bag_nr                                  := org_rel -> vbo_bag_nr;
 			attribute<uint64>      pand_bag_nr                                 := org_rel -> pand_bag_nr;
-			
+			attribute<WP4>         wp4_rel                                     := org_rel -> pand_type;
+
 			attribute<string>      pand_docnum                                 := org_rel -> pand_docnum;
 			attribute<string>      vbo_docnum                                  := org_rel -> vbo_docnum;
 			

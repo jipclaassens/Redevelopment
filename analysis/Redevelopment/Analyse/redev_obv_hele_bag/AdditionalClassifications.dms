@@ -94,18 +94,21 @@ container AdditionalClassifications : using = "classifications/tijd"
 	{
 		attribute<string> name  : ['N', 'T', 'S', 'O', 'TMplus', 'TMmin', 'Cplus', 'Cmin','S_nw'];
 		attribute<string> label := name;
+		attribute<bool>   IsPlus : [True, True, False, False, True, False, True, False, False], Descr = "Plus-mutaties typeren op de stand ná mutatie, min-mutaties op de stand vóór mutatie (tbv pand_type).";
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	unit<uint8> MutatieTypen_Uitgesloten : nrofrows = 5
 	{
 		attribute<string> name  : ['S_rest', 'O_rest', 'TMmin_rest', 'Cplus_rest', 'Cmin_rest'];
 		attribute<string> label := name;
+		attribute<bool>   IsPlus : [False, False, False, True, False];
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	unit<uint8> MutatieTypen_UnID : nrofrows = 6
 	{
 		attribute<string> name  : ['Wp', 'Wm', 'NWp', 'NWm', 'Tp', 'Tm'];
 		attribute<string> label := name;
+		attribute<bool>   IsPlus : [True, False, True, False, True, False];
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	

@@ -4,8 +4,10 @@ container AdditionalClassifications : using = "classifications/tijd"
 	{
 		attribute<string> name : ['SN_Sloop','SN_Sloop_nw','SN_Nieuwbouw','Nieuwbouw','Toevoeging','Onttrekking','Transformatie_Plus','Transformatie_Min','Sloop','Onveranderd'];
 		attribute<string> label := name;
-		
+
 		attribute<bool> IsRelevantSaldi := name != 'Onveranderd' && name != 'Sloop' && name != 'SN_Sloop_nw';
+		//                                  SN_Sloop SN_Sloop_nw SN_Nieuwbouw Nieuwbouw Toevoeging Onttrekking Transformatie_Plus Transformatie_Min Sloop Onveranderd
+		attribute<bool> IsWoon         : [   TRUE,   FALSE,      TRUE,        TRUE,     TRUE,      TRUE,       TRUE,              FALSE,            TRUE, TRUE], Descr = "Woonfunctie van het object in zijn relevante (uitkomst-)toestand. Alleen SN_Sloop_nw en Transformatie_Min betreffen niet-woon. Voor incumbent-waardering: incumbent van Transformatie_Plus = niet-woon, van Transformatie_Min = woon (zie verwervingskosten-ontwerp).";
 		
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		

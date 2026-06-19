@@ -118,6 +118,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<yr>                obj_building_year               := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bouwjaar')+')';
 		attribute<int32>             obj_floor_area_res_m2           := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_oppervlakte')+')';
 		attribute<WP4>               obj_housetype                   := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/wp4_rel')+')';
+		attribute<bool>              obj_is_woonfunctie              := Redev_ObjectTypes/IsWoon[redev_type];
 
 
 		// ### Acquisition cost (incumbent value)

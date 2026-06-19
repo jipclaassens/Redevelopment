@@ -110,7 +110,7 @@ container AfleidingPandtype
 
 		unit<uint32> neighbours := geos_polygon_connectivity(buffer)
 		{
-			attribute<upoint> coded_pair := point_yx(domain/org_rel[F1], domain/org_rel[F2]);
+			attribute<upoint> coded_pair := point_yx(domain/org_rel[first_rel], domain/org_rel[second_rel]);
 		}
 	}
 	

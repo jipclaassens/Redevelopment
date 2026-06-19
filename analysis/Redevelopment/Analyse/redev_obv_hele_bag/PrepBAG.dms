@@ -1022,37 +1022,45 @@ container PrepBAG : using = "AdditionalClassifications"
 				
 				attribute<bool>                    IDEN_N                := switch(
 																					 case(Correctie_2e_Instantie/IDEN_N && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
-																					,Correctie_2e_Instantie/IDEN_N
+																					,Correctie_2e_Instantie/IDEN_N && IsCarrier_woon
 																				);
 				attribute<bool>                    IDEN_T                := switch(
 																					 case(Correctie_2e_Instantie/IDEN_T && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
-																					,Correctie_2e_Instantie/IDEN_T
+																					,Correctie_2e_Instantie/IDEN_T && IsCarrier_woon
 																				);
 				attribute<bool>                    IDEN_S                := switch(
 																					 case(Correctie_2e_Instantie/IDEN_S && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
-																					,Correctie_2e_Instantie/IDEN_S
+																					,Correctie_2e_Instantie/IDEN_S && IsCarrier_woon
 																				);
 				attribute<bool>                    IDEN_O                := switch(
 																					 case(Correctie_2e_Instantie/IDEN_O && saldo == 0i, FALSE)                                            //saldering 'mutatie in 1e instantie'
-																					,Correctie_2e_Instantie/IDEN_O
+																					,Correctie_2e_Instantie/IDEN_O && IsCarrier_woon
 																				);
 				attribute<bool>                    IDEN_TMplus           := switch(
 																					 case(Correctie_2e_Instantie/IDEN_TMplus && saldo == 0i, FALSE)                                       //saldering 'mutatie in 1e instantie'
-																					,Correctie_2e_Instantie/IDEN_TMplus
+																					,Correctie_2e_Instantie/IDEN_TMplus && IsCarrier_woon
 																				);
 				attribute<bool>                    IDEN_TMmin           := switch(
 																					 case(Correctie_2e_Instantie/IDEN_TMmin && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
-																					,Correctie_2e_Instantie/IDEN_TMmin
+																					,Correctie_2e_Instantie/IDEN_TMmin && IsCarrier_woon
 																				);
 				attribute<bool>                    IDEN_Cplus            := switch(
 																					 case(Correctie_2e_Instantie/IDEN_Cplus && saldo == 0i, FALSE)                                        //saldering 'mutatie in 1e instantie'
-																					,Correctie_2e_Instantie/IDEN_Cplus
+																					,Correctie_2e_Instantie/IDEN_Cplus && IsCarrier_woon
 																				);
 				attribute<bool>                    IDEN_Cmin             := switch(
 																					 case(Correctie_2e_Instantie/IDEN_Cmin && saldo == 0i, FALSE)                                         //saldering 'mutatie in 1e instantie'
-																					,Correctie_2e_Instantie/IDEN_Cmin
+																					,Correctie_2e_Instantie/IDEN_Cmin && IsCarrier_woon
 																				);
-				attribute<bool>                    IDEN_S_NW             := Correctie_2e_Instantie/IDEN_S_NW;
+				attribute<bool>                    IDEN_S_NW             := Correctie_2e_Instantie/IDEN_S_NW && IsCarrier_snw;
+
+				// dedup (CBS: max 1 mutatie per (vbo, verslagmaand)). Hou per vbo de eerste rij (kleinste id) met een candidaat-typering;
+				// directional clearing + prioriteit lieten per vbo al hoogstens 1 type over, dus dit ontdubbelt alleen meerdere rijen van datzelfde type.
+				attribute<bool>                    AnyWoonCand     := (Correctie_2e_Instantie/IDEN_N || Correctie_2e_Instantie/IDEN_T || Correctie_2e_Instantie/IDEN_S || Correctie_2e_Instantie/IDEN_O || Correctie_2e_Instantie/IDEN_TMplus || Correctie_2e_Instantie/IDEN_TMmin || Correctie_2e_Instantie/IDEN_Cplus || Correctie_2e_Instantie/IDEN_Cmin) && saldo != 0i;
+				attribute<uint32>                  CarrierRow_woon := min(AnyWoonCand                      ? id(.) : #., uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<uint32>                  CarrierRow_snw  := min(Correctie_2e_Instantie/IDEN_S_NW ? id(.) : #., uq_vbo_nr_rel)[uq_vbo_nr_rel];
+				attribute<bool>                    IsCarrier_woon  := id(.) == CarrierRow_woon;
+				attribute<bool>                    IsCarrier_snw   := id(.) == CarrierRow_snw;
 																				
 			}
 																			

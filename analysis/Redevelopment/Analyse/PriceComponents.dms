@@ -14,16 +14,29 @@ container PriceComponents
 	#include<PrijsIndex.dms>
 	#include<Grondproductiekosten.dms>
 	#include<Verwervingskosten.dms>
-	
-	container Sloopkosten := 
+
+	unit<uint8> ExportCoefficients_WP4 := /Classifications/BAG/HouseCharacteristics_src
+	, Descr = "Hedonische coefficienten per WP4, tbv prijsreconstructie in R (prijs = exp(sum(coef*char))). Regenereren na hedoon-herschatting, issue #20."
+	{
+		attribute<string>  coef_name        := name;
+		// estimate komt als String uit de CSV (gdal.vect zonder .csvt), dus expliciet naar float64 casten; zelfde patroon als PrijsIndex/Result.
+		attribute<float64> vrijstaand       := rjoin(lowercase(name), lowercase(PrijsIndex/ReadCoefficients_WP4/vrijstaand/AdminDomain/name),       PrijsIndex/ReadCoefficients_WP4/vrijstaand/AdminDomain/estimate)[float64];
+		attribute<float64> twee_onder_1_kap := rjoin(lowercase(name), lowercase(PrijsIndex/ReadCoefficients_WP4/twee_onder_1_kap/AdminDomain/name), PrijsIndex/ReadCoefficients_WP4/twee_onder_1_kap/AdminDomain/estimate)[float64];
+		attribute<float64> rijtjeswoning    := rjoin(lowercase(name), lowercase(PrijsIndex/ReadCoefficients_WP4/rijtjeswoning/AdminDomain/name),    PrijsIndex/ReadCoefficients_WP4/rijtjeswoning/AdminDomain/estimate)[float64];
+		attribute<float64> appartement      := rjoin(lowercase(name), lowercase(PrijsIndex/ReadCoefficients_WP4/appartement/AdminDomain/name),      PrijsIndex/ReadCoefficients_WP4/appartement/AdminDomain/estimate)[float64];
+		// CSV-export (controleer StorageType in GUI voor non-spatiale CSV):
+		// , StorageName = "='%LocalDataProjDir%/Temp/PriceCoefficients_WP4_'+Parameters/NVM_filedate+'.csv'", StorageType = "gdalwrite.vect"
+	}
+
+	container Sloopkosten :=
 		for_each_nedv(
-			Classifications/Vastgoed/WP4/name
-			, 'MakeDefined(SourceData/Vastgoed/BAG/PerJaar/Y'+string(ModelParameters/Model_StartYear)+'/VBO/per_Gebruiksdoel/woon/Select/Oppervlaktes/per_WP4_AdminDomain/'+Classifications/Vastgoed/WP4/name+' * 1[verblijfsobject] * /ModelParameters/Wonen/Sloopkosten/'+Classifications/Vastgoed/WP4/name+', 0[eur])' 
+			Classifications/BAG/WP4/name
+			, 'MakeDefined(SourceData/Vastgoed/BAG/PerJaar/Y'+string(/Parameters/Model_StartYear)+'/VBO/per_Gebruiksdoel/woon/Select/Oppervlaktes/per_WP4_AdminDomain/'+Classifications/BAG/WP4/name+' * 1[verblijfsobject] * /Parameters/Sloopkosten/'+Classifications/BAG/WP4/name+', 0[eur])'
 			, AdminDomain
 			, eur
 		), Descr = "Haal de woning oppervlak per woningtype op"
 	{
-		attribute<eur> Totaal               (AdminDomain) := ='add('+AsItemList(Classifications/Vastgoed/WP4/name)+')';
-		attribute<eur> Totaal_niet_woningen (AdminDomain) := ='SourceData/Vastgoed/BAG/PerJaar/Y'+string(ModelParameters/Model_StartYear)+'/pand/Oppervlaktes/VBOopp_perGebruiksdoel/niet_woon_AdminDomain * /ModelParameters/Wonen/Sloopkosten/Kantoor';
-	} 
+		attribute<eur> Totaal               (AdminDomain) := ='add('+AsItemList(Classifications/BAG/WP4/name)+')';
+		attribute<eur> Totaal_niet_woningen (AdminDomain) := ='SourceData/Vastgoed/BAG/PerJaar/Y'+string(/Parameters/Model_StartYear)+'/pand/Oppervlaktes/VBOopp_perGebruiksdoel/niet_woon_AdminDomain * /Parameters/Sloopkosten/kantoor';
+	}
 }

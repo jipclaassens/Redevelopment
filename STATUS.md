@@ -73,7 +73,7 @@ Achterhaald door de componenten→R-aanpak; uitcommentariëren of laten staan:
 
 1. **GUI-verificatie** (checklist hierboven) → dan de twee gewijzigde .dms-files committen.
 2. **WOZ-pipeline niet-woningen bouwen** (laatste GeoDMS-gat in #13 fase 1) — voorstel hieronder, wacht op go.
-3. **#18–20** (OV-knooppuntvariabele, UAI 2012, hedoon-herschatting zonder groen): wordt opgepakt in een **andere config** (NVM-schattingskant). Daarna hier: coef-CSV regenereren, `loc_tt_station2006_min`-placeholder vervangen, naam-mapping bijwerken.
+3. **#18–20** (OV-knooppuntvariabele, UAI 2012, hedoon-herschatting zonder groen): wordt opgepakt in de **NVM-schattingskant = `C:\ProjDir\_Tools\PriceIndices`**. Daar staat sinds 2026-07-11 een R-pipeline (Stata vervangen; zie CLAUDE.md + R/README.md aldaar): merge/clean van de ruwe leveringen draait en is gevalideerd; de R-schattingsstap reproduceert `Estimates_20251024_*.csv` exact (max Δ ~5e-8). Nieuw estimates-format met expliciete termnamen (`bouwperiode_1926_1950`, `trans_year_2012`, `constant`) → naam-mapping in PrijsIndex.dms wordt daarmee bijna 1-op-1 (en Y2024/25-probleem vervalt). Wacht op: GeoDMS-geocodering van de nieuwe schone set + #18/#19/#20-variabelen, dan redev-spec schatten.
 4. **R-kant opzetten** (#16): mmd/CSV inlezen, site-aggregatie, k-means (#13 fase 2: cluster-kenmerken → alternatieven), estimatie.
 5. **Paper bijwerken** (kan parallel): zie inconsistenties hieronder.
 6. Mutatietypering documenteren als md voor de wiki; sensitiviteit 2e-instantie C+-trigger (telt eerdere C+ mee bij CBS?) nog waard om te draaien.

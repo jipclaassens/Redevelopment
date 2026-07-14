@@ -42,7 +42,7 @@ Resultaat (153,9k mutaties; 2.929 = 1,9% verandert van type; saldo +79.322→+79
 3. **Beide mmd's regenereren** — doet Jip zelf.
 4. ~~Verschillenanalyse opvragen~~ — binnen en verwerkt (wiki §13).
 5. ~~Committen~~ — gedaan (14-07): typering-fixes #21–#24, exportitem, URL-refs, hernoemde/nieuwe CBS-pdf's, verslagmaanden t/m 2026-06, bouwjaar-cast; oude Afleiden_woonvoorraad.pdf verwijderd. **Push nog niet gedaan.**
-6. #26: besluit = optie 2 (flag). Geen config-wijziging nodig: flag in R afleidbaar uit bestaande exportkolommen (`redev_type == Nieuwbouw && redev_yearmonth in 2012xx && obj_building_year <= 2010`); daar in estimatie op filteren/dummy (= optie 3 als robuustheid). Upgrade-pad: CBS-koppeltabel BAG↔Woningregister (xls op trendbreuk-pagina) — eerst inspecteren of er VBO-id's in zitten.
+6. #26: besluit = optie 2 (flag). Geen config-wijziging nodig: flag in R afleidbaar uit bestaande exportkolommen (`redev_type == Nieuwbouw && redev_yearmonth in 2012xx && obj_building_year <= 2010`); daar in estimatie op filteren/dummy (= optie 3 als robuustheid). ~~Upgrade-pad koppeltabel~~ — geïnspecteerd (14-07): xls is een landelijk aggregaat (kruistabel WR-typering × BAG-functie × BAG-status per 1-1-2012, geen microdata) → bouwjaar-proxy in R blijft de aanpak. Bijvangst: ±29,4 dzd WR-woningen stonden per 1-1-2012 als 'gevormd' in de BAG (het reservoir van de 2012-dubbeltellingen) — plausibiliteitscheck voor de proxy-omvang.
 7. ~~Oude 81955-pdf~~ — verwijderd bij commit.
 8. ~~Stikstof-fork~~ — door Jip al gecommit.
 

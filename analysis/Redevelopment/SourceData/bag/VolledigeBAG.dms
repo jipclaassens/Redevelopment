@@ -154,7 +154,7 @@ container VolledigeBAG : using = "classifications/BAG"
 			attribute<string>                       DOCUMENTNUMMER               := impl/DOCUMENTNUMMER;
 			attribute<int32>                        begindatum                   := impl/begindatum0 < 19600101i ? impl/TIJDSTIPREGISTRATIE : impl/begindatum0;
 			attribute<int32>                        einddatum                    := impl/einddatum0 < 19600101i ? impl/EINDREGISTRATIE : impl/einddatum0;
-			attribute<yr>                           bouwjaar                     := import/bouwjaar;
+			attribute<yr>                           bouwjaar                     := import/bouwjaar[yr];
 			attribute<yr>                           bouwjaar_trunc               := =replace(parameters/bouwjaar_truncation_expr, '@YYYY@', '2025');
 			
 			attribute<Bool>                         IsLogistiekFunctie           := IsDefined(rlookup(pand_bag_nr, SourceData/Overig/Logistiek_panden/Logistics/pand_bag_nr));

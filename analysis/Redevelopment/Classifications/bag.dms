@@ -222,7 +222,7 @@ container BAG: using = "units"
 		attribute<bool>      IsInPlanvorming : [FALSE,  TRUE,  TRUE,  FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
 		attribute<bool>      IsInAanbouw     : [TRUE,   FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE];
 		attribute<bool>      IsInGebruik     : [FALSE,  FALSE, FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
-		attribute<bool>      IsVoorraad      : [FALSE,  FALSE, FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE];
+		attribute<bool>      IsVoorraad      : [FALSE,  FALSE, FALSE, TRUE,  FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE], Descr = "Bewuste afwijking van CBS levensloop 86098 (par. 4.4, analysis/data/levensloop-afleiding-technische-beschrijving.pdf): daar telt 'Sloopvergunning verleend' als pand-in-voorraad (hulpdefinitie voor hun sloop/onttrekking-afleiding). Hier FALSE: onze S/O-regels gebruiken expliciete statuslijsten plus de 100-dagenregel (issue #21), en de correctie-heuristieken verwachten deze definitie. Zie issue #25.";
 		attribute<bool>      IsIngetrokken   : [FALSE,  FALSE, TRUE,  FALSE, TRUE,  FALSE, FALSE, TRUE,  TRUE,  FALSE];
 		attribute<bool>      IsInSloop       : [FALSE,  FALSE, FALSE, TRUE,  TRUE,  FALSE, FALSE, TRUE,  TRUE,  FALSE];
 		

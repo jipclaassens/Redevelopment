@@ -16,7 +16,7 @@ container Redevelopment
 		parameter<string>  StudyArea                       := 'AMS';  //'Nederland', 'AMS'
 		
 		parameter<bool>    Use_Ontkoppelde_FinalMutations  := TRUE; // TRUE FALSE
-		parameter<Bool>      BAG_WP5_rel_Ontkoppeld        := TRUE, Descr = "Voor debug doeleinden; tijdens het debuggen is het onhandig om telkens dit te laten uitrekenen. Normaal kan dit dus op FALSE stsaan. Het wordt overigens in de SD ontkoppeld.";
+		parameter<Bool>    BAG_WP5_rel_Ontkoppeld          := TRUE, Descr = "Voor debug doeleinden; tijdens het debuggen is het onhandig om telkens dit te laten uitrekenen. Normaal kan dit dus op FALSE stsaan. Het wordt overigens in de SD ontkoppeld.";
 
 		parameter<m>       big_inflate_m                   := 10[m]; //10m
 		parameter<m>       small_inflate_m                 := 5[m]; //10m
@@ -34,7 +34,7 @@ container Redevelopment
 		parameter<int16>   Model_StartYear                 := 2023[int16];
 		parameter<string>  BRT_file_date                   := '20250318';
 		parameter<string>  BRK_file_date                   := '20231206';
-		parameter<string>  BAG_file_date                   := '20260108'; //'20240708'; 20250115 20251009 20260108
+		parameter<string>  BAG_file_date                   := '20260710'; //'20240708'; 20250115 20251009 20260108
 		parameter<UInt32>  BAG_RecentYear                  :=  2026, Descr = "Wat is het meest recent beschikbare jaar van de BAG";
 		parameter<string>  RegioIndelingenJaar             := '2025';
 		parameter<String>  NVM_filedate                    := '20251024', Descr = "Welke bestandsdatum van de NVM-coefficienen moet worden gebruikt";

@@ -1,0 +1,36 @@
+container ExportMutatieVergelijking : using = "AdditionalClassifications"
+, Descr = "Tbv vergelijking oude vs nieuwe (CBS 86098-conforme, issues #21-#24) mutatietypering. "
+          "Schrijft 1 CSV-rij per mutatierij (vbo, maand, type) uit de typering, zonder de Write_FinalMutationTable-storage "
+          "of de (zware) pandtypering te triggeren. Draaien op /Analyse/Redev_obv_hele_bag/ExportMutatieVergelijking/Rijen."
+{
+	parameter<string> suffix := /Parameters/BAG_Selection_Area + '_' + /Parameters/BAG_file_date;
+
+	unit<uint32> MT := ='union_unit('+AsItemList('PrepBAG/Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
+	{
+		attribute<uint64>                   vbo_bag_nr                   := ='union_data(.,'+AsItemList('PrepBAG/Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/vbo_bag_nr')+')';
+		attribute<uint64>                   pand_bag_nr                  := ='union_data(.,'+AsItemList('PrepBAG/Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_bag_nr')+')';
+		attribute<int32>                    MutatieMaand                 := ='union_data(.,'+AsItemList('PrepBAG/Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieMaand')+')';
+		attribute<MutatieTypen>             MutatieTypen_rel_src         := ='union_data(.,'+AsItemList('PrepBAG/Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_rel')+')';
+		attribute<MutatieTypen_UnID>        MutatieTypen_UnID_rel        := ='union_data(.,'+AsItemList('PrepBAG/Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_UnID_rel')+')';
+		attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel := ='union_data(.,'+AsItemList('PrepBAG/Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_Uitgesloten_rel')+')';
+	}
+
+	unit<uint32> Rijen := MT
+	, StorageName = "='%LocalDataProjDir%/Temp/MutatieRijen_'+suffix+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	{
+		attribute<uint64> vbo_bag_nr   := MT/vbo_bag_nr;
+		attribute<uint64> pand_bag_nr  := MT/pand_bag_nr;
+		attribute<int32>  MutatieMaand := MT/MutatieMaand;
+		attribute<string> MutatieType  := MakeDefined(
+												 MutatieTypen/name[MT/MutatieTypen_rel_src]
+												,MakeDefined(
+													 'UnID_' + MutatieTypen_UnID/name[MT/MutatieTypen_UnID_rel]
+													,MakeDefined(
+														 'Rest_' + MutatieTypen_Uitgesloten/name[MT/MutatieTypen_Uitgesloten_rel]
+														,'onbekend'
+													)
+												)
+											);
+	}
+}

@@ -189,8 +189,8 @@ container VolledigeBAG : using = "classifications/BAG"
 						attribute<UInt32>    Sequence_rel_Reversed := reverse(Sequence_rel);
 					}
 					
-					attribute<meter2>    area_reversed            := area(geometry_reversed, meter2);
-					attribute<rdc_meter> geometry_reversed (poly) := points2sequence(seq_points/points_reversed, seq_points/Sequence_rel_Reversed);
+					attribute<m2>        area_reversed            := area(geometry_reversed, m2);
+					attribute<rdc_meter> geometry_reversed (poly) := points2polygon(seq_points/points_reversed, seq_points/Sequence_rel_Reversed);
 				}
 			
 			

@@ -110,7 +110,7 @@ container AfleidingPandType
 		attribute<UInt32> max_y  := min_y + size_y, Descr = "Max y-coordinaat van de rechthoek in rdc_meter";
 		
 		// for visualisation
-		attribute<rdc_meter> geometry (poly) := points2sequence(point_set/point, point_set/Sequence_rel); //, point_set/ordinal), Descr = "De geometrie van de rechthoek voor visualisatie.";
+		attribute<rdc_meter> geometry (poly) := points2polygon(point_set/point, point_set/Sequence_rel); //, point_set/ordinal), Descr = "De geometrie van de rechthoek voor visualisatie.";
 		attribute<rdc_meter> top_left     := point_xy(float32(min_x), float32(max_y), rdc_meter); 
 		attribute<rdc_meter> top_right    := point_xy(float32(max_x), float32(max_y), rdc_meter);
 		attribute<rdc_meter> bottom_left  := point_xy(float32(min_x), float32(min_y), rdc_meter);

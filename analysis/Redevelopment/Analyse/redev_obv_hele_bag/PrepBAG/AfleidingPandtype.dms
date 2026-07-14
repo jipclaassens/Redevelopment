@@ -78,7 +78,7 @@ container AfleidingPandtype
 		attribute<uint32> max_y  := min_y + size_y;
 		
 		// for visualisation
-		attribute<rdc> geometry (poly) := points2sequence(point_set/point, point_set/sequence_rel); //, point_set/ordinal);
+		attribute<rdc> geometry (poly) := points2polygon(point_set/point, point_set/sequence_rel); //, point_set/ordinal);
 		attribute<rdc> top_left     := point_xy(float64(min_x), float64(max_y), rdc); 
 		attribute<rdc> top_right    := point_xy(float64(max_x), float64(max_y), rdc);
 		attribute<rdc> bottom_left  := point_xy(float64(min_x), float64(min_y), rdc);

@@ -120,10 +120,10 @@ container AdditionalClassifications : using = "classifications/tijd"
 		attribute<string> maand := Maanden/name[second_rel];
 	}
 	
-	unit<uint32> Verslagmaanden_additional : nrofrows = 6 //7
+	unit<uint32> Verslagmaanden_additional : nrofrows = 7 //7
 	{
-		attribute<string> jaar  : ['2026','2026','2026','2026','2026','2026'];
-		attribute<string> maand : ['01'  ,'02'  ,'03'  ,'04'  ,'05'  ,'06'];
+		attribute<string> jaar  : ['2026','2026','2026','2026','2026','2026','2026'];
+		attribute<string> maand : ['01'  ,'02'  ,'03'  ,'04'  ,'05'  ,'06'  ,'07'];
 		// attribute<string> jaar  : ['2026'];
 		// attribute<string> maand : ['01'];
 	}

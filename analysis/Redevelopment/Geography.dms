@@ -37,7 +37,7 @@ container geography : using = "units"
 			attribute<.>    ordinal      := id(.);
 		}
 		
-		attribute<rdc> geometry (poly)      := points2sequence(point_set/point, point_set/sequence_rel, point_set/ordinal);
+		attribute<rdc> geometry (poly)      := points2polygon(point_set/point, point_set/sequence_rel, point_set/ordinal);
 		parameter<rdc> geometry_param (poly) := geometry[0[.]];
 	}
 	
@@ -55,7 +55,7 @@ container geography : using = "units"
 			attribute<.>    ordinal      := id(.);
 		}
 		
-		attribute<rdc> geometry (poly)      := points2sequence(point_set/point, point_set/sequence_rel, point_set/ordinal);
+		attribute<rdc> geometry (poly)      := points2polygon(point_set/point, point_set/sequence_rel, point_set/ordinal);
 	}
 	
 	#include <ngr_layer.dms>
@@ -102,7 +102,7 @@ container geography : using = "units"
 	unit<uint32> TileDomain       := NL_grid/perGridsize/size_1000m/points
 	{
 		attribute<rdc>         geometry                 := NL_grid/perGridsize/size_1000m/points/geometry;
-		attribute<rdc>         geometry_poly     (poly) := points2sequence(makepoly/Point, makepoly/SeqNr, makepoly/Ordinal);
+		attribute<rdc>         geometry_poly     (poly) := points2polygon(makepoly/Point, makepoly/SeqNr, makepoly/Ordinal);
 		
 		unit<uint32> makepoly:= union_unit(., ., ., ., .) 
 		{

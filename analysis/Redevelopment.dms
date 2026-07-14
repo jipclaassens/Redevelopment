@@ -4,7 +4,7 @@ container Redevelopment
 	{
 		parameter<string> MaakVolledigeBAGTabel                := 'Ready', ExplicitSuppliers = "/SourceData/Vastgoed/BAG/MaakVolledigeBAG/MaakVolledigeBAGTabel";
 		parameter<string> Write_Relevant_Tiles_x_WegSpoor      := 'Ready', ExplicitSuppliers = "/SourceData/Grondgebruik/BRT/Write_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor";
-		parameter<string> UrbanAttractivityIndex               := 'Ready', ExplicitSuppliers = "/Analyse/UrbanAttractivityIndex/Make_Tiff";
+		// parameter<string> UrbanAttractivityIndex               := 'Ready', ExplicitSuppliers = "/Analyse/UrbanAttractivityIndex/Make_Tiff";
 		parameter<string> Write_IsMogelijkWoningCorporatiePand := 'Ready', ExplicitSuppliers = "/SourceData/Vastgoed/BAG/VolledigeBAG/panden/Src/Write_IsMogelijkWoningCorporatiePand";
 		parameter<string> Write_FinalMutationTable             := 'Ready', ExplicitSuppliers = "/Analyse/Redev_obv_hele_bag/PrepBAG/Write_FinalMutationTable";
 		parameter<string> PerObject_Export                     := 'Ready', ExplicitSuppliers = "/Analyse/Redev_obv_hele_bag/PerObject_Export";
@@ -13,7 +13,7 @@ container Redevelopment
 	container Parameters : using = "units"
 	{
 		parameter<string>  BAG_Selection_Area              := StudyArea;
-		parameter<string>  StudyArea                       := 'AMS';  //'Nederland', 'AMS'
+		parameter<string>  StudyArea                       := 'Nederland';  //'Nederland', 'AMS'
 		
 		parameter<bool>    Use_Ontkoppelde_FinalMutations  := TRUE; // TRUE FALSE
 		parameter<Bool>    BAG_WP5_rel_Ontkoppeld          := TRUE, Descr = "Voor debug doeleinden; tijdens het debuggen is het onhandig om telkens dit te laten uitrekenen. Normaal kan dit dus op FALSE stsaan. Het wordt overigens in de SD ontkoppeld.";

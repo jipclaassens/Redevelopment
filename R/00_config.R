@@ -65,3 +65,20 @@ cfg$kmeans_k_final   <- 6        # definitieve K; heroverwegen na elbow-plot
 cfg$kmeans_nstart    <- 50
 cfg$winsor_p         <- c(0.01, 0.99)
 cfg$kmeans_seed      <- 20260716
+
+## -- kostenkentallen (stap 2: residual value = revenue - grondproductie - bouw) --
+## Bron: RSopen_NL2120 ModelParameters/Wonen (2023-waarden, consistent met prijspeil_jaar).
+## Grondproductiekosten zitten als Eur/ha-grids in de export (loc_grondprod_eur_ha[_low|_high],
+## 2023-peil): kosten site = Eur/ha x site_size/1e4.
+cfg$prijsindex_bouw_2017_2023 <- 1.29    # CBS 83887NED, inputprijsindex bouwkosten nieuwbouw, 2017=100
+# CBS 83673NED (uitgelezen sept 2025): nieuwbouw-bouwkosten Eur per m2 BVO(!), per landsdeel, 2023
+cfg$bouwkosten_2023 <- data.table(
+  landsdeel    = c("Noord-Nederland", "Oost-Nederland", "West-Nederland", "Zuid-Nederland"),
+  koop_eur_m2  = c(1193, 1100, 1233, 1089),
+  huur_eur_m2  = c(1220, 1190, 1379, 1108))
+# vormfactor = woonoppervlak / BVO (PBL expert judgement): BVO = woonopp / vormfactor
+cfg$vormfactor <- c(eengezins = 0.76, meergezins = 0.78, hoogbouw = 0.65)
+# sloopkosten Eur per m2 footprint?/BVO, bouwkostenkompas.nl 2017-kentallen -> x index naar 2023
+cfg$sloopkosten_2017 <- c(rijtjeswoning = 22, twee_onder_1_kap = 40, vrijstaand = 57,
+                          appartement = 22, kantoor = 25)
+cfg$sloopkosten_2023 <- cfg$sloopkosten_2017 * cfg$prijsindex_bouw_2017_2023

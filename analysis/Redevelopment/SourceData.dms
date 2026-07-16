@@ -109,6 +109,28 @@ container SourceData :  using = "units;geography;classifications"
 				MakeDefined(Reistijd_500k_2024_sec_src[rdc_25m/rdc_100m_rel], max(Reistijd_500k_2024_sec_src)) / 60f
 				, 120f
 			), Descr = "Reistijd naar 500.000 inwoners in float-minuten, gemaximeerd op 120; schaal identiek aan schattingsinput van coef lntt_500k_2024";
+
+		// Grondproductiekosten (PBL/Fakton-schattingsmodel, RuimteScanner-implementatie): Eur/ha op 25m,
+		// 2017-schatting x bouwkostenindex naar 2023 (= prijspeil van de hedonische waardering). Geexporteerd
+		// uit C:/ProjDir/RSopen_NL2120 via /ExportRedevKosten/Generate (Model_StartYear 2023); drie
+		// onzekerheidsvarianten: RS-default Nominaal_High + bandbreedte Low_Low / High_High. Issue #16 stap 2.
+		container Grondproductiekosten
+		{
+			attribute<float32> Nominaal_High (rdc_25m)
+			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023/Nominaal_High.tif"
+			,	StorageType = "gdal.grid", StorageReadOnly = "True"
+			,	Descr = "Grondproductiekosten Eur/ha, nominale coefficienten + High-keuze controlevariabelen (RS-default)";
+
+			attribute<float32> Low_Low (rdc_25m)
+			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023/Low_Low.tif"
+			,	StorageType = "gdal.grid", StorageReadOnly = "True"
+			,	Descr = "Grondproductiekosten Eur/ha, ondergrens bandbreedte";
+
+			attribute<float32> High_High (rdc_25m)
+			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023/High_High.tif"
+			,	StorageType = "gdal.grid", StorageReadOnly = "True"
+			,	Descr = "Grondproductiekosten Eur/ha, bovengrens bandbreedte";
+		}
 		
 		attribute<bool>      BBG_groen_100mbuff       (rdc_25m) : StorageName = "%Alt_DataDir%/Overig/BBG_groen_100mbuff.tif";
 		// attribute<bool>      BBG_groen_100mbuff_100m       (rdc_100m) := modus(BBG_groen_100mbuff, rdc_25m/rdc_100m_rel);

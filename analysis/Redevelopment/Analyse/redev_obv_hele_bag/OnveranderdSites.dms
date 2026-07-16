@@ -1,0 +1,77 @@
+// Potentiele-site-vorming voor de ONVERANDERDE woonvoorraad (issue #17), sessie 2026-07-16.
+//
+// Stage 2 van het paper vergelijkt herontwikkelde sites met niet-herontwikkelde; die laatste moeten met
+// dezelfde vormingslogica tot 'sites' geclusterd worden als de waargenomen SN-sites, anders vergelijkt de
+// binomiale logit multi-pand-projecten met losse panden. Deze container past daarom exact dezelfde
+// buffer-machinerie toe als AdditionalOperations/SN (inflate big_inflate_m -> knip op weg/spoor ->
+// split-union -> terugvoegen pandgeometrieen -> split-union): aaneengesloten voorraadpanden binnen een
+// blok (niet gescheiden door weg/spoor) vormen samen een potentiele herontwikkelingssite.
+//
+// Validatie (de vergelijkingsvraag in #17): VergelijkGrootte exporteert de site-groottedistributie van
+// deze potentiele sites naast die van de gerealiseerde SN-sites. Een eventuele cap op mega-sites
+// (aaneengesloten rijtjesblokken!) is een R-side besluit op basis van die vergelijking.
+container OnveranderdSites
+{
+	unit<uint32> Bron := PrepBAG/BAG_Tabel/Onveranderd_Woon/uq; // 1 rij per onveranderde woon-VBO
+
+	unit<uint32> Panden := unique(Bron/pand_bag_nr)
+	{
+		attribute<uint64> pand_bag_nr      := values;
+		attribute<Bron>   Bron_rel         := rlookup(pand_bag_nr, Bron/pand_bag_nr);
+		attribute<rdc>    geometry  (poly) := Bron/pand_geometry[Bron_rel];
+		attribute<m2>     area_pand        := area(geometry, m2);
+
+		//buffer om de panden heen zodat aangrenzende voorraadpanden samenclusteren (zelfde parameter als SN)
+		attribute<rdc>    inflate   (poly) := geos_buffer_multi_polygon(geometry, parameters/big_inflate_m[float64], 4b);
+
+		//buffers mogen niet over weg of spoor heen: die scheiden sites (zelfde knip als SN)
+		unit<uint32> PandenBuffer_x_WegSpoor       := geos_overlay_polygon(inflate, SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+		unit<uint32> PandenBuffer_x_WegSpoor_Split := geos_split_union_polygon(PandenBuffer_x_WegSpoor/geometry)
+		{
+			attribute<rdc> geometry_rd (poly) := geometry;
+		}
+		//bufferdelen die door een weg zijn afgesneden eruit filteren
+		unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden := geos_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry_rd, geometry)
+		{
+			attribute<rdc> Cleaned (poly) := PandenBuffer_x_WegSpoor_Split/geometry_rd[first_rel];
+		}
+	}
+
+	//dissolve van de gecleande buffers + terugvoegen van de originele pandgeometrieen (delen kunnen door
+	//de knip zijn weggevallen), analoog aan SN/Union_with_original_geometry -> SN/Result
+	unit<uint32> Union_with_original_geometry := union_unit(Panden/PandenBuffer_Minus_WegSpoor_x_Panden, Panden)
+	{
+		attribute<rdc> geometry (poly) := union_data(., Panden/PandenBuffer_Minus_WegSpoor_x_Panden/Cleaned, Panden/geometry);
+	}
+
+	unit<uint32> Result := geos_split_union_polygon(Union_with_original_geometry/geometry)
+	, DialogData = "geometry_rd", DialogType = "map"
+	{
+		attribute<rdc>    geometry_rd (poly) := geometry[rdc];
+		attribute<string> Site_ID            := 'OnvS_'+string(id(.));
+		attribute<m2>     site_size          := area(geometry_rd, m2);
+
+		attribute<.>      Panden_rel (Panden)  := point_in_polygon(centroid_or_mid(Panden/geometry), geometry_rd);
+		attribute<m2>     site_sum_footprint   := sum(Panden/area_pand, Panden_rel);
+		attribute<uint32> n_panden             := sum_uint32(const(TRUE, Panden), Panden_rel);
+
+		attribute<.>      Bron_rel (Bron)      := point_in_polygon(Bron/vbo_geometry, geometry_rd);
+		attribute<uint32> n_vbos               := sum_uint32(const(TRUE, Bron), Bron_rel);
+	}
+
+	//validatie #17: groottedistributie potentiele sites vs gerealiseerde SN-sites
+	unit<uint32> VergelijkGrootte := union_unit(Result, AdditionalOperations/SN/Result)
+	, Descr = "1 rij per site (potentiele onveranderd-sites + gerealiseerde SN-sites) met omvang; tbv distributievergelijking in R"
+	{
+		attribute<string>  soort     := union_data(., const('Onveranderd_potentieel', Result), const('SN_gerealiseerd', AdditionalOperations/SN/Result));
+		attribute<float64> site_m2   := union_data(., Result/site_size / 1[m2], AdditionalOperations/SN/Result/site_size / 1[m2]);
+	}
+
+	unit<uint32> VergelijkGrootte_Export := VergelijkGrootte
+	, StorageName = "='%LocalDataProjDir%/Temp/OnveranderdSites_grootte_'+/Parameters/BAG_Selection_Area+'_'+/Parameters/BAG_file_date+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	{
+		attribute<string>  soort   := VergelijkGrootte/soort;
+		attribute<float64> site_m2 := VergelijkGrootte/site_m2;
+	}
+}

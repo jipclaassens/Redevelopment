@@ -92,23 +92,23 @@ read_mmd_dictionary <- function(dir_mmd) {
     begin <- ofs[seq(1, 2L * n, by = 2)]
     eind  <- ofs[seq(2, 2L * n, by = 2)]
 
-    # .seq: header met tile-directory, dan per tile een (gepad) datasegment.
-    # Header: uint64[0] = data_start (= lengte header = start tile 0); daarna per tile
-    # (used, alloc, file_end) — de laatste tile heeft geen file_end (impliciet = bestandsgrootte).
-    # Tiles zijn 65536 rijen (GeoDMS-tiling); gevalideerd tegen PerObject_Export_AMS_20260108.
+    # .seq: header van 3 uint64 per tile — (start_in_file, used_bytes, alloc_bytes) — gevolgd door de
+    # tile-datasegmenten. LET OP: de segmenten staan in WILLEKEURIGE volgorde in het bestand
+    # (multithreaded writes); start_t is dus de enige betrouwbare positie-informatie.
+    # Tiles zijn 65536 rijen (GeoDMS-tiling); index-offsets zijn tile-lokaal vanaf start_t.
+    # Gevalideerd tegen PerObject_Export_AMS_20260108 en PerObject_Export_Nederland_20260710.
     seqf <- paste0(path, ".seq")
     stopifnot(file.exists(seqf))
     seq_raw <- readBin(seqf, "raw", n = file.info(seqf)$size)
-    hdr_u <- readBin(seq_raw[1:8], "integer", n = 2, size = 4)
-    data_start <- bitwAnd_u32(hdr_u[1]) + bitwAnd_u32(hdr_u[2]) * 2^32
-    hdr <- readBin(seq_raw[seq_len(data_start)], "integer", n = data_start / 4, size = 4)
-    hdr64 <- bitwAnd_u32(hdr[seq(1, length(hdr), by = 2)]) + bitwAnd_u32(hdr[seq(2, length(hdr), by = 2)]) * 2^32
     tile_size <- 65536L
-    n_tiles <- ceiling(n / tile_size)
-    tile_start <- numeric(n_tiles)
-    tile_start[1] <- data_start
-    if (n_tiles > 1) for (t in seq_len(n_tiles - 1)) tile_start[t + 1] <- hdr64[1 + 3 * t]  # file_end van tile t-1 = start tile t
-    stopifnot(length(hdr64) == 3 * n_tiles)  # 1 (data_start) + 3 per tile - 1 (laatste zonder eind) + 2 = 3*T
+    n_tiles <- as.integer(ceiling(n / tile_size))
+    hdr_len <- 3L * n_tiles * 8L
+    stopifnot(length(seq_raw) >= hdr_len)
+    hdr <- readBin(seq_raw[seq_len(hdr_len)], "integer", n = hdr_len / 4, size = 4)
+    hdr64 <- bitwAnd_u32(hdr[seq(1, length(hdr), by = 2)]) + bitwAnd_u32(hdr[seq(2, length(hdr), by = 2)]) * 2^32
+    tile_start <- hdr64[seq(1, 3L * n_tiles, by = 3)]
+    tile_alloc <- hdr64[seq(3, 3L * n_tiles, by = 3)]
+    stopifnot(all(tile_start + tile_alloc <= length(seq_raw)))
 
     seq_raw[seq_raw == as.raw(0)] <- as.raw(32)   # NULs (header/padding) -> spatie; posities verschuiven niet
     buf <- rawToChar(seq_raw)

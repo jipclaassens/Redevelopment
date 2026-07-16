@@ -1,10 +1,53 @@
 # STATUS — sessie-overdracht densification-paper
 
-*Laatst bijgewerkt: 2026-07-13. Bij nieuwe sessie: dit bestand + open GitHub-issues lezen, dan verder.*
+*Laatst bijgewerkt: 2026-07-16 (avond). Bij nieuwe sessie: dit bestand + open GitHub-issues lezen, dan verder.*
 
 ## Context
 
 Paper: **"The economic rationale of residential densification"** (Claassens, Koomen & Rouwendal, 2026). Docx op OneDrive: `VU/Projects/202604-RedevEconLogicaPaper/`. Twee beslissingen gemodelleerd: (1) type-keuze via conditional logit over k-means-clusters van gerealiseerde projecten (residual value per optie als verklarende variabele), (2) herontwikkelingsbeslissing via binomiale logit (inclusive value − verwervingskosten + fricties). GeoDMS levert object-level export (`PerObject_Export`, 1 rij per VBO incl. Onveranderd, mmd in `%LocalDataProjDir%/Temp/`); R doet aggregatie naar sites (op `site_id`), k-means, prijsreconstructie `exp(Constant + Σ coef·char)` per WP4, censoring, estimatie.
+
+## Stand van zaken (2026-07-16 avond) — EXPORT DEFINITIEF + R-PIPELINE DRAAIT END-TO-END
+
+**De keten GeoDMS → R werkt volledig**: verse `PerObject_Export_Nederland_20260710.mmd` (8.700.061 rijen, 54 kolommen, alle prijscomponenten definitief) → R-pipeline (`R/`) → sites → k-means. Issues #20 en het WOZ-gat van #13 zijn dicht; #16 stap 0–2 staat.
+
+### #20-omhang (coëfficiënten + locatievariabelen), volledig geverifieerd
+
+- `NVM_filedate = 20260711`; PrijsIndex leest het nieuwe R-format (`term;estimate;...`), naam-mapping vervallen; `HouseCharacteristics_src` = 42 termen 1-op-1 met de CSV (referentiecategorieën met coef 0 erin). Spec-keuze: **'redev'** (`Estimates_20260711_<type>.csv` in Vastgoed = identiek aan `_redev_`-bestanden op OneDrive). Transacties lopen t/m 2023 → het "2024/25-gat" bestaat niet meer; 2024–2026-objecten krijgen 2023-prijspeil (R).
+- `PriceCoefficients_WP4_20260711.csv` (Temp) door GeoDMS gegenereerd via str-patroon; volle precisie geverifieerd.
+- **Schalen byte-exact geverifieerd** (scaffold `VerifieerExportBronnen.dms`, puntprobes op 4 NVM-locaties): `loc_tt_500k_2024_min` (float-min, cap 120), `loc_tt_ovknoop_2026_min` (float-min, ongecapt) en `UAI_2012` identiek aan de schattingsinput. **UAI: tif is 0–1-genormaliseerd; de schatting zag tif×100 als float** — de ×100 zit in SourceData.dms (geen int-conversie). Omgeving-tifs zijn 100m-grids: gelezen op rdc_100m + rel naar 25m; de `min`-unit (uint32!) bewust vermeden.
+- **Regiotifs waren integer geschreven** (d_maintgood/d_highrise als uint2 → 0/1, nrooms uint8): PriceIndices-ValueTypes → float32, alle 20 tifs hergenereerd (oude set in `_int_backup`); nu échte fracties (bv. d_maintgood-mean 0,80). `size` per WP4 nieuw in de export (`reg_<wp4>_size`, 4×) tbv fase-2 lnsize.
+
+### WOZ niet-woon (laatste gat #13 fase 1) — gebouwd
+
+`SourceData/woz.dms` herschreven (plan A): PBL 190215-CSV's (peiljaar 2017) uit `Vastgoed/WOZ/`, grid-route 25m, groep via dominante BBG-klasse 2017 per cel, fallback buurt→wijk→gemeente (CBS Y2017-domeinen; Gemeente kreeg `code`), plain mean (geen +sd). Kolom `loc_woz_nonres_eur_m2`; NL-mean ~€1813/m², max ~€10917.
+
+### Verse NL-runs + twee gefixte blokkades
+
+- `FinalMutationTable_Nederland_20260710.mmd`: 2.325.426 rijen mét `pand_type` (~6 min, warme cache).
+- `PerObject_Export_Nederland_20260710.mmd`: 8,7M rijen (~48 min). Typeverdeling: Onveranderd 7.086.763; SN_Nieuwbouw 472.196; Nieuwbouw 454.561; Toevoeging 306.577; SN_Sloop 127.504; Onttrekking 106.591; TM+ 50.547; Sloop 40.503; TM− 31.658; SN_Sloop_nw 23.161.
+- Fix 1: `Onveranderd/uq/wp4_rel` hing nog aan de live Per1Jan-buuranalyse (kapot door lokale AfleidingPandtype-fout #1144-E, plus buur-besmetting) → **SD-lookup op de OpFileDatum-stand** (zelfde patroon als `pand_type_op_filedatum`).
+- Fix 2 (GeoDMS-les): **subunits binnen een unit mét StorageName worden storage-placeholders** (lege file in de mmd; org_rel-parse-fouten op de read-kant). `ZonderCorrecties` (#22) staat nu als `FinalMutationTable_ZonderCorrecties` op PrepBAG-niveau naast de Write/Read-switch.
+
+### R-pipeline (`R/`, stijl PriceIndices) — #16 stap 0–2 GEREED en gedraaid op NL
+
+- `01_read_mmd.R`: generieke mmd-reader. Formaat gedocumenteerd/ontcijferd: per attribuut plat little-endian bestand; strings = indexparen (2×uint64 [begin,eind), tile-lokaal, null=2⁶⁴−1) + `.seq` met header van 3 uint64 per tile **(start, used, alloc)** — segmenten staan in wíllekeurige volgorde (multithreaded writes); tiles = 65536 rijen; bools bit-packed.
+- `02`: labels, null-sentinels, 2012-flag (#26: 10.353 rijen gevlagd), prijsreconstructie. **Mediaan €379k (2023-peil); per WP4: vrijstaand €686k > 2^1kap €427k > rijtjes €373k > appartement €330k; dekking 98,9% woon / 98,4% niet-woon (mediaan €177k).** Missend vooral WP4-loos (74k).
+- `03`: 7,27M incumbent-sites; 470.335 replacement-sites. `04`: elbow (PRE vlakt af rond K=6–8); K=6 geeft direct interpreteerbare clusters (2^1kap-projecten / vrijstaand-groot / vrijstaand / rijtjes 85·ha⁻¹ / appartement-laagdicht 221k / appartement-hoogdicht 120·ha⁻¹ FAR 0,85). Outputs in `%LocalDataDir%/Redevelopment/R_werk/`.
+- R 4.6.1 + data.table/bit64 nu ook op OVSRV08 (user-library).
+
+### Validatie typering (checklist 14-07, punten 1–2) — GEDAAN, alles klopt
+
+Scaffold `ValidatieTypering.dms` (SteekproefKetens + Diagnose100Dagen):
+- **Steekproef (2.929 verschuivingen, AMS)**: cat 1 sloopwinst-100d **52/52** ✓ (intrekking + 100d-conditie in keten); cat 2 N-herkoppeling **202/202** ✓ (allemaal eerder in voorraad); cat 3 T-eenmaligheid **65/65** ✓ (54 met eerdere voorraadperiode + 11 correcte eerste-keer-T's binnen de mutatiemaand); cat 4 DirectInVoorraad→T **2590/2595** ✓; 5 borderline-gevallen (bouwjaar=mutatiejaar; pand vermoedelijk al in BAG via andere VBO's — desgewenst GUI-check: `SteekproefKetens_Nederland_20260710.csv`).
+- **100-dagen-diagnose NL** (`Diagnose100Dagen_Nederland_20260710.csv`): S 168.215 en S_nw 76.154 voldoen per constructie 100% aan de conditie; **logies-/studentenfilters winnen in slechts 2.346 gevallen (Rest_S_rest, ~1%)** — filters blijven marginale correctie, geen structurele wegvang. "Filters winnen by design" blijft dus verdedigbaar.
+
+### Openstaand na deze sessie
+
+1. **R-modelkeuzes (#16 stap 2–5)**: alternatieventabel + residual value, conditional logit, inclusive value, stage-2 logit. Universe-afbakening stage 2 (#13) en clustering Onveranderd (#17) open. Cluster-K bevestigen (elbow.csv); cluster 5 (appartement-laagdicht, FAR 0,14) verdient een blik op de site_size-definitie bij pure nieuwbouw-sites.
+2. **d_hoogte_onbekend**: geen regiogemiddelde in de export → staat op 0 in de reconstructie; desgewenst regiotif toevoegen in PriceIndices.
+3. **Mapping 10 Redev_ObjectTypes → paperklassen** (none/SN_W_W/SN_MX_W/transformatie) in R definitief maken.
+4. **Push** van alle commits (Redevelopment + PriceIndices) — niet gedaan, zoals afgesproken doe je dat zelf.
+5. Legacy rode items PriceComponents (Verwervingskosten/Grondproductiekosten) blijven bewust staan; de nieuwe `HouseCharacteristics_src`-namen maken er een paar extra rood — allemaal achterhaald door de componenten→R-aanpak.
 
 ## Stand van zaken (2026-07-13) — CBS-levensloopdoc vergeleken, typering CBS-86098-conform gemaakt
 
@@ -37,9 +80,9 @@ Resultaat (153,9k mutaties; 2.929 = 1,9% verandert van type; saldo +79.322→+79
 
 ### Resterende checklist vóór commit
 
-1. Steekproef in GUI (lijst klaar: `%LocalDataProjDir%/Temp/Steekproef_Typeringsverschuivingen_AMS_20260710.csv`): 20 C−→S, 2 O→S, sample C+→T, en de 202 N→C+ (= herkoppelings-/Delft-type kandidaten). Per geval: `PrepBAG/BAG_Tabel` filteren op vbo_bag_nr (hele keten met statussen + IDEN-vlaggen) en `ExportMutatieVergelijking/Rijen` voor de typering.
-2. **NL-run** (`StudyArea='Nederland'`) — samen doen (user). Onderbouwing hard: CBS-verschillenanalyse toont landelijk O→S 2015–2019 (niet-woon 2016: ±14 dzd logies-VBO's). Diagnose bij run: overlap 100-dagenregel × logies-/studentenfilters (S_nw vs S_rest — filters winnen by design, check of dat de bedoeling blijft).
-3. **Beide mmd's regenereren** — doet Jip zelf.
+1. ~~Steekproef in GUI~~ — GEDAAN 16-07 via `ValidatieTypering/SteekproefKetens` (systematische ketencheck, alle categorieën ✓; zie sectie 16-07 hierboven).
+2. ~~**NL-run** + diagnose 100-dagenregel × filters~~ — GEDAAN 16-07 (`Diagnose100Dagen_Nederland_20260710.csv`: filters winnen in ~1% van de S-kandidaten).
+3. ~~**Beide mmd's regenereren**~~ — GEDAAN 16-07 (FinalMutationTable + PerObject_Export, Nederland/20260710, incl. pand_type en alle nieuwe exportkolommen).
 4. ~~Verschillenanalyse opvragen~~ — binnen en verwerkt (wiki §13).
 5. ~~Committen~~ — gedaan (14-07): typering-fixes #21–#24, exportitem, URL-refs, hernoemde/nieuwe CBS-pdf's, verslagmaanden t/m 2026-06, bouwjaar-cast; oude Afleiden_woonvoorraad.pdf verwijderd. **Push nog niet gedaan.**
 6. #26: besluit = optie 2 (flag). Geen config-wijziging nodig: flag in R afleidbaar uit bestaande exportkolommen (`redev_type == Nieuwbouw && redev_yearmonth in 2012xx && obj_building_year <= 2010`); daar in estimatie op filteren/dummy (= optie 3 als robuustheid). ~~Upgrade-pad koppeltabel~~ — geïnspecteerd (14-07): xls is een landelijk aggregaat (kruistabel WR-typering × BAG-functie × BAG-status per 1-1-2012, geen microdata) → bouwjaar-proxy in R blijft de aanpak. Bijvangst: ±29,4 dzd WR-woningen stonden per 1-1-2012 als 'gevormd' in de BAG (het reservoir van de 2012-dubbeltellingen) — plausibiliteitscheck voor de proxy-omvang.

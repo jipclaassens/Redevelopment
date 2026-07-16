@@ -30,7 +30,6 @@ coef_van <- function(co, term, wp4) {
   # wp4: character-vector met cfg$wp4_names-waarden; onbekende term of ontbrekende coef -> 0
   rij <- co[coef_name == term]
   if (!nrow(rij)) return(rep(0, length(wp4)))
-  v <- unlist(rij[1, ..wp4], use.names = FALSE)  # hmm: per-rij kolomkeuze hieronder
   out <- as.numeric(rij[1, cfg$wp4_names, with = FALSE])[match(wp4, cfg$wp4_names)]
   fifelse(is.na(out), 0, out)
 }

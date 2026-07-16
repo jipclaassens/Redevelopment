@@ -59,7 +59,7 @@ maak_sites <- function(x) {
     n_units_nieuw     = .N,
     floor_area_m2     = sum(as.numeric(obj_floor_area_res_m2), na.rm = TRUE),
     unit_size_mean    = mean(obj_floor_area_res_m2, na.rm = TRUE),
-    redev_yearmonth   = min(redev_yearmonth, na.rm = TRUE),
+    redev_yearmonth   = { v <- redev_yearmonth[!is.na(redev_yearmonth)]; if (length(v)) min(v) else NA_integer_ },
     heeft_transformatie = any(redev_type_lbl == "Transformatie_Plus"),
     heeft_sn            = any(redev_type_lbl == "SN_Nieuwbouw")
   ), as.list(prop.table(table(factor(obj_housetype_lbl, levels = cfg$wp4_names))) |> setNames(paste0("aandeel_", cfg$wp4_names)))

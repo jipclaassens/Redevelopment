@@ -1,0 +1,108 @@
+// Validatie-scaffold voor de CBS-86098-typering (issues #21-#24), sessie 2026-07-16.
+// Twee onderdelen (STATUS-checklist 14-07, punten 1 en 2):
+//   1. SteekproefKetens — volledige BAG_Tabel-keten (statussen, datums, vlaggen) voor de steekproef-VBO's
+//      uit Steekproef_Typeringsverschuivingen_AMS_20260710.csv, ter beoordeling van de typeringsverschuivingen.
+//      Draaien met StudyArea='AMS' cq de vintage van de steekproef; de selectie filtert op vbo_bag_nr.
+//   2. Diagnose100Dagen — NL-brede telling van de overlap 100-dagenregel x logies-/studentenfilters:
+//      alle BAG_Tabel-rijen met VBO-intrekking + sloopstatus(100d) gejoined met hun uiteindelijke
+//      mutatietypering; tabuleert hoeveel er S/S_nw werden en hoeveel door filters elders landden.
+// Draaien: GeoDmsRun.exe Redevelopment.dms /Analyse/redev_obv_hele_bag/ValidatieTypering/<onderdeel>/Export
+container ValidatieTypering : using = "AdditionalClassifications"
+{
+	container SteekproefKetens
+	{
+		unit<uint32> Steekproef
+		:  StorageName = "%LocalDataProjDir%/Temp/Steekproef_Typeringsverschuivingen_AMS_20260710.csv"
+		,  StorageType = "gdal.vect"
+		,  StorageReadOnly = "True"
+		{
+			attribute<string> categorie;
+			attribute<string> vbo_bag_nr;
+			attribute<string> type_oud;
+			attribute<string> type_nieuw;
+			attribute<uint64> vbo_nr := uint64(vbo_bag_nr);
+		}
+
+		unit<uint32> Ketens := select_with_org_rel(IsDefined(rlookup(PrepBAG/BAG_Tabel/vbo_bag_nr, Steekproef/vbo_nr)))
+		{
+			attribute<uint64>  vbo_bag_nr        := PrepBAG/BAG_Tabel/vbo_bag_nr[org_rel];
+			attribute<uint64>  pand_bag_nr       := PrepBAG/BAG_Tabel/pand_bag_nr[org_rel];
+			attribute<int32>   begindatum        := PrepBAG/BAG_Tabel/begindatum[org_rel];
+			attribute<int32>   einddatum         := PrepBAG/BAG_Tabel/einddatum[org_rel];
+			// let op naamgeving: items 'vbo_status'/'pand_status' zouden de classificatie-units met die naam verbergen (zelfreferentie)
+			attribute<string>  vbo_status_naam   := AdditionalClassifications/vbo_status/name[PrepBAG/BAG_Tabel/vbo_status_rel[org_rel]];
+			attribute<string>  pand_status_naam  := AdditionalClassifications/pand_status/name[PrepBAG/BAG_Tabel/pand_status_rel[org_rel]];
+			attribute<string>  gebruiksdoel      := vbo_gebruiksdoel_ext/name[PrepBAG/BAG_Tabel/gebruiksdoel_rel[org_rel]];
+			attribute<uint16>  pand_bouwjaar     := PrepBAG/BAG_Tabel/pand_bouwjaar[org_rel] / 1[Yr];
+			attribute<bool>    sloopstatus_100d  := PrepBAG/BAG_Tabel/Pand_HeeftOfKrijgtSloopstatus100d[org_rel];
+			attribute<bool>    vbo_iswonen       := PrepBAG/BAG_Tabel/VBO_IsWonen[org_rel];
+			attribute<bool>    vbo_isvoorraad    := PrepBAG/BAG_Tabel/VBO_IsVoorraad[org_rel];
+			attribute<string>  categorie         := Steekproef/categorie[rlookup(vbo_bag_nr, Steekproef/vbo_nr)];
+			attribute<string>  type_oud          := Steekproef/type_oud[rlookup(vbo_bag_nr, Steekproef/vbo_nr)];
+			attribute<string>  type_nieuw        := Steekproef/type_nieuw[rlookup(vbo_bag_nr, Steekproef/vbo_nr)];
+		}
+
+		unit<uint32> Export := Ketens
+		, StorageName = "='%LocalDataProjDir%/Temp/SteekproefKetens_'+/Parameters/BAG_Selection_Area+'_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<string>  categorie      := Ketens/categorie;
+			attribute<string>  type_oud       := Ketens/type_oud;
+			attribute<string>  type_nieuw     := Ketens/type_nieuw;
+			attribute<uint64>  vbo_bag_nr     := Ketens/vbo_bag_nr;
+			attribute<uint64>  pand_bag_nr    := Ketens/pand_bag_nr;
+			attribute<int32>   begindatum     := Ketens/begindatum;
+			attribute<int32>   einddatum      := Ketens/einddatum;
+			attribute<string>  vbo_status     := Ketens/vbo_status_naam;
+			attribute<string>  pand_status    := Ketens/pand_status_naam;
+			attribute<string>  gebruiksdoel   := Ketens/gebruiksdoel;
+			attribute<uint16>  pand_bouwjaar  := Ketens/pand_bouwjaar;
+			attribute<bool>    sloopstatus_100d := Ketens/sloopstatus_100d;
+			attribute<bool>    vbo_iswonen    := Ketens/vbo_iswonen;
+			attribute<bool>    vbo_isvoorraad := Ketens/vbo_isvoorraad;
+		}
+	}
+
+	container Diagnose100Dagen
+	{
+		// kandidaatrijen: VBO-intrekking waarvan het pand een sloopstatus heeft of binnen 100 dagen krijgt
+		// (de kern van de #21-conditie, zonder de woon-/voorraad-eisen zodat we ook de filter-uitval zien)
+		unit<uint32> Kandidaten := select_with_org_rel(
+			PrepBAG/BAG_Tabel/vbo_status_rel == vbo_status/v/verblijfsobject_ingetrokken
+			&& PrepBAG/BAG_Tabel/Pand_HeeftOfKrijgtSloopstatus100d)
+		{
+			attribute<uint64> vbo_bag_nr := PrepBAG/BAG_Tabel/vbo_bag_nr[org_rel];
+		}
+
+		// uiteindelijke typering van deze VBO's in de verse mutatietabel (null = niet als mutatie getypeerd)
+		unit<uint32> MT := PrepBAG/Read_FinalMutationTable
+		{
+			attribute<uint64> vbo_bag_nr      := PrepBAG/Read_FinalMutationTable/vbo_bag_nr;
+			attribute<bool>   Is100dKandidaat := IsDefined(rlookup(vbo_bag_nr, Kandidaten/vbo_bag_nr));
+			attribute<string> TypeNaam        := MakeDefined(
+													 MutatieTypen/name[PrepBAG/Read_FinalMutationTable/MutatieTypen_rel_src]
+													,MakeDefined(
+														 'UnID_' + MutatieTypen_UnID/name[PrepBAG/Read_FinalMutationTable/MutatieTypen_UnID_rel]
+														,MakeDefined(
+															 'Rest_' + MutatieTypen_Uitgesloten/name[PrepBAG/Read_FinalMutationTable/MutatieTypen_Uitgesloten_rel]
+															,'onbekend')));
+		}
+
+		unit<uint32> Per_Type := unique(MT/TypeNaam)
+		{
+			attribute<string> TypeNaam        := values;
+			attribute<.>      type_rel  (MT)  := rlookup(MT/TypeNaam, TypeNaam);
+			attribute<uint32> n_totaal        := pcount(type_rel);
+			attribute<uint32> n_100d          := sum_uint32(MT/Is100dKandidaat, type_rel);
+		}
+
+		unit<uint32> Export := Per_Type
+		, StorageName = "='%LocalDataProjDir%/Temp/Diagnose100Dagen_'+/Parameters/BAG_Selection_Area+'_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<string> TypeNaam := Per_Type/TypeNaam;
+			attribute<uint32> n_totaal := Per_Type/n_totaal;
+			attribute<uint32> n_100d   := Per_Type/n_100d;
+		}
+	}
+}

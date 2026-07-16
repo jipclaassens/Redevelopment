@@ -78,6 +78,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	#include<ExportMutatieVergelijking.dms>
 	#include<VergelijkWP4.dms>
 	#include<VerifieerExportBronnen.dms>
+	#include<ValidatieTypering.dms>
 
 	container FinalDomains
 	{

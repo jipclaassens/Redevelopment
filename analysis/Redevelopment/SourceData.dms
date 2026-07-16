@@ -17,7 +17,7 @@ container SourceData :  using = "units;geography;classifications"
 	// #include <overig.dms>
 	#include <regios.dms>
 	#include <spatial_data.dms>
-	// #include <woz.dms>
+	#include <woz.dms>
 	#include <vierkanten.dms>
 	
 	container overig
@@ -69,6 +69,46 @@ container SourceData :  using = "units;geography;classifications"
 		
 		attribute<min> tt_Trainstation_2006_min     (rdc_25m) := Reistijd_Trainstation_2006_min == 0[min] ? (0/0)[min] : Reistijd_Trainstation_2006_min
 		, Descr = "Reistijd naar dichtstbijzijnde station in minuten, undefined wanneer reistijd 0 is";
+
+		// Locatievariabelen van de redev-hedoon (Estimates_20260711, issues #18/#19/#20): zelfde tifs als in de schatting (PriceIndices/main/SourceData/Diversen.dms).
+		// De tifs zijn 100m-grids (2800x3250) met float32-waarden: lezen op rdc_100m en via rdc_100m_rel naar 25m mappen
+		// (zelfde patroon als Kaveldichtheid hierboven). GEEN min-unit gebruiken: die is uint32-gebaseerd en zou afronden,
+		// terwijl de schatting de kale floatwaarden zag. Ruw exporteren, geen cap/clamp op OV-knooppunt (schatting zag waarden vanaf 0,1 min).
+		attribute<float32> Reistijd_OVknooppunten_2026_min_src (rdc_100m)
+		:	StorageName     = "%Redev_DataDir%/Omgeving/TraveltimeToNearest_OV_Knooppunten_20260316_100m.tif"
+		,	Descr           = "Jip Claassens - Reistijd per auto naar het dichtstbijzijnde OV-knooppunt in 2026 (minuten, float); vervangt station-2006 in de redev-hedoon (issue #18)"
+		, 	URL             = "https://github.com/ObjectVision/AccessibilityModelling"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+
+		attribute<float32> tt_OVknooppunten_2026_min (rdc_25m) := Reistijd_OVknooppunten_2026_min_src[rdc_25m/rdc_100m_rel];
+
+		// LET OP schaal: de coefficient uai_2012 (Estimates_20260711) hoort bij tifwaarde x 100 ALS FLOAT (geen int-afronding).
+		// Puntprobe 2026-07-16 op 4 NVM-locaties: huidige tif = schattingsinput (slim_spatial-CSV) exact /100
+		// (bv. tif 0.048538327 vs CSV 4.8538327); de oude uint32-conversie is dus vervallen maar de x100-factor niet.
+		attribute<float32> UAI_2012_netwerk_geschaald_src (rdc_100m)
+		:	StorageName     = "%Redev_DataDir%/Omgeving/UAI_netwerk_geschaald_2012.tif"
+		,	Descr           = "Urban Attractivity Index 2012, netwerk-gebaseerd en geschaald (0-1); vaste 2012-vintage voor de redev-hedoon (issue #19)"
+		,	URL             = "https://github.com/ObjectVision/GeoDMS/wiki/Urban-Attractivity-Index"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+
+		attribute<float32> UAI_2012_netwerk_geschaald (rdc_25m) := UAI_2012_netwerk_geschaald_src[rdc_25m/rdc_100m_rel] * 100f;
+
+		// Float-variant van de 500k-reistijd (2024, 100m-punten) voor de export: zelfde cap op 120 min als in de schattingsinput
+		// (CSV-max = exact 120), maar zonder de uint32-afronding van tt_500kinhab_min hierboven.
+		attribute<float32> Reistijd_500k_2024_sec_src (rdc_100m)
+		:	StorageName     = "%Redev_DataDir%/Omgeving/TraveltimeTo500k_Population_2024_From_100m_Points.tif"
+		,	Descr           = "Jip Claassens - Reistijd per auto (seconden, float) naar 500.000 inwoners, CBS Vierkanten 1-1-2024, 100m-punten"
+		, 	URL             = "https://github.com/ObjectVision/AccessibilityModelling"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True";
+
+		attribute<float32> tt_500k_2024_min_f (rdc_25m) :=
+			min_elem(
+				MakeDefined(Reistijd_500k_2024_sec_src[rdc_25m/rdc_100m_rel], max(Reistijd_500k_2024_sec_src)) / 60f
+				, 120f
+			), Descr = "Reistijd naar 500.000 inwoners in float-minuten, gemaximeerd op 120; schaal identiek aan schattingsinput van coef lntt_500k_2024";
 		
 		attribute<bool>      BBG_groen_100mbuff       (rdc_25m) : StorageName = "%Alt_DataDir%/Overig/BBG_groen_100mbuff.tif";
 		// attribute<bool>      BBG_groen_100mbuff_100m       (rdc_100m) := modus(BBG_groen_100mbuff, rdc_25m/rdc_100m_rel);

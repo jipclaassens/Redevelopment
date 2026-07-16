@@ -1,58 +1,64 @@
-container WOZ
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// WOZ-waarde per m2 voor NIET-woningen, tbv verwervingskosten in de R-pijplijn van het densification-paper (issue #13):
+// loc_woz_nonres_eur_m2 in PerObject_Export; R rekent verwervingskosten niet-woon = Eur/m2 x obj_floor_area_res_m2.
+//
+// Bron: PBL-notitie 190215 (pbl-woz-per-m2.xls + 190215_{buurt,wijk,gem}_woz.csv): gemiddelde WOZ Eur/m2 per
+// regio (CBS-indeling 2017) x bodemgebruiksgroep (BBG 2015): 1=woongebied, 2=voorzieningen (detailhandel/horeca,
+// openbare en sociaal-culturele voorzieningen), 3=bedrijfsterreinen, 4=overigen. Peiljaar 2017.
+//
+// Grid-route (25m): waarde van de cel = regiowaarde van de groep van de dominante BBG-klasse (2017) van die cel,
+// met fallback buurt -> wijk -> gemeente waar een regio x groep geen waarneming heeft. Doordat de waarde op de
+// LOCATIE ligt (niet aan het VBO hangt), werkt dit ook voor gesloopte objecten en is er geen vintage-koppeling
+// met de BAG nodig. Kanttekening (bewust): de groep volgt het bodemgebruik van de locatie, niet de functie van
+// het object zelf.
+//
+// NB: plain mean gebruikt; de dormante voorganger telde ook 1 sd op (mean + sd), dat is hier bewust geschrapt.
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container WOZ : using = "classifications/bbg"
 {
-	// unit<uint32>    RegioUnit_buurt   := /SourceData/regios/buurten/src_2015;
-	// unit<uint32>    RegioUnit_wijk    := /SourceData/regios/wijken/src_2015;
+	unit<uint8> WOZBbg : NrOfRows = 4
+	{
+		attribute<string> name : ['woongebied', 'voorzieningen', 'bedrijfsterreinen', 'overigen'];
+		attribute<uint8>  EK_rel := id(.) + 1b; // bg2015_groep in de CSV's is 1-based
+	}
 
 	unit<uint8> CBSKlasse := classifications/bbg/gg_src
 	{
-		attribute<WOZBbg> WOZBbg_rel := id(.) == V/woongebied ? 0[uint8] : id(.) == V/detailhandel_en_horeca || id(.) == V/openbare_voorzieningen || id(.) == V/sociaalculturele_voorzieningen ? 1[uint8] : id(.) == V/bedrijfsterreinen ? 2[uint8] : 3[uint8];
+		attribute<WOZBbg> WOZBbg_rel :=
+			id(.) == V/woongebied
+				? 0[WOZBbg]
+				: id(.) == V/detailhandel_en_horeca || id(.) == V/openbare_voorzieningen || id(.) == V/sociaalculturele_voorzieningen
+					? 1[WOZBbg]
+					: id(.) == V/bedrijfsterreinen
+						? 2[WOZBbg]
+						: 3[WOZBbg];
 	}
-	
-	unit<uint8> WOZBbg: NrOfRows = 4
+
+	container Y2017 // CBS-gebiedsindeling 2017; peiljaar WOZ 2017
 	{
-		attribute<string> name: ['woongebied', 'voorzieningen', 'bedrijfsterreinen', 'overigen'];
-		attribute<uint8> EK_rel := id(.) + 1[.];
-	}
-	
-	container Y2017 // peildatum 1 jan 2016 (bestand is 1 jan 2017)
-	{
-		container Gemeente := T('Gem'  , 'GM', /Analyse/RegioUnit_gem);
-		container Wijk     := T('Wijk' , 'WK', /Analyse/RegioUnit_wijk);
-		container Buurt    := T('Buurt', 'BU', /Analyse/RegioUnit_buurt);
-		
-		unit<uint32> BAG := SourceData/BAG/Snapshots/VBOs/Y201701/vbo;
-		
-		container per_WOZBb :=
+		container Gemeente := T('gem'  , 'GM', /SourceData/RegioIndelingen/impl/CBS/Y2017/Gemeente);
+		container Wijk     := T('wijk' , 'WK', /SourceData/RegioIndelingen/impl/CBS/Y2017/Wijk);
+		container Buurt    := T('buurt', 'BU', /SourceData/RegioIndelingen/impl/CBS/Y2017/Buurt);
+
+		// per groep: buurtwaarde, waar leeg wijkwaarde, waar leeg gemeentewaarde
+		container per_WOZBbg :=
 			for_each_nedv(
 				WOZBbg/name,
-				'MakeDefined(MakeDefined(Buurt/domain/Nul2Undefined/'+WOZBbg/name+', Wijk/domain/Nul2Undefined/'+WOZBbg/name+'), Gemeente/domain/Nul2Undefined/'+WOZBbg/name+')',
-				NL_grid/domain, Eur_m2
-			)
-		{
-			attribute<Eur_m2> max_elem (NL_grid/domain) := = 'max_elem('+AsItemList(WOZBbg/name)+')';
-		}
-		
-		attribute<Eur_m2> Gegeven_BBG (NL_grid/domain) := =
+				'MakeDefined(MakeDefined(Buurt/Nul2Undefined/'+WOZBbg/name+', Wijk/Nul2Undefined/'+WOZBbg/name+'), Gemeente/Nul2Undefined/'+WOZBbg/name+')',
+				rdc_25m, eur_m2
+			);
+
+		// groep van de cel via dominante BBG-klasse 2017 (25m) -> Eur/m2 van de cel
+		attribute<eur_m2> per_25m (rdc_25m) := =
 			'merge('
-				'value(CBSKlasse/WOZbbg_rel[SourceData/bestand_bodem_gebruik/BBG/dominant/per_domain_grid/j2017], uint16),'
-				'Eur_m2,'+
-				AsItemList('per_WOZBb/'+WOZBbg/name)+
+				'value(CBSKlasse/WOZBbg_rel[/SourceData/Grondgebruik/bestand_bodem_gebruik/BBG/Dominant/per_25m_modus/J2017], uint16),'
+				'eur_m2,'+
+				AsItemList('per_WOZBbg/'+WOZBbg/name)+
 			')';
-		
-		
-		attribute<Eur> Make_Per_vob (BAG) := Gegeven_BBG[BAG/NL_grid_domain_rel] * (BAG/oppervlakte_trunc_m2), StorageName = '%LocalDataProjDir%/UnlinkedData/Vastgoed/WOZ/WOZ2017.fss';
-		
-		attribute<Eur> Per_vob (BAG) : StorageName = '%LocalDataProjDir%/UnlinkedData/Vastgoed/WOZ/WOZ2017.fss';
-		
-		attribute<Eur> Mean_domain_grid (NL_grid/domain) := mean(Per_vob, BAG/NL_grid_domain_rel);
-		// attribute<Classifications/Vastgoed/WOZ> PerWOZKlasse (NL_grid/domain) := classify(Mean_domain_grid, Classifications/Vastgoed/WOZ/ClassBreaks);
-		
-		container Niet_woningen
-		{
-			attribute<Eur> Per_vob (BAG/GebruiksdoelSets/niet_woon) := Gegeven_BBG[BAG/GebruiksdoelSets/niet_woon/NL_grid_domain_rel] * (BAG/GebruiksdoelSets/niet_woon/oppervlakte_trunc);
-			attribute<Eur> Sum_domain_grid (NL_grid/domain) := sum(Per_vob, BAG/GebruiksdoelSets/niet_woon/NL_grid_domain_rel);
-		}
-		
+
 		Template T
 		{
 			//
@@ -60,9 +66,9 @@ container WOZ
 			parameter<string> CodeRef;
 			unit<uint32> RegionK;
 			//
-			
+
 			unit<uint32> Domain
-			:  StorageName = "= '%Redev_DataDir%/Overig/190215_'+ SrcRef +'_woz.csv'"
+			:  StorageName = "= '%Redev_DataDir%/Vastgoed/WOZ/190215_'+ SrcRef +'_woz.csv'"
 			,  StorageType = "gdal.vect"
 			,  StorageReadOnly = "True"
 			{
@@ -71,99 +77,32 @@ container WOZ
 				attribute<string> wozm2_mean;
 				attribute<string> wozm2_sd;
 				attribute<string> aantalobjecten;
-				
-				attribute<string> R_CODE := CodeRef+r2017;
-				
-				attribute<RegionK> Region_rel := = 'rjoin(R_CODE, RegionK/'+CodeRef+'_CODE, id(RegionK))';
-				attribute<WOZBbg> WOZbbg_rel := rjoin(uint8(bg2015_groep), WOZBbg/EK_rel, id(WOZBbg));
-				
-				attribute<Eur_m2> mean := wozm2_mean[Eur_m2];
-				attribute<Eur_m2> sd := wozm2_sd[Eur_m2];
-				attribute<int32> n := aantalobjecten[int32];
-				
-				container per_WOZBb :=
-					for_each_nedv(
-						WOZBbg/name,
-						'sum('
-							'(Domain/mean + Domain/sd) * float32(Domain/WOZBbg_rel == '+string(id(WOZBbg))+'[WOZBbg]),'
-							'Domain/Region_rel'
-						')[RegionK/per_grid]',
-						NL_grid/domain, Eur_m2
-					)
-				{
-					attribute<Eur_m2> max_elem (NL_grid/domain) := = 'max_elem('+AsItemList(WOZBbg/name)+')';
-				}
-				
-				container Nul2Undefined :=
-					for_each_nedv(
-						WOZBbg/name,
-						'per_WOZBb/'+WOZBbg/name+' == 0[Eur_m2] ? (0/0)[Eur_m2] : per_WOZBb/'+WOZBbg/name,
-						NL_grid/domain, Eur_m2
-					);
-			}
-		}
-	}
-	/*
-	container Y2015
-	{
-		unit<uint32> Buurten
-		:  StorageName = "%Redev_DataDir%/Overig/WOZ_per_m2_2015_Buurten.csv"
-		,  StorageType = "gdal.vect"
-		,  StorageReadOnly = "True"
-		,  DialogData = "geometry"
-		,  DialogType = "map"
-		{
-			attribute<string> Buurt_code;
-			attribute<string> Gemeente;
-			attribute<string> Wijk;
-			attribute<string> Buurt;
-			attribute<string> _2012_TOT;
-			attribute<string> _2012_WON;
-			attribute<string> _2012_WON_corr := replace(_2012_WON, " ", "");
-			attribute<string> _2012_NIETWON;
-			attribute<string> _2015_TOT;
-			attribute<string> _2015_WON;
-			attribute<string> _2015_WON_corr := replace(_2015_WON, " ", "");
-			attribute<string> _2015_NIETWON;
-			attribute<string> _2015_NIETWON_corr := replace(_2015_NIETWON, " ", "");
-			
-			attribute<rdc>       geometry (RegioUnit_buurt, polygon)  := RegioUnit_buurt/Geometry;
-			attribute<uint32>    WON_2012 (RegioUnit_buurt)           := rjoin(RegioUnit_buurt/BU_CODE, Buurt_code, _2012_WON_corr[uint32]);
-			attribute<uint32>    WON_2015 (RegioUnit_buurt)           := rjoin(RegioUnit_buurt/BU_CODE, Buurt_code, _2015_WON_corr[uint32]);
-			
-			attribute<uint32>       NIET_WON_2015 (RegioUnit_buurt)      := rjoin(RegioUnit_buurt/BU_CODE, Buurt_code, _2015_NIETWON_corr[uint32]);
-		}
-		
-		unit<uint32> Wijken
-		:  StorageName = "%Redev_DataDir%/Overig/WOZ_per_m2_2015_Wijken.csv"
-		,  StorageType = "gdal.vect"
-		,  StorageReadOnly = "True"
-		,  DialogData = "geometry"
-		,  DialogType = "map"
-		{
-			attribute<string> Wijkcode;
-			attribute<string> Wijkcode_corr  := Wijkcode == "#N/A" ? CBS_Wijkcode : Wijkcode;
-			attribute<string> Gemeente;
-			attribute<string> Wijk;
-			attribute<string> Gemeente_wijk := Gemeente + "_" + Wijk;
-			attribute<string> _2012_TOT;
-			attribute<string> _2012_WON;
-			attribute<string> _2012_WON_corr := replace(_2012_WON, " ", "");
-			attribute<string> _2012_NIETWON;
-			attribute<string> _2015_TOT;
-			attribute<string> _2015_WON;
-			attribute<string> _2015_WON_corr := replace(_2015_WON, " ", "");
-			attribute<string> _2015_NIETWON;
-			attribute<string> _2015_NIETWON_corr := replace(_2015_NIETWON, " ", "");
-			
-			attribute<rdc>          geometry (RegioUnit_wijk, polygon)  := RegioUnit_wijk/Geometry;
-			attribute<uint32>       WON_2012 (RegioUnit_wijk)           := rjoin(RegioUnit_wijk/WK_CODE, Wijkcode, _2012_WON_corr[uint32]);
-			attribute<uint32>       WON_2015 (RegioUnit_wijk)           := rjoin(RegioUnit_wijk/WK_CODE, Wijkcode, _2015_WON_corr[uint32]);
-			attribute<uint32>       NIET_WON_2015 (RegioUnit_wijk)      := rjoin(RegioUnit_wijk/WK_CODE, Wijkcode, _2015_NIETWON_corr[uint32]);
-			
-			attribute<string>       CBS_Wijkcode := rjoin(Gemeente_wijk, RegioUnit_wijk/Gemeente_wijk, RegioUnit_wijk/WK_CODE);
-		}
-	}
-	*/
-}
 
+				attribute<string>  R_CODE     := CodeRef + r2017;
+				attribute<RegionK> Region_rel := rjoin(R_CODE, RegionK/code, id(RegionK));
+				attribute<WOZBbg>  WOZBbg_rel := rjoin(uint8(bg2015_groep), WOZBbg/EK_rel, id(WOZBbg));
+
+				attribute<eur_m2>  mean       := wozm2_mean[eur_m2];
+				attribute<int32>   n          := aantalobjecten[int32];
+			}
+
+			attribute<RegionK> per_grid_rel (rdc_25m) := poly2grid(RegionK/geometry, rdc_25m);
+
+			// pivot: een rij per regio x groep -> waarde per regio per groep (regio's zonder rij krijgen sum = 0)
+			container per_WOZBbg_regio :=
+				for_each_nedv(
+					WOZBbg/name,
+					'sum(Domain/mean * float64(Domain/WOZBbg_rel == '+string(id(WOZBbg))+'[WOZBbg]), Domain/Region_rel)',
+					RegionK, eur_m2
+				);
+
+			// naar het grid; 0 (= geen waarneming voor deze regio x groep) wordt undefined zodat de fallback pakt
+			container Nul2Undefined :=
+				for_each_nedv(
+					WOZBbg/name,
+					'per_WOZBbg_regio/'+WOZBbg/name+'[per_grid_rel] == 0[eur_m2] ? (0/0)[eur_m2] : per_WOZBbg_regio/'+WOZBbg/name+'[per_grid_rel]',
+					rdc_25m, eur_m2
+				);
+		}
+	}
+}

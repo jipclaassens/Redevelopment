@@ -1,0 +1,56 @@
+// Verificatie-scaffold voor de prijscomponent-bronnen van PerObject_Export (issue #20, Estimates_20260711 spec 'redev').
+// Forceert de daadwerkelijke tif-reads (100m-tifs op rdc_25m) en schrijft aggregaten weg, met de verwachte schalen ernaast.
+// Draaien: GeoDmsRun.exe Redevelopment.dms /Analyse/redev_obv_hele_bag/VerifieerExportBronnen/resultaat
+container VerifieerExportBronnen
+{
+	// OV-knooppunt 2026 (min): op NVM-punten mean ~9,0 / range 0,1-90; NL-breed (incl. platteland) hoger gemiddelde.
+	parameter<float32> ovknoop_mean   := mean(/SourceData/overig/tt_OVknooppunten_2026_min);
+	parameter<float32> ovknoop_min    := min (/SourceData/overig/tt_OVknooppunten_2026_min);
+	parameter<float32> ovknoop_max    := max (/SourceData/overig/tt_OVknooppunten_2026_min);
+
+	// UAI 2012 netwerk (RUWE floatschaal, geen x100): op NVM-punten mean ~1,49 / max ~84; NL-breed mean lager (veel niet-stedelijke cellen).
+	parameter<float32> uai2012_mean   := mean(/SourceData/overig/UAI_2012_netwerk_geschaald);
+	parameter<float32> uai2012_max    := max (/SourceData/overig/UAI_2012_netwerk_geschaald);
+
+	// Reistijd 500k inwoners 2024 (float-min, cap 120): op NVM-punten mean ~35,6 / range 12-120.
+	parameter<float32> tt500k_mean    := mean(/SourceData/overig/tt_500k_2024_min_f);
+	parameter<float32> tt500k_min     := min (/SourceData/overig/tt_500k_2024_min_f);
+	parameter<float32> tt500k_max     := max (/SourceData/overig/tt_500k_2024_min_f);
+
+	// Regiotifs 20260711 (float32, hergenereerd 2026-07-16): potential-gemiddelden -> size 100-250 m2, d_maintgood fractie 0-1 (NIET alleen 0/1).
+	parameter<float32> regsize_vrijst_mean := mean(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/vrijstaand_size);
+	parameter<float32> regsize_vrijst_max  := max (/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/vrijstaand_size);
+	parameter<float32> regmaint_vrijst_mean:= mean(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/vrijstaand_d_maintgood);
+
+	// WOZ niet-woon (PBL 190215, 2017): Eur/m2 per 25m-cel met fallback buurt->wijk->gemeente; plausibel ~300-4000 Eur/m2 binnen gemeenten.
+	parameter<float64> woz_mean := mean(/SourceData/WOZ/Y2017/per_25m / 1[eur_m2]);
+	parameter<float64> woz_max  := max (/SourceData/WOZ/Y2017/per_25m / 1[eur_m2]);
+
+	// Puntprobes op 4 NVM-transactielocaties (obsid 1-4 uit de slim-CSV 20260711) met de waarden die de SCHATTING zag
+	// (slim_spatial-CSV): uai_2012 = 4.8538327 / 0.015799804 / 0.00209331 / 4.5286765;
+	// tt_ovknoop = 3.9227858 / 10.342806 / 13.599499 / 3.044675; tt_500k_2024 = 15.6235075 / 24.541176 / 24.338297 / 21.160736.
+	unit<uint32> probe : nrofrows = 4
+	{
+		attribute<float64> x : [121869, 112362.551, 115142.241, 92498.503];
+		attribute<float64> y : [486439, 475693.406, 477286.438, 462373.696];
+		attribute<rdc>     geometry     := point_xy(x, y, rdc);
+		attribute<float32> uai_cur      := /SourceData/overig/UAI_2012_netwerk_geschaald[geometry[rdc_25m]]; // moet exact de CSV-waarden geven (tif x100)
+		attribute<float32> ovknoop_cur  := /SourceData/overig/Reistijd_OVknooppunten_2026_min_src[geometry[rdc_100m]];
+		attribute<float32> tt500k_cur   := /SourceData/overig/tt_500k_2024_min_f[geometry[rdc_25m]];
+	}
+	parameter<string> probe_resultaat :=
+		  'uai_cur;'     + AsList(string(probe/uai_cur), ';')
+		+ '\novknoop_cur;' + AsList(string(probe/ovknoop_cur), ';')
+		+ '\ntt500k_cur;'  + AsList(string(probe/tt500k_cur), ';')
+	, StorageName = "%LocalDataProjDir%/Temp/VerifieerExportBronnen_probe.csv"
+	, StorageType = "str";
+
+	parameter<string> resultaat :=
+		  'ovknoop_min;'  + string(ovknoop_min)  + ';ovknoop_mean;'  + string(ovknoop_mean)  + ';ovknoop_max;' + string(ovknoop_max)
+		+ '\nuai2012_mean;' + string(uai2012_mean) + ';uai2012_max;'   + string(uai2012_max)
+		+ '\ntt500k_min;'   + string(tt500k_min)   + ';tt500k_mean;'   + string(tt500k_mean)   + ';tt500k_max;'  + string(tt500k_max)
+		+ '\nregsize_vrijst_mean;' + string(regsize_vrijst_mean) + ';regsize_vrijst_max;' + string(regsize_vrijst_max) + ';regmaint_vrijst_mean;' + string(regmaint_vrijst_mean)
+		+ '\nwoz_mean;' + string(woz_mean) + ';woz_max;' + string(woz_max)
+	, StorageName = "%LocalDataProjDir%/Temp/VerifieerExportBronnen.csv"
+	, StorageType = "str";
+}

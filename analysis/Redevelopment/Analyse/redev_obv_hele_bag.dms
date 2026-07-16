@@ -77,6 +77,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	#include<AdditionalOperations.dms>
 	#include<ExportMutatieVergelijking.dms>
 	#include<VergelijkWP4.dms>
+	#include<VerifieerExportBronnen.dms>
 
 	container FinalDomains
 	{
@@ -123,11 +124,13 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<bool>              obj_is_woonfunctie              := Redev_ObjectTypes/IsWoon[redev_type];
 
 
-		// ### Prijscomponenten (hedonische inputs; R bouwt prijs = exp(Constant + sum(coef*char)) per WP4)
+		// ### Prijscomponenten (hedonische inputs; R bouwt prijs = exp(constant + sum(coef*char)) per WP4, coefficienten = Estimates_20260711 spec 'redev')
 		// Object-eigen kenmerken staan al hierboven: obj_housetype (WP4 -> coef-set), obj_floor_area_res_m2 (-> lnsize=log(m2)), obj_building_year (-> bouwperiode-dummy).
-		// UAI_2012 (hierboven, neighbourhood) is de lokale locatievariabele. Locatie-termen ruw exporteren; R neemt logs waar nodig.
-		attribute<uint32>           loc_tt_500k_min                 := /SourceData/overig/tt_500kinhab_min[per_rdc_25m] / 1[min];
-		attribute<uint32>           loc_tt_station2006_min          := /SourceData/overig/tt_Trainstation_2006_min[per_rdc_25m] / 1[min]; // PLACEHOLDER: vervang door OV-knooppunt-bereikbaarheid, zie issue #18
+		// UAI_2012 (hieronder, neighbourhood) is de lokale locatievariabele. Locatie-termen ruw exporteren als float; R neemt logs waar nodig.
+		// tt_500k: 2024-vintage op 100m-punten, gecapt op 120 min (cap zat ook in de schattingsinput) -> coef lntt_500k_2024.
+		// tt_ovknoop: OV-knooppunten 2026, ongecapt (schatting zag waarden vanaf 0,1 min) -> coef lntt_ovknoop (issue #18).
+		attribute<float32>          loc_tt_500k_2024_min            := /SourceData/overig/tt_500k_2024_min_f[per_rdc_25m];
+		attribute<float32>          loc_tt_ovknoop_2026_min         := /SourceData/overig/tt_OVknooppunten_2026_min[per_rdc_25m];
 
 		// Regio-gemiddelde kenmerken (NVM-regiotifs op grid) voor ALLE vier WP4-types: fase 1 (incumbent) pakt in R de eigen kolom via obj_housetype, fase 2 (alternatieven) heeft alle types nodig.
 		attribute<float32>           reg_vrijstaand_lotsize          := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/vrijstaand_lotsize[per_rdc_25m]);
@@ -146,10 +149,16 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<float32>           reg_twee_onder_1_kap_d_highrise := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/twee_onder_1_kap_d_highrise[per_rdc_25m]);
 		attribute<float32>           reg_rijtjeswoning_d_highrise    := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/rijtjeswoning_d_highrise[per_rdc_25m]);
 		attribute<float32>           reg_appartement_d_highrise      := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/appartement_d_highrise[per_rdc_25m]);
+		// size (m2, regiogemiddelde per WP4): tbv fase 2 in R — lnsize van de alternatieven; incumbent gebruikt de eigen obj_floor_area_res_m2.
+		attribute<float32>           reg_vrijstaand_size             := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/vrijstaand_size[per_rdc_25m]);
+		attribute<float32>           reg_twee_onder_1_kap_size       := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/twee_onder_1_kap_size[per_rdc_25m]);
+		attribute<float32>           reg_rijtjeswoning_size          := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/rijtjeswoning_size[per_rdc_25m]);
+		attribute<float32>           reg_appartement_size            := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/appartement_size[per_rdc_25m]);
 
 		// ### Verwervingskosten -> in R: woning hedonisch uit bovenstaande componenten + coefficienten-CSV (PriceComponents/ExportCoefficients_WP4).
-		// Niet-woning (obj_is_woonfunctie==FALSE): WOZ EUR/m2 * obj_floor_area_res_m2.
-		// TODO niet-woning: WOZ EUR/m2 op buurt/wijk/gemeente-niveau met fallback (aparte pipeline). Nu nog niet gebouwd.
+		// Niet-woning (obj_is_woonfunctie==FALSE): loc_woz_nonres_eur_m2 * obj_floor_area_res_m2.
+		// WOZ Eur/m2 (PBL 190215, peiljaar 2017): grid-route op 25m, groep via dominante BBG-klasse van de cel, fallback buurt->wijk->gemeente; zie SourceData/woz.dms.
+		attribute<float32>           loc_woz_nonres_eur_m2           := float32(/SourceData/WOZ/Y2017/per_25m[per_rdc_25m] / 1[eur_m2]);
 
 		// ### Regio identifiers
 		attribute<string>                gemeente_code                  := /SourceData/RegioIndelingen/Gemeente/GM_CODE[Gemeente_rel];
@@ -161,7 +170,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<float32>               p_owner_occupier_buurt         := Analyse/DetermineUrbanisationK/Buurten/p_owner_occupier_buurt[Buurt_rel];
 		attribute<float32>               p_socialhousing_buurt          := Analyse/DetermineUrbanisationK/Buurten/p_socialhousing_buurt[Buurt_rel];
 		attribute<float32>               wijk_p_woningcorporatie        := Analyse/DetermineUrbanisationK/Wijken/P_HUURCORP[Wijk_rel];
-		attribute<float32>               UAI_2012                       := Analyse/UrbanAttractivityIndex/Read_Tiff[per_rdc_25m]; //to do, zorg dat dit daadwerkelijk 2012 is.
+		// UAI 2012 netwerk-gebaseerd, RUWE floatschaal (geen x100): zelfde tif + schaal als de schattingsinput van coef uai_2012 (issue #19).
+		attribute<float32>               UAI_2012                       := /SourceData/overig/UAI_2012_netwerk_geschaald[per_rdc_25m];
 		attribute<uint32>                OAD                            := Analyse/DetermineUrbanisationK/Buurten/OAD_src[Buurt_rel];
 		attribute<UrbanisationK>         UrbanisationK_rel              := Analyse/DetermineUrbanisationK/Buurten/UrbanisationK_rel[Buurt_rel];
 		attribute<bool>                  IsProtectHeritageArea          := IsDefined(point_in_polygon(geometry, /SourceData/overig/StadsDorpsGezichten/geometry));

@@ -83,7 +83,8 @@ container RegioIndelingen : using = "geography"
 				attribute<rdc>       geometry                                 (poly) := ='gpkg/gemeente'+gegeneraliseerd_str+'/geometry[rdc]';
 				attribute<string>    label                                           := statnaam;
 				attribute<string>    name                                            := AsItemName(statnaam);
-				
+				attribute<string>    code                                            := statcode;
+
 				container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
 			}
 			

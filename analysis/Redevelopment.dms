@@ -37,7 +37,7 @@ container Redevelopment
 		parameter<string>  BAG_file_date                   := '20260710'; //'20240708'; 20250115 20251009 20260108
 		parameter<UInt32>  BAG_RecentYear                  :=  2026, Descr = "Wat is het meest recent beschikbare jaar van de BAG";
 		parameter<string>  RegioIndelingenJaar             := '2025';
-		parameter<String>  NVM_filedate                    := '20251024', Descr = "Welke bestandsdatum van de NVM-coefficienen moet worden gebruikt";
+		parameter<String>  NVM_filedate                    := '20260711', Descr = "Welke bestandsdatum van de NVM-coefficienten moet worden gebruikt; 20260711 = R-pipeline spec 'redev' (lntt_500k_2024, lntt_ovknoop, uai_2012, zonder groen), issue #20";
 		parameter<String>  NVM_coeff_Year                  := '2023', Descr = "Welk jaar moet als prijsniveau worden gehanteerd uit de hedonische prijsanalyse";
 		parameter<Float32> Grondproductie_significatie_threshold := 0.11f, Descr = "Drempelwaarde voor de p-waarde waaronder een coëfficiënt in grondproductiekostenbepaling als significant wordt beschouwd. Indien de signifantie van een variabele in de OLS regressie lager is dan deze drempel, wordt de grondproductie component van die variabele op 0 gezet.";
 	

@@ -24,8 +24,16 @@ container PriceComponents
 		attribute<float64> twee_onder_1_kap := rjoin(lowercase(name), lowercase(PrijsIndex/ReadCoefficients_WP4/twee_onder_1_kap/AdminDomain/name), PrijsIndex/ReadCoefficients_WP4/twee_onder_1_kap/AdminDomain/estimate)[float64];
 		attribute<float64> rijtjeswoning    := rjoin(lowercase(name), lowercase(PrijsIndex/ReadCoefficients_WP4/rijtjeswoning/AdminDomain/name),    PrijsIndex/ReadCoefficients_WP4/rijtjeswoning/AdminDomain/estimate)[float64];
 		attribute<float64> appartement      := rjoin(lowercase(name), lowercase(PrijsIndex/ReadCoefficients_WP4/appartement/AdminDomain/name),      PrijsIndex/ReadCoefficients_WP4/appartement/AdminDomain/estimate)[float64];
-		// CSV-export (controleer StorageType in GUI voor non-spatiale CSV):
-		// , StorageName = "='%LocalDataProjDir%/Temp/PriceCoefficients_WP4_'+Parameters/NVM_filedate+'.csv'", StorageType = "gdalwrite.vect"
+
+		// CSV voor R: lege cel = term niet in dat WP4-model (lnlotsize bij appartement; d_highrise/d_hoogte_onbekend bij grondgebonden).
+		attribute<string>  csv_regel        := coef_name
+			+ ';' + MakeDefined(string(vrijstaand), '')
+			+ ';' + MakeDefined(string(twee_onder_1_kap), '')
+			+ ';' + MakeDefined(string(rijtjeswoning), '')
+			+ ';' + MakeDefined(string(appartement), '');
+		parameter<string> Export_CSV := 'coef_name;vrijstaand;twee_onder_1_kap;rijtjeswoning;appartement\n' + AsList(csv_regel, '\n')
+		, StorageName = "='%LocalDataProjDir%/Temp/PriceCoefficients_WP4_'+/Parameters/NVM_filedate+'.csv'"
+		, StorageType = "str";
 	}
 
 	container Sloopkosten :=

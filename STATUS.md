@@ -41,6 +41,13 @@ Scaffold `ValidatieTypering.dms` (SteekproefKetens + Diagnose100Dagen):
 - **Steekproef (2.929 verschuivingen, AMS)**: cat 1 sloopwinst-100d **52/52** ✓ (intrekking + 100d-conditie in keten); cat 2 N-herkoppeling **202/202** ✓ (allemaal eerder in voorraad); cat 3 T-eenmaligheid **65/65** ✓ (54 met eerdere voorraadperiode + 11 correcte eerste-keer-T's binnen de mutatiemaand); cat 4 DirectInVoorraad→T **2590/2595** ✓; 5 borderline-gevallen (bouwjaar=mutatiejaar; pand vermoedelijk al in BAG via andere VBO's — desgewenst GUI-check: `SteekproefKetens_Nederland_20260710.csv`).
 - **100-dagen-diagnose NL** (`Diagnose100Dagen_Nederland_20260710.csv`): S 168.215 en S_nw 76.154 voldoen per constructie 100% aan de conditie; **logies-/studentenfilters winnen in slechts 2.346 gevallen (Rest_S_rest, ~1%)** — filters blijven marginale correctie, geen structurele wegvang. "Filters winnen by design" blijft dus verdedigbaar.
 
+### Avondsessie 16-07 (vervolg): #13 dicht, kostenkant + #17 ingebouwd
+
+- **#13 gesloten** (slotcomment met bewuste spec-afwijkingen). **#28 aangemaakt**: alle paper-edits (hedoon-specificatie, NVM t/m 2023, isolatie gedropt, clustervariabelen incl. unitgrootte, n_owners/vogelaar, Table 3, PBL/Fakton-bron).
+- **Kostenkant (#16 stap 2)**: RSopen_NL2120 kreeg `/ExportRedevKosten/Generate` (2 commits daar) → `Vastgoed/Grondproductiekosten_2023/{Nominaal_High,Low_Low,High_High}.tif` (25m, Eur/ha, 2023-peil = Model_StartYear NL2120, consistent met ons prijspeil). In de export: `loc_grondprod_eur_ha[_low|_high]` + `landsdeel` (tbv CBS-bouwkosten-kentallen). R/00_config.R heeft de kentallen (bouwkosten 83673NED per landsdeel 2023, sloopkosten ×1,29, vormfactoren PBL).
+- **#17 ingebouwd**: `OnveranderdSites.dms` clustert de onveranderde woonvoorraad tot potentiële sites met exact de SN-buffer-machinerie; Onveranderd-objecten krijgen `OnvS_<id>`-site_id (fallback eigen pand); `VergelijkGrootte_Export` schrijft de groottedistributie potentieel-vs-SN voor de validatie/cap-beslissing.
+- **Run gestart** (avond): verse PerObject_Export NL met alles erin + VergelijkGrootte-CSV — geos-clustering over ~4M panden, duurt uren. Daarna: R-herrun (03_sites pakt de kostencomponenten al mee), distributie-analyse #17, en dán R stap 2 (alternatieventabel + residual value).
+
 ### Openstaand na deze sessie
 
 1. **R-modelkeuzes (#16 stap 2–5)**: alternatieventabel + residual value, conditional logit, inclusive value, stage-2 logit. Universe-afbakening stage 2 (#13) en clustering Onveranderd (#17) open. Cluster-K bevestigen (elbow.csv); cluster 5 (appartement-laagdicht, FAR 0,14) verdient een blik op de site_size-definitie bij pure nieuwbouw-sites.

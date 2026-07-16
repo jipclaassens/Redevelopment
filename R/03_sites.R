@@ -28,6 +28,11 @@ maak_sites <- function(x) {
     p_owner_occupier_buurt  = eerste(p_owner_occupier_buurt),
     p_socialhousing_buurt   = eerste(p_socialhousing_buurt),
     wijk_p_woningcorporatie = eerste(wijk_p_woningcorporatie),
+    # kostencomponenten (#16 stap 2): grondproductie Eur/ha (2023) + landsdeel voor bouwkosten-kentallen
+    loc_grondprod_eur_ha      = eerste(loc_grondprod_eur_ha),
+    loc_grondprod_eur_ha_low  = eerste(loc_grondprod_eur_ha_low),
+    loc_grondprod_eur_ha_high = eerste(loc_grondprod_eur_ha_high),
+    landsdeel      = eerste(landsdeel),
     oad            = eerste(oad),
     isprotectheritagearea = any(isprotectheritagearea, na.rm = TRUE),
     is_natura2000         = any(is_natura2000, na.rm = TRUE)

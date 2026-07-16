@@ -35,7 +35,7 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<uint32>               pand_count_ZorgFuncties_StartBAG := org_rel -> pand_count_ZorgFuncties_StartBAG;
 
 		attribute<bool>                 IsMogelijkWoningCorporatiePand   := BAG_Tabel_path/IsMogelijkWoningCorporatiePand;
-		attribute<bool>                 IsMutated                        := IsDefined(rlookup(vbo_bag_nr, FinalMutationTable/ZonderCorrecties/vbo_bag_nr)), Descr = "issue #22: C±-rijen tellen niet als mutatie; VBO's met uitsluitend administratieve correcties (bv. late registratie bestaande bouw) horen bij de onveranderde voorraad";
+		attribute<bool>                 IsMutated                        := IsDefined(rlookup(vbo_bag_nr, FinalMutationTable_ZonderCorrecties/vbo_bag_nr)), Descr = "issue #22: C±-rijen tellen niet als mutatie; VBO's met uitsluitend administratieve correcties (bv. late registratie bestaande bouw) horen bij de onveranderde voorraad";
 		attribute<bool>                 IsOnveranderd_Woon_Voorraad      := not(IsMutated) && VBO_IsWonen && VBO_IsVoorraad && EINDDATUM == /SourceData/Vastgoed/BAG/VolledigeBAG/MaxDatum;
 		// attribute<bool>                 IsOnveranderd_Woon_Voorraad      := not(IsMutated) && VBO_IsWonen && VBO_IsVoorraad ;
 		attribute<bool>                 IsOnveranderd_NietWoon_Voorraad  := not(IsMutated) && not(VBO_IsWonen) && not(IsOverigeGebruiksfunctie) && VBO_IsVoorraad && EINDDATUM == /SourceData/Vastgoed/BAG/VolledigeBAG/MaxDatum;
@@ -79,7 +79,10 @@ container PrepBAG : using = "AdditionalClassifications"
 				attribute<Yr>                  pand_bouwjaar        := last(../pand_bouwjaar, uq_rel);
 				attribute<string>              pand_docnum          := last(../pand_docnum, uq_rel);
 				attribute<string>              vbo_docnum           := last(../vbo_docnum, uq_rel);
-				attribute<WP4>                 wp4_rel              := ='Per1Jan/'+last(classifications/Tijd/Jaren/name)+'/select/uq_pand_nr/pand_type[rlookup(pand_bag_nr, Per1Jan/'+last(classifications/Tijd/Jaren/name)+'/select/uq_pand_nr/values)]', Descr = "WP4-type obv stand 1 jan van het laatste jaar; onveranderde voorraad bestaat per definitie op dat moment.";
+				// SD-lookup op de filedatum-stand (zelfde bron als PandTypering_Mutaties/pand_type_op_filedatum): de onveranderde
+				// voorraad bestaat per definitie op de filedatum. Vervangt de live Per1Jan-buuranalyse (buur-besmetting door
+				// gesloopte panden + configfout in lokale AfleidingPandtype, GeoDMS #1144-E); zie VergelijkWP4/STATUS 2026-07-16.
+				attribute<WP4>                 wp4_rel              := /SourceData/Vastgoed/BAG/OpFileDatum/pand/WP4_rel[rlookup(pand_bag_nr, /SourceData/Vastgoed/BAG/OpFileDatum/pand/pand_bag_nr)], Descr = "WP4-type obv SD-voorraadstand op de filedatum; onveranderde voorraad bestaat per definitie op dat moment.";
 
 				attribute<bool> IsAmsterdam := IsDefined(point_in_polygon(vbo_geometry, /SourceData/RegioIndelingen/Gemeente/Amsterdam/geometry));
 
@@ -1225,12 +1228,8 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_Uitgesloten_rel')+')';
 
 		attribute<WP4>                      pand_type             := PandTypering_Mutaties/pand_type;
-
-		unit<uint32> ZonderCorrecties := select_with_org_rel(not(MakeDefined(MutatieTypen_rel_src == MutatieTypen/v/Cplus || MutatieTypen_rel_src == MutatieTypen/v/Cmin, FALSE)))
-		, Descr = "issue #22: alle mutatierijen behalve C± (administratieve correcties); basis voor IsMutated/Onveranderd-bepaling"
-		{
-			attribute<uint64> vbo_bag_nr := org_rel -> vbo_bag_nr;
-		}
+		// NB: geen subunits in deze unit definieren — de StorageName maakt er (lege) storage-placeholders van;
+		// de C±-selectie staat als FinalMutationTable_ZonderCorrecties naast de FinalMutationTable-switch onderin.
 	}
 
 	container PandTypering_Mutaties
@@ -1297,7 +1296,7 @@ container PrepBAG : using = "AdditionalClassifications"
 	{
 		// attribute<rdc>                      geometry;
 		// attribute<rdc>                      pand_geometry (poly);
-		// attribute<uint64>                   vbo_bag_nr;
+		attribute<uint64>                   vbo_bag_nr; // expliciet gedeclareerd: FinalMutationTable_ZonderCorrecties verwijst ernaar
 		// attribute<jaar>                     pand_bouwjaar;
 		// attribute<uint64>                   pand_bag_nr;
 		// attribute<int32>                    vbo_oppervlakte;
@@ -1310,12 +1309,9 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<WP4>                      pand_type; //kolom bestaat pas na regeneratie van de mmd (PandTypering_Mutaties)
 		attribute<MutatieTypen>             MutatieTypen_rel      := MutatieTypen_rel_src; //issue #22: C+/C- niet meer blind naar T/O gemapt; echte DirectInVoorraad-toevoegingen/-nieuwbouw worden nu aan de bron getypeerd (IDEN_T_1b, IDEN_N_3), de rest is administratief
 
-		unit<uint32> ZonderCorrecties := select_with_org_rel(not(MakeDefined(MutatieTypen_rel_src == MutatieTypen/v/Cplus || MutatieTypen_rel_src == MutatieTypen/v/Cmin, FALSE)))
-		, Descr = "issue #22: alle mutatierijen behalve C± (administratieve correcties); basis voor IsMutated/Onveranderd-bepaling"
-		{
-			attribute<uint64> vbo_bag_nr := org_rel -> vbo_bag_nr;
-		}
-		 
+		// NB: geen subunits hier — binnen een unit met StorageName gedragen calculated subunits zich als storage-items
+		// (org_rel/parse-fouten); de C±-selectie staat als FinalMutationTable_ZonderCorrecties naast de switch onderin.
+
 		attribute<MutatieTypen_All>         MutatieTypen_All_rel := switch(
 																		   case(IsDefined(MutatieTypen_rel_src), rlookup(MutatieTypen_rel_src, MutatieTypen_All/MutatieTypen_rel))
 																		 , case(IsDefined(MutatieTypen_UnID_rel), rlookup(MutatieTypen_UnID_rel, MutatieTypen_All/MutatieTypen_UnID_rel))
@@ -1334,6 +1330,12 @@ container PrepBAG : using = "AdditionalClassifications"
 	}
 	
 	unit<uint32> FinalMutationTable := = Parameters/Use_Ontkoppelde_FinalMutations ? 'Read_FinalMutationTable' : 'Write_FinalMutationTable';
+
+	unit<uint32> FinalMutationTable_ZonderCorrecties := select_with_org_rel(not(MakeDefined(FinalMutationTable/MutatieTypen_rel_src == MutatieTypen/v/Cplus || FinalMutationTable/MutatieTypen_rel_src == MutatieTypen/v/Cmin, FALSE)))
+	, Descr = "issue #22: alle mutatierijen behalve C± (administratieve correcties); basis voor IsMutated/Onveranderd-bepaling. Staat bewust buiten de Write/Read-units: subunits binnen een unit met StorageName worden storage-placeholders."
+	{
+		attribute<uint64> vbo_bag_nr := FinalMutationTable/vbo_bag_nr[org_rel];
+	}
 	
 	
 	unit<uint32> BeginVoorraad      := select_with_org_rel(BAG_Tabel/ActiefOp_StartBAG)

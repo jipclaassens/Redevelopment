@@ -1,0 +1,261 @@
+container VergelijkWP4
+: Descr = "Vergelijkt de WP4-pandtypering van de Analyse-tak (PrepBAG/BAG_Tabel/Per1Jan/<jaar>/select/uq_pand_nr: geen "
+          "pand-statusfilter, WP5 ter plekke berekend) met die van de SourceData-tak (/SourceData/Vastgoed/BAG/PerJaar/"
+          "<jaar>/pand: IsVoorraad-gefilterd, WP5 gelezen uit de WP5-mmd). Beide zijn een stand op 1 januari. "
+          "Alleen te draaien voor een jaar waarvoor de WP5-cache bestaat (nu enkel Y2026). "
+          "Draaien op /Analyse/Redev_obv_hele_bag/VergelijkWP4/Kruistabel_Export en /VergelijkWP4/SD_Zijde_Export."
+{
+	unit<uint8>  WP4 := /classifications/BAG/WP4;
+
+	unit<uint32> A := /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2026/select/uq_pand_nr
+	, Descr = "Analyse-kant: unique(pand_bag_nr) over BAG_Tabel-records geldig op 1-1, ongeacht pandstatus.";
+
+	unit<uint32> B := /SourceData/Vastgoed/BAG/PerJaar/Y2026/pand
+	, Descr = "SourceData-kant: panden die op 1-1 voorraad zijn volgens de CBS-definitie.";
+
+	attribute<uint64> A_pand_bag_nr (A) := A/values;
+	attribute<WP4>    A_wp4         (A) := A/pand_type;
+	attribute<B>      A2B           (A) := rlookup(A_pand_bag_nr, B/pand_bag_nr);
+	attribute<WP4>    B_wp4         (A) := B/WP4_rel[A2B];
+
+	attribute<string> A_wp4_str (A) := MakeDefined(WP4/name[A_wp4], 'geen_type');
+	attribute<string> B_wp4_str (A) := IsDefined(A2B) ? MakeDefined(WP4/name[B_wp4], 'geen_type') : 'NIET_IN_SD';
+	attribute<string> combi_key (A) := A_wp4_str + ' -> ' + B_wp4_str;
+
+	unit<uint32>          Kruistabel     := unique(combi_key);
+	attribute<Kruistabel> combi_rel  (A) := rlookup(combi_key, Kruistabel/values);
+
+	unit<uint32> Kruistabel_Export := Kruistabel
+	, StorageName = "='%LocalDataProjDir%/Temp/VergelijkWP4_kruistabel_Y2026_'+/Parameters/StudyArea+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	, Descr = "Per combinatie 'WP4 volgens Analyse -> WP4 volgens SourceData' het aantal panden."
+	{
+		attribute<string> analyse_naar_sd := Kruistabel/values;
+		attribute<uint32> aantal_panden   := pcount(combi_rel);
+	}
+
+	attribute<A>      B2A   (B) := rlookup(B/pand_bag_nr, A_pand_bag_nr);
+	attribute<string> B_key (B) := IsDefined(B2A) ? 'in_beide' : 'ALLEEN_IN_SD';
+
+	unit<uint32>        B_zijde       := unique(B_key);
+	attribute<B_zijde>  B_key_rel (B) := rlookup(B_key, B_zijde/values);
+
+	unit<uint32> SD_Zijde_Export := B_zijde
+	, StorageName = "='%LocalDataProjDir%/Temp/VergelijkWP4_sdzijde_Y2026_'+/Parameters/StudyArea+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	, Descr = "Andersom: panden die de SourceData-tak wel heeft en de Analyse-tak niet."
+	{
+		attribute<string> categorie     := B_zijde/values;
+		attribute<uint32> aantal_panden := pcount(B_key_rel);
+	}
+
+	container Wie_Mist
+	: Descr = "Karakteriseert de panden die de Analyse-tak wel heeft en de SourceData-tak niet: welke pandstatus, "
+	          "wonen of niet-wonen, en welk WP4 zou wegvallen. Draaien op VergelijkWP4/Wie_Mist/Export."
+	{
+		unit<uint32> S           := /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/Per1Jan/Y2026/select;
+		unit<uint8>  pand_status := /classifications/BAG/pand_status;
+
+		attribute<pand_status> S_status  (S) := /Analyse/Redev_obv_hele_bag/PrepBAG/BAG_Tabel/pand_status_rel[S/org_rel];
+		attribute<pand_status> A_status  (A) := modus(S_status, S/uq_pand_nr_rel);
+		attribute<uint32>      A_woonvbo (A) := sum_uint32(S/VBO_IsVoorraad && S/VBO_IsWonen ? 1 : 0, S/uq_pand_nr_rel);
+
+		attribute<string> key (A) := (IsDefined(A2B) ? 'in_SD' : 'NIET_in_SD')
+			+ ' | ' + MakeDefined(pand_status/name[A_status], 'status_onbekend')
+			+ ' | ' + (A_woonvbo > 0 ? 'wonen' : 'niet_wonen')
+			+ ' | wp4=' + MakeDefined(WP4/name[A_wp4], 'geen_type');
+
+		unit<uint32> K           := unique(key);
+		attribute<K> key_rel (A) := rlookup(key, K/values);
+
+		unit<uint32> Export := K
+		, StorageName = "='%LocalDataProjDir%/Temp/VergelijkWP4_wiemist_Y2026_'+/Parameters/StudyArea+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<string> categorie     := K/values;
+			attribute<uint32> aantal_panden := pcount(key_rel);
+		}
+	}
+}
+
+container WP4_Eindresultaat
+: Descr = "Eind-dekking van de nieuwe pand_type (SD-lookup + terugzoeken): welk deel van de mutatierijen krijgt een "
+          "WP4 en welk deel blijft null. Draaien op /Analyse/Redev_obv_hele_bag/VergelijkWP4/WP4_Eindresultaat/Export."
+{
+	unit<uint32> MT  := /Analyse/Redev_obv_hele_bag/PrepBAG/PandTypering_Mutaties/MutTable;
+
+	attribute</classifications/BAG/WP4> wp4     (MT) := /Analyse/Redev_obv_hele_bag/PrepBAG/PandTypering_Mutaties/pand_type;
+	attribute</classifications/BAG/WP4> wp4_nof (MT) := /Analyse/Redev_obv_hele_bag/PrepBAG/PandTypering_Mutaties/pand_type_zonder_terugzoeken;
+
+	attribute<string> key (MT) := (IsDefined(wp4) ? /classifications/BAG/WP4/name[wp4] : 'GEEN_TYPE')
+		+ ' | zonder_terugzoeken=' + (IsDefined(wp4_nof) ? /classifications/BAG/WP4/name[wp4_nof] : 'GEEN_TYPE');
+
+	unit<uint32> K            := unique(key);
+	attribute<K> key_rel (MT) := rlookup(key, K/values);
+
+	unit<uint32> Export := K
+	, StorageName = "='%LocalDataProjDir%/Temp/WP4_eindresultaat_'+/Parameters/StudyArea+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	{
+		attribute<string> categorie    := K/values;
+		attribute<uint32> mutatierijen := pcount(key_rel);
+	}
+
+	// de specifieke test voor het filedatum-vangnet: krijgen de pijplijn-woningen (plus-mutaties die
+	// door TyperingsJaar op het laatste jaar geklemd zijn, d.w.z. nieuwbouw uit het lopende jaar) een WP4?
+	attribute<bool> is_pijplijn (MT) := /Analyse/Redev_obv_hele_bag/PrepBAG/PandTypering_Mutaties/IsPlus
+		&& /Analyse/Redev_obv_hele_bag/PrepBAG/PandTypering_Mutaties/TyperingsJaar == /Analyse/Redev_obv_hele_bag/PrepBAG/PandTypering_Mutaties/LastJaar;
+
+	attribute<string> pijplijn_key (MT) := (is_pijplijn ? 'pijplijn_laatste_jaar' : 'overig')
+		+ ' | ' + (IsDefined(wp4) ? 'MET_TYPE' : 'GEEN_TYPE');
+
+	unit<uint32>  KP := unique(pijplijn_key);
+	attribute<KP> pijplijn_key_rel (MT) := rlookup(pijplijn_key, KP/values);
+
+	unit<uint32> Pijplijn_Export := KP
+	, StorageName = "='%LocalDataProjDir%/Temp/WP4_pijplijn_'+/Parameters/StudyArea+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	{
+		attribute<string> categorie    := KP/values;
+		attribute<uint32> mutatierijen := pcount(pijplijn_key_rel);
+	}
+}
+
+container MutatieDekking
+: Descr = "De meting die telt: van de echte mutatierijen, hoeveel vinden hun pand niet terug in de SourceData-set van "
+          "hun typeringsjaar. Gebruikt ExportMutatieVergelijking/MT (geen zware pandtypering) en alleen de "
+          "pandselectie per jaar (geen WP5-cache nodig), dus draait voor alle jaren 2012-2026. "
+          "Draaien op /Analyse/Redev_obv_hele_bag/MutatieDekking/Export."
+{
+	unit<uint32> Jaren := /classifications/Tijd/Jaren;
+	unit<uint32> MT    := /Analyse/Redev_obv_hele_bag/ExportMutatieVergelijking/MT;
+
+	unit<uint8> MutatieTypen             := /Analyse/Redev_obv_hele_bag/AdditionalClassifications/MutatieTypen;
+	unit<uint8> MutatieTypen_UnID        := /Analyse/Redev_obv_hele_bag/AdditionalClassifications/MutatieTypen_UnID;
+	unit<uint8> MutatieTypen_Uitgesloten := /Analyse/Redev_obv_hele_bag/AdditionalClassifications/MutatieTypen_Uitgesloten;
+
+	parameter<int32> FirstJaar := min(int32(Jaren/value));
+	parameter<int32> LastJaar  := max(int32(Jaren/value));
+
+	// zelfde afleiding als PrepBAG/PandTypering_Mutaties (PrepBAG.dms:1246-1254)
+	attribute<bool>  IsPlus        (MT) := switch(
+											 case(IsDefined(MT/MutatieTypen_rel_src),         MutatieTypen/IsPlus[MT/MutatieTypen_rel_src])
+											,case(IsDefined(MT/MutatieTypen_UnID_rel),        MutatieTypen_UnID/IsPlus[MT/MutatieTypen_UnID_rel])
+											,case(IsDefined(MT/MutatieTypen_Uitgesloten_rel), MutatieTypen_Uitgesloten/IsPlus[MT/MutatieTypen_Uitgesloten_rel])
+											,FALSE
+										 );
+	attribute<int32> MutatieJaar   (MT) := MT/MutatieMaand / 100i;
+	attribute<int32> TyperingsJaar (MT) := min_elem(max_elem(IsPlus ? MutatieJaar + 1i : MutatieJaar, FirstJaar), LastJaar);
+
+	container n_rijen :=
+		for_each_nedv(
+			Jaren/name
+			, 'sum_uint32(TyperingsJaar == '+string(Jaren/value)+'i ? 1 : 0)'
+			, void
+			, uint32
+		);
+
+	container n_gemist :=
+		for_each_nedv(
+			Jaren/name
+			, 'sum_uint32(TyperingsJaar == '+string(Jaren/value)+'i && IsNull(rlookup(MT/pand_bag_nr, /SourceData/Vastgoed/BAG/PerJaar/'+Jaren/name+'/pand/pand_bag_nr)) ? 1 : 0)'
+			, void
+			, uint32
+		);
+
+	unit<uint32> Export := Jaren
+	, StorageName = "='%LocalDataProjDir%/Temp/MutatieDekking_'+/Parameters/StudyArea+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	{
+		attribute<string> typeringsjaar     := Jaren/name;
+		attribute<uint32> mutatierijen      := ='union_data(Jaren, '+AsList('n_rijen/'+Jaren/name, ',')+')';
+		attribute<uint32> pand_niet_in_sd   := ='union_data(Jaren, '+AsList('n_gemist/'+Jaren/name, ',')+')';
+	}
+
+	container Per_Type
+	: Descr = "Dekking uitgesplitst naar mutatietype en plus/min. Bepaalt welk deel een terugzoek-mechanisme "
+	          "(min-mutaties: pand stond in een eerder jaar) kan repareren en welk deel niet (plus-mutaties: "
+	          "pand bestond nog niet). Draaien op MutatieDekking/Per_Type/Export."
+	{
+		attribute<uint32> gemist_cnt (MT) := ='add('+AsList('(TyperingsJaar == '+string(Jaren/value)+'i && IsNull(rlookup(MT/pand_bag_nr, /SourceData/Vastgoed/BAG/PerJaar/'+Jaren/name+'/pand/pand_bag_nr))) ? 1 : 0', ',')+')';
+		attribute<bool>   gemist     (MT) := gemist_cnt > 0;
+
+		attribute<string> mt_naam (MT) := MakeDefined(
+											 MutatieTypen/name[MT/MutatieTypen_rel_src]
+											,MakeDefined(
+												 'UnID_' + MutatieTypen_UnID/name[MT/MutatieTypen_UnID_rel]
+												,MakeDefined(
+													 'Rest_' + MutatieTypen_Uitgesloten/name[MT/MutatieTypen_Uitgesloten_rel]
+													,'onbekend'
+												)
+											)
+										 );
+
+		attribute<string> key (MT) := (IsPlus ? 'plus' : 'min ') + ' | ' + mt_naam + ' | ' + (gemist ? 'GEMIST' : 'gevonden');
+
+		unit<uint32> K            := unique(key);
+		attribute<K> key_rel (MT) := rlookup(key, K/values);
+
+		unit<uint32> Export := K
+		, StorageName = "='%LocalDataProjDir%/Temp/MutatieDekking_perType_'+/Parameters/StudyArea+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<string> categorie    := K/values;
+			attribute<uint32> mutatierijen := pcount(key_rel);
+		}
+
+		container Filedatum
+		: Descr = "Van de nu gemiste mutatierijen: welke zouden alsnog gedekt worden door een pandselectie op de "
+		          "BAG-filedatum i.p.v. 1 januari, onder drie varianten. a=gewone voorraaddefinitie, "
+		          "b=+bouw_gestart (casco staat er), c=+bouwvergunning_verleend (alleen papier). "
+		          "Geen WP5/buuranalyse nodig. Draaien op MutatieDekking/Per_Type/Filedatum/Export."
+		{
+			unit<uint32> P           := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/pand;
+			unit<uint8>  pand_status := /classifications/BAG/pand_status;
+
+			parameter<int32> FD := int32(/Parameters/BAG_file_date);
+
+			attribute<bool> geldig (P) := P/Begindatum < FD && P/Einddatum >= FD;
+			attribute<bool> is_a   (P) := geldig && P/IsVoorraad;
+			attribute<bool> is_b   (P) := is_a || (geldig && P/status_rel == pand_status/v/bouw_gestart);
+			attribute<bool> is_c   (P) := is_b || (geldig && P/status_rel == pand_status/v/bouwvergunning_verleend);
+
+			unit<uint32> Pa := select_with_org_rel(is_a) { attribute<uint64> pand_bag_nr := org_rel -> pand_bag_nr; }
+			unit<uint32> Pb := select_with_org_rel(is_b) { attribute<uint64> pand_bag_nr := org_rel -> pand_bag_nr; }
+			unit<uint32> Pc := select_with_org_rel(is_c) { attribute<uint64> pand_bag_nr := org_rel -> pand_bag_nr; }
+
+			// VBO-kant: een pand zit in de pijplijn als het op filedatum een VBO heeft met status
+			// verblijfsobject_gevormd (IsInPlanvorming = TRUE, nog geen voorraad).
+			unit<uint32> V := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/src;
+			attribute<bool> v_gevormd_fd (V) := V/begindatum < FD && V/einddatum >= FD
+				&& V/status_rel == /classifications/BAG/vbo_status/v/verblijfsobject_gevormd;
+			unit<uint32> Pg := select_with_org_rel(v_gevormd_fd) { attribute<uint64> pand_bag_nr := V/pand_bag_nr[org_rel]; }
+
+			attribute<bool> in_a       (MT) := IsDefined(rlookup(MT/pand_bag_nr, Pa/pand_bag_nr));
+			attribute<bool> in_b       (MT) := IsDefined(rlookup(MT/pand_bag_nr, Pb/pand_bag_nr));
+			attribute<bool> in_c       (MT) := IsDefined(rlookup(MT/pand_bag_nr, Pc/pand_bag_nr));
+			attribute<bool> in_gevormd (MT) := IsDefined(rlookup(MT/pand_bag_nr, Pg/pand_bag_nr));
+
+			// volgorde: eerst plain voorraad, dan de VBO-gevormd winst apart, dan de pandstatus-projecties
+			attribute<string> key (MT) := gemist
+				? (mt_naam + ' | ' + (
+					  in_a       ? 'a_plain_voorraad'
+					: in_gevormd ? 'd_vbo_gevormd'
+					: in_b       ? 'b_plus_casco'
+					: in_c       ? 'c_plus_papier'
+					:              'ook_op_filedatum_niet'))
+				: 'nu_al_gevonden';
+
+			unit<uint32> K2            := unique(key);
+			attribute<K2> key_rel (MT) := rlookup(key, K2/values);
+
+			unit<uint32> Export := K2
+			, StorageName = "='%LocalDataProjDir%/Temp/MutatieDekking_filedatum_'+/Parameters/StudyArea+'.csv'"
+			, StorageType = "gdalwrite.vect"
+			{
+				attribute<string> categorie    := K2/values;
+				attribute<uint32> mutatierijen := pcount(key_rel);
+			}
+		}
+	}
+}

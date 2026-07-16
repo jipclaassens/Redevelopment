@@ -76,7 +76,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		
 	#include<AdditionalOperations.dms>
 	#include<ExportMutatieVergelijking.dms>
-	
+	#include<VergelijkWP4.dms>
+
 	container FinalDomains
 	{
 		unit<uint32> SN_Sloop_Objecten              := AdditionalOperations/SN/Result/Sloop_Objecten;

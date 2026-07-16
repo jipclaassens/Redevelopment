@@ -95,6 +95,93 @@ Implementatie A: dormante `SourceData/woz.dms` herschrijven — include aanzette
 - **Gedropt** (besluiten juni 2026): `pand_hoogte` (AHN-snapshot tijd-inconsistent), `vogelaar` (programma ~2012 afgelopen), `n_owners_site` (BRK in config heeft alleen perceelgeometrie; herverkaveling na herontwikkeling maakt snapshot-timing fataal). `local_price_vol` = R-side uit NVM.
 - Mutatietypering (PrepBAG) gecontroleerd tegen CBS-doc "Afleiden van de woonvoorraad" + mailwissel Straetemans/vd Wal; vier fixes en dedup gecommit (0489602, 7d1d4d3). Verschil met Statline = CBS' niet-openbare correctiebronnen, gedocumenteerd op de wiki.
 
+## WP4-pandtypering: van live Per1Jan-buuranalyse naar SD-lookup + terugzoeken (2026-07-16)
+
+**Aanleiding.** `MaakOntkoppeldeData/Write_FinalMutationTable` liet de GUI "crashen". Bleek geen
+crash maar een Windows resource-exhaustion-kill (System-event 2004): het proces groeide tot
+**595,8 GiB commit**. Driver: `PandTypering_Mutaties/pand_type` (PrepBAG.dms) deed
+`merge(TyperingsJaar_idx, WP4, perJaar/Y2012..Y2026)`, en `merge` houdt **alle ~15 jaartakken
+tegelijk levend**. Elke tak trok een volledige live `Per1Jan/<jaar>/select` +
+`AfleidingPandtype`-buuranalyse over ~10M panden. (Engine-kant: EmptyWorkingSet-storm apart
+gefixt in GeoDMS commit 3d55f4ad; silent OOM = GeoDMS-issue #1158. GeoDMS-crashonderzoek staat
+los van dit repo.)
+
+**Twee bronnen voor dezelfde WP4-typering vergeleken** (Y2026, NL, headless, meetscaffold
+`Analyse/redev_obv_hele_bag/VergelijkWP4.dms` — permanent handig, hoort niet in productie):
+
+| | Analyse-tak `Per1Jan/<jaar>/select/uq_pand_nr` | SourceData-tak `PerJaar/<jaar>/pand` |
+|---|---|---|
+| grondslag | `BAG_Tabel` (vbo×pand×periode), `unique(pand_bag_nr)` | `VolledigeBAG/panden/pand` |
+| statusfilter | **geen** | **`pand/IsVoorraad`** (CBS-voorraaddef) |
+| WP5 | **live berekend** | **uit mmd-cache gelezen** (`WP5/<Selection_string>_<jaar>_<area>.mmd`) |
+| omvang | 6,77M panden | 11,16M panden |
+
+Gedeelde panden: **93,85% identiek WP4**, 0,83% ander type. Die 0,83% (56.220) is geen ruis maar
+**buur-besmetting**: de Analyse-tak laat gesloopte/niet-voorraad panden meedoen als buur, dus een
+rijtjeswoning naast een gesloopt gat wordt vrijstaand. De SD-tak typeert op een schone
+voorraad-only burenset. **SD is dus correcter, niet alleen goedkoper.**
+
+**Dekking op de échte mutatierijen** (2.325.426; `MutatieDekking`-scaffold, geen pandtypering
+nodig): 8,14% van de rijen vindt zijn pand niet in de SD-set van zijn typeringsjaar. Uitgesplitst
+(`Per_Type`): **min-mutaties 20,2%, plus 4,2%**; binnen min is **sloop (S/S_nw) 43,6%**,
+onttrekking 0,5%. Het gat zit dus vrijwel volledig in sloop — logisch: bij sloop staat het pand
+dat jaar niet meer in de voorraad. De gemiste panden zijn **100% wonen**; naar status:
+Pand_gesloopt 56%, ten_onrechte_opgevoerd 15%, sloopvergunning_verleend 15%,
+niet_gerealiseerd 14%, in-aanbouw 0,3%.
+
+**Drie mechanismen, op cijfers onderbouwd:**
+1. **SD-lookup (basis, ~36% van het gat + alle voorraad).** Eén mmd-lookup per jaar i.p.v. live
+   buuranalyse → lost de 595 GiB op én de buur-besmetting.
+2. **Terugzoeken / backward-fill (~55%, de sloopgroep).** Rij zonder typering in zijn jaar krijgt
+   de typering van het laatste eerdere jaar waarin het pand wél voorraad was — zelfde gebouw,
+   schone buren. Correcties (Cmin/Cplus, nooit bestaan → ~8%) vinden ook achteruit niets en
+   blijven terecht null.
+3. **Filedatum-snapshot (de nieuwbouw-staart).** 2026-nieuwbouw wordt door `TyperingsJaar` naar
+   1-1-2026 geklemd terwijl het pand er dan nog niet staat; terugzoeken helpt daar niet.
+   Gemeten op de gemiste rijen: een filedatum-selectie met de **gewone voorraaddefinitie** vangt
+   80% van de gemiste nieuwbouw (54k). VBO-status `verblijfsobject_gevormd` (IsInPlanvorming)
+   voegt +1.993 toe en **subsumeert** de pandstatus-projectie `bouw_gestart`/`bouwvergunning_verleend`
+   (die zakte van 1.329+642 → 70+64) — dus als er iets bij moet is het `gevormd`, niet de
+   pandstatus-projectie. **Let op valkuil:** `gevormd`-panden komen zo wél in de selectie maar
+   krijgen geen WP4 tenzij ook `functioneel_pand`/`count_vbos` (bag.dms) meetelt met gevormd-VBO's
+   — anders count_vbos=0 → buiten buuranalyse → alsnog null. Filedatum-snapshot gebouwd met de
+   **plain voorraaddefinitie** (geen gevormd, geen projectie): gemeten meerwaarde daarvan was
+   +1.993 resp. +134 rijen op 2,3M, tegen extra aannames en een ingreep in de gedeelde SD-typering.
+
+**Gebouwd en geverifieerd (2026-07-16, alle drie de mechanismen):**
+- `PrepBAG.dms` `PandTypering_Mutaties`: `perJaar` omgeleid naar
+  `/SourceData/Vastgoed/BAG/PerJaar/<jaar>/pand/WP4_rel[rlookup(MutTable/pand_bag_nr, .../pand/pand_bag_nr)]`;
+  `perJaar_gevuld` = cumulatieve backward-fill (`MakeDefined(perJaar/<jaar>, gevuld/<vorig jaar>)`,
+  eerste jaar = eigen jaar); `pand_type_op_filedatum` = zelfde lookup in `OpFileDatum/pand`;
+  `pand_type = MakeDefined(merge(TyperingsJaar_idx, WP4, perJaar_gevuld/...), pand_type_op_filedatum)`.
+  Diagnostiek ernaast: `pand_type_zonder_terugzoeken` (merge op kale `perJaar`).
+- `SourceData/bag.dms`: `PerJaar_T` gegeneraliseerd met `PeilDatum` — JaarStr 'JJJJ' → 1 jan van dat
+  jaar, 'JJJJMMDD' → die datum zelf; berekening in **int64** (beide ternary-takken worden geëvalueerd
+  en JJJJMMDD×10000 overloopt int32). Nieuwe instantie `OpFileDatum := PerJaar_T(Parameters/BAG_file_date)`;
+  de 15 jaar-instanties gedragen zich identiek. Cache krijgt vanzelf een eigen naam:
+  `WP5/Voorraad_20260710_<area>.mmd` (11.240.179 panden op 10-7 vs 11.158.260 op 1-1 = +82k ✓).
+- WP5-caches: 2012-2025 gegenereerd (Jip, per jaar ~2 min / piek ~33 GB), 2026 + filedatum (Claude).
+  **Cache-map staat onder cloud-sync; de 2026-cache viel tijdens de sessie twee keer terug naar een
+  oude stale versie → cryptische "CreateFileMapping ... Access is denied" (mmd zonder Range, GeoDMS
+  #1154). Sync uit tijdens rekenen, of de WP5-map excluden.**
+
+**Eindmeting (NL, BAG 20260710, 2.325.426 mutatierijen; `WP4_Eindresultaat`-scaffold):**
+| variant | GEEN_TYPE | met WP4 |
+|---|---|---|
+| kale SD-lookup | 623.115 (26,80%) | 73,20% |
+| + terugzoeken | 544.781 (23,43%) | 76,57% — redde 78.334 (sloopgroep) |
+| + filedatum-vangnet | **459.839 (19,77%)** | **80,23%** — redde nog eens 84.942 |
+
+**Pijplijn-test** (plus-mutaties geklemd op laatste jaar = nieuwbouw lopend jaar): **132.939 van
+164.877 = 80,6% krijgt een WP4**, conform de vooraf gemeten 80%. De rest is overwegend terecht
+null: niet-wonen nieuwbouw (hoort geen woonpandtype) en panden die op de filedatum nog niet
+gebouwd zijn. Resterende GEEN_TYPE (19,77%) = niet-woonpanden + nooit-bestaande correcties +
+nog-niet-gebouwd.
+
+**Geheugen/looptijd**: volledige `pand_type` nu **~27 GB piek / ~2 min** (was 595,8 GiB → OS-kill,
+factor ~22). NB: de mmd van `Write_FinalMutationTable` krijgt de `pand_type`-kolom pas bij een
+verse volledige run van dat write-item.
+
 ## Paper — openstaande punten
 
 - Results/conclusie leeg (wacht op R); Figuur 2 (study area) placeholder; cost-data-sectie onaf; `[SOURCE]` bij PBL/Fakton; bouwjaar-buckets "NEEDS A REF"; Table 3 descriptives stamt uit eerdere versie.

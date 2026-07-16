@@ -52,15 +52,24 @@ container BAG : using = "classifications;units"
 	}
 	
 	container PerJaar := for_each_ne(BAG_jaren/name, 'PerJaar_T('+quote(string(BAG_jaren/jaar))+')');
-	
+
+	container OpFileDatum := PerJaar_T(Parameters/BAG_file_date)
+	, Descr = "Snapshot van de BAG op de filedatum zelf (BAG_file_date) i.p.v. 1 januari; zelfde template, een "
+	          "8-cijferige JaarStr wordt als volledige peildatum gelezen. Gebruikt door PandTypering_Mutaties als "
+	          "vangnet voor plus-mutaties in het laatste jaar: die typeren op 1-1 ná de mutatie, maar dat moment "
+	          "valt buiten de jaarreeks; op 1-1 van het laatste jaar staat de nieuwbouw er nog niet, op de filedatum wel.";
+
 	Template PerJaar_T
-	: Descr = "Snapshot van de BAG per jaar, met panden en vbo's die op 1 januari van dat jaar geldig zijn."
+	: Descr = "Snapshot van de BAG per jaar, met panden en vbo's die op de peildatum geldig zijn. "
+	          "JaarStr 'JJJJ' geeft de stand op 1 januari van dat jaar; JaarStr 'JJJJMMDD' de stand op die datum."
 	{
 		parameter<String> JaarStr;
+		// in int64: beide takken van de ternary worden geëvalueerd, en 'JJJJMMDD' * 10000 overloopt int32
+		parameter<int32>  PeilDatum := int32(int64(JaarStr) < int64(10000) ? int64(JaarStr) * int64(10000) + int64(101) : int64(JaarStr));
 		///
-		attribute<Bool> pand_selection_condition (VolledigeBAG/panden/pand) := VolledigeBAG/panden/pand/IsVoorraad 
-															&& VolledigeBAG/panden/pand/Begindatum < int32(JaarStr+'0101') 
-															&& VolledigeBAG/panden/pand/Einddatum >= int32(JaarStr+'0101');
+		attribute<Bool> pand_selection_condition (VolledigeBAG/panden/pand) := VolledigeBAG/panden/pand/IsVoorraad
+															&& VolledigeBAG/panden/pand/Begindatum < PeilDatum
+															&& VolledigeBAG/panden/pand/Einddatum >= PeilDatum;
 		unit<UInt32> pand := select_with_attr_by_cond(VolledigeBAG/panden/pand, pand_selection_condition)
 		, Descr = "set met panden op 1 januari van elk jaar die voorraad zijn volgens de CBS definitie."
 		{
@@ -286,9 +295,9 @@ container BAG : using = "classifications;units"
 		}
 		
 		unit<UInt32> vbo  := select_with_attr_by_cond(VolledigeBAG/VBOs/vbo
-														, VolledigeBAG/VBOs/vbo/IsVoorraad 
-															&& VolledigeBAG/VBOs/vbo/Begindatum < int32(JaarStr+'0101') 
-															&& VolledigeBAG/VBOs/vbo/Einddatum >= int32(JaarStr+'0101'))
+														, VolledigeBAG/VBOs/vbo/IsVoorraad
+															&& VolledigeBAG/VBOs/vbo/Begindatum < PeilDatum
+															&& VolledigeBAG/VBOs/vbo/Einddatum >= PeilDatum)
 		, Descr = "set met verblijfsobjecten op 1 januari van elk jaar die voorraad zijn volgens de CBS definitie."
 		{
 			parameter<String>                Selection_string      := 'Voorraad';

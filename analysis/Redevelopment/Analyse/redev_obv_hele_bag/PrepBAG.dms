@@ -519,7 +519,14 @@ container PrepBAG : using = "AdditionalClassifications"
 					// attribute<Yr>    modus_bouwjaar (wijk12) := modus(pand_bouwjaar, wijk12_rel);
 					// attribute<Yr>    pand_mean_bouwjaar     := mean_bouwjaar[wijk12_rel];
 					unit<uint8>        WP4                    := /classifications/BAG/WP4;
-					attribute<WP4>     pand_type              := AfleidingPandtype/results/WP4_rel;
+					attribute<WP4>     pand_type              := WP4_rel;
+
+					attribute<WP5>            WP5_rel                          := AfleidingPandType/Results/WP5_rel;
+					// attribute<WP5>            WP5_rel                          := =Parameters/BAG_WP5_rel_Ontkoppeld ? 'AfleidingPandType/Results/WP5_rel' : 'AfleidingPandType/Write_WP5/WP5_rel';
+					attribute<WP4>            WP4_rel                          := WP5/WP4_rel[WP5_rel], Descr = "Woonpand typering opgesplitst in vier typen: WP4, afgeleid van WP5";
+					// attribute<WP3>            WP3_rel                          := WP5/WP3_rel[WP5_rel], Descr = "Woonpand typering opgesplitst in drie typen: WP3, afgeleid van WP5";
+					// attribute<WP2>            WP2_rel                          := WP5/WP2_rel[WP5_rel], Descr = "Woonpand typering opgesplitst in twee typen: WP2, afgeleid van WP5";
+					// attribute<WP1>            WP1_rel                          := WP5/WP1_rel[WP5_rel], Descr = "Woonpand typering opgesplitst in één type: WP1, afgeleid van WP5";
 					
 					// attribute<float32> chi_square    (wijk12) := sum(sqr(pand_bouwjaar[float32] - pand_mean_bouwjaar[float32]) / pand_mean_bouwjaar[float32], wijk12_rel), Descr = "Pearson's chi-square om de mate van uniformiteit te bepalen", URL = "https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test";
 					// attribute<float32> diversity              := ='1f - add('+asList( + 'sqr(' + Grondgebruik/CBS2010Klasse/gg_12K_wo_OSA/name + ')',',')+')';
@@ -1249,12 +1256,39 @@ container PrepBAG : using = "AdditionalClassifications"
 		container perJaar :=
 			for_each_nedv(
 				classifications/Tijd/Jaren/name
-				, 'BAG_Tabel/Per1Jan/'+classifications/Tijd/Jaren/name+'/select/uq_pand_nr/pand_type[rlookup(MutTable/pand_bag_nr, BAG_Tabel/Per1Jan/'+classifications/Tijd/Jaren/name+'/select/uq_pand_nr/values)]'
+				, '/SourceData/Vastgoed/BAG/PerJaar/'+classifications/Tijd/Jaren/name+'/pand/WP4_rel[rlookup(MutTable/pand_bag_nr, /SourceData/Vastgoed/BAG/PerJaar/'+classifications/Tijd/Jaren/name+'/pand/pand_bag_nr)]'
 				, MutTable
 				, WP4
-			), Descr = "Per kalenderjaar het WP4-type van het pand van elke mutatierij, obv de stand per 1 jan van dat jaar.";
+			), Descr = "Per kalenderjaar het WP4-type van het pand van elke mutatierij, opgezocht uit de SourceData-voorraadselectie "
+			           "(/SourceData/Vastgoed/BAG/PerJaar/<jaar>/pand) i.p.v. de zware live Per1Jan-buuranalyse. De SD-typering is "
+			           "voorraad-only en per jaar naar mmd weggeschreven (WP5-cache), dus dit leest i.p.v. rekent en de burenset "
+			           "raakt niet besmet door gesloopte panden. Vereist dat de WP5-caches per jaar bestaan.";
 
-		attribute<WP4> pand_type (MutTable) := ='merge(TyperingsJaar_idx, WP4, '+AsItemList('perJaar/'+classifications/Tijd/Jaren/name)+')';
+		// terugzoeken: een mutatierij waarvan het pand in zijn typeringsjaar geen SD-voorraadtypering heeft
+		// (vrijwel altijd sloop) krijgt de typering van het laatste eerdere jaar waarin het pand wel voorraad was.
+		// Cumulatieve backward-fill: gevuld/<jaar> = eigen jaar, anders het gevulde vorige jaar. Correcties
+		// (pand heeft nooit bestaan) vinden ook achteruit niets en blijven terecht null.
+		container perJaar_gevuld :=
+			for_each_nedv(
+				classifications/Tijd/Jaren/name
+				, classifications/Tijd/Jaren/value == uint32(FirstJaar)
+					? 'perJaar/'+classifications/Tijd/Jaren/name
+					: 'MakeDefined(perJaar/'+classifications/Tijd/Jaren/name+', perJaar_gevuld/'+classifications/Tijd/Jaren/prev_name+')'
+				, MutTable
+				, WP4
+			), Descr = "perJaar, maar achterwaarts gevuld: laatst bekende SD-voorraadtypering t/m dat jaar.";
+
+		// vangnet voor de nieuwbouw-staart: plus-mutaties in het laatste jaar willen typeren op de stand
+		// van 1 jan ná de mutatie, maar dat moment valt buiten de jaarreeks; TyperingsJaar klemt ze op
+		// 1-1 van het laatste jaar, waar de nieuwbouw nog niet staat, en terugzoeken vindt per definitie
+		// niets (het pand bestond nooit eerder). De stand op de BAG-filedatum zelf heeft die panden wel.
+		attribute<WP4> pand_type_op_filedatum (MutTable) := /SourceData/Vastgoed/BAG/OpFileDatum/pand/WP4_rel[rlookup(MutTable/pand_bag_nr, /SourceData/Vastgoed/BAG/OpFileDatum/pand/pand_bag_nr)];
+
+		attribute<WP4> pand_type (MutTable) := ='MakeDefined(merge(TyperingsJaar_idx, WP4, '+AsItemList('perJaar_gevuld/'+classifications/Tijd/Jaren/name)+'), pand_type_op_filedatum)';
+
+		// diagnostiek: dezelfde typering zonder terugzoeken en zonder filedatum-vangnet (merge op perJaar).
+		// Verschil met pand_type = wat terugzoeken + vangnet samen hebben gered. Niet gebruikt in productie.
+		attribute<WP4> pand_type_zonder_terugzoeken (MutTable) := ='merge(TyperingsJaar_idx, WP4, '+AsItemList('perJaar/'+classifications/Tijd/Jaren/name)+')';
 	}
 
 	unit<uint32> Read_FinalMutationTable

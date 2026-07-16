@@ -13,7 +13,6 @@ container AfleidingPandtype
 	}
 	container results
 	{
-		attribute<uint32>        nr_buurpanden     (domain) := functioneel_pand/NeighbourCount[invert(functioneel_pand/org_rel)];
 		attribute<WP5>           WP5_rel           (domain) := functioneel_pand/WP5_rel[invert(functioneel_pand/org_rel)];
 		attribute<WP4>           WP4_rel           (domain) := WP5/WP4_rel[WP5_rel];
 	}
@@ -30,7 +29,6 @@ container AfleidingPandtype
 	unit<uint32> functioneel_pand := select_with_org_rel(domain/count_vbos > 0 && extents/X_ext < 1000d && extents/Y_ext < 1000d)
 	{
 		attribute<rdc>    geometry (poly) := org_rel -> pand_geometry;
-		// attribute<rdc>    geometry_inflated_20cm (poly) := org_rel -> geometry_inflated_20cm;
 		attribute<rdc>    geometry_inflated_20cm (poly) := geos_buffer_multi_polygon(geometry, 0.2d, 1b);
 		attribute<rdc>    NW              := extents/NW[org_rel];
 		attribute<rdc>    SE              := extents/SE[org_rel];
@@ -49,14 +47,14 @@ container AfleidingPandtype
 
 		
 		attribute<WP5> WP5_rel  :=
-			  nr_woning == 0      ? WP5/V/geen_woonpand
-			: nr_woning >  1      ? WP5/V/appartement
-			: NeighbourCount == 0 ? WP5/V/vrijstaand
-			: HasOneNeighbour
-				? IsSemiAttached
-					? WP5/V/twee_onder_1_kap
-					: WP5/V/hoekwoning
-			: WP5/V/tussenwoning;
+			switch(
+				 case(nr_Woning == 0, WP5/V/geen_woonpand)
+				,case(nr_Woning >  1, WP5/V/Appartement)
+				,case(NeighbourCount == 0, WP5/V/Vrijstaand)
+				,case(HasOneNeighbour && IsSemiAttached, WP5/V/Twee_onder_1_kap)
+				,case(HasOneNeighbour && NOT(IsSemiAttached), WP5/V/Hoekwoning)
+				,WP5/V/Tussenwoning
+			), Descr = "Bepaal het woningtype op basis van het aantal verblijfsobjecten en het aantal buren.";
 	}
 
 	// parameter<uint32>  nr_x         := ModelParameters/BAG_woonpand_typering/nr_x_tiles;

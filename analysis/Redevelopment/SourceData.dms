@@ -111,9 +111,11 @@ container SourceData :  using = "units;geography;classifications"
 			), Descr = "Reistijd naar 500.000 inwoners in float-minuten, gemaximeerd op 120; schaal identiek aan schattingsinput van coef lntt_500k_2024";
 
 		// Grondproductiekosten (PBL/Fakton-schattingsmodel, RuimteScanner-implementatie): Eur/ha op 25m,
-		// 2017-schatting x bouwkostenindex naar 2023 (= prijspeil van de hedonische waardering). Geexporteerd
-		// uit C:/ProjDir/RSopen_NL2120 via /ExportRedevKosten/Generate (Model_StartYear 2023); drie
-		// onzekerheidsvarianten: RS-default Nominaal_High + bandbreedte Low_Low / High_High. Issue #16 stap 2.
+		// 2017-schatting x bouwkostenindex naar 2023 (= prijspeil van de hedonische waardering). Eenmalig
+		// gegenereerd (2026-07-16) uit RSopen_NL2120, item /BaseData/Suitabilities/Wonen/Grondproductiekosten/
+		// Results/Totaal/<variant> (Model_StartYear 2023); het gebruikte export-snippet staat als naslag in
+		// analysis/data/ExportRedevKosten_NL2120_snippet.dms.txt. Drie onzekerheidsvarianten: RS-default
+		// Nominaal_High + bandbreedte Low_Low / High_High. Issue #16 stap 2.
 		container Grondproductiekosten
 		{
 			attribute<float32> Nominaal_High (rdc_25m)

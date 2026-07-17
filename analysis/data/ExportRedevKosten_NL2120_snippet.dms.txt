@@ -1,0 +1,40 @@
+// NASLAG-SNIPPET (geen actieve configuratie) — bewaard in het Redevelopment-repo als provenance.
+// Dit export-item stond op 2026-07-16 tijdelijk in C:/ProjDir/RSopen_NL2120 (cfg/main/ExportRedevKosten.dms
+// + include in main.dms) en is na het genereren van de tifs weer teruggedraaid om dat project niet te
+// vervuilen. De output staat in %Redev_DataDir%/Vastgoed/Grondproductiekosten_2023/. Voor regeneratie
+// (bv. ander prijspeil via Model_StartYear): dit bestand tijdelijk terugzetten in NL2120 en
+// GeoDmsRun.exe main.dms /ExportRedevKosten/Generate draaien.
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Export van de grondproductiekosten-grids tbv het Redevelopment densification-paper
+// (github.com/jipclaassens/Redevelopment, issue #16 stap 2: residual value per site x ontwikkeloptie).
+//
+// Prijspeil: Results = 2017-schatting x PrijsIndex_Bouwkosten_2017_naar_<Model_StartYear>; met
+// Model_StartYear = 2023 staan deze grids dus op 2023-prijspeil, consistent met het prijspeil van
+// de hedonische waardering in dat paper. Drie onzekerheidsvarianten: de RS-default Nominaal_High
+// plus de bandbreedte-uitersten Low_Low en High_High.
+//
+// Draaien: GeoDmsRun.exe main.dms /ExportRedevKosten/Generate
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container ExportRedevKosten : using = "Geography;Units"
+{
+	parameter<String> dir := '%RSo_DataDir%/Vastgoed/Grondproductiekosten_' + string(ModelParameters/Model_StartYear);
+
+	attribute<Eur_Ha> Nominaal_High (AdminDomain) := BaseData/Suitabilities/Wonen/Grondproductiekosten/Results/Totaal/Nominaal_High
+	, StorageName = "=dir+'/Nominaal_High.tif'"
+	, StorageType = "gdalwrite.grid";
+
+	attribute<Eur_Ha> Low_Low (AdminDomain) := BaseData/Suitabilities/Wonen/Grondproductiekosten/Results/Totaal/Low_Low
+	, StorageName = "=dir+'/Low_Low.tif'"
+	, StorageType = "gdalwrite.grid";
+
+	attribute<Eur_Ha> High_High (AdminDomain) := BaseData/Suitabilities/Wonen/Grondproductiekosten/Results/Totaal/High_High
+	, StorageName = "=dir+'/High_High.tif'"
+	, StorageType = "gdalwrite.grid";
+
+	parameter<String> Generate := 'Ready', ExplicitSuppliers = "Nominaal_High;Low_Low;High_High"
+	, Descr = "Activeer dit item om de drie grondproductiekosten-grids weg te schrijven.";
+}

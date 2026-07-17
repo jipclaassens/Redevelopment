@@ -48,6 +48,10 @@ Scaffold `ValidatieTypering.dms` (SteekproefKetens + Diagnose100Dagen):
 - **#17 ingebouwd**: `OnveranderdSites.dms` clustert de onveranderde woonvoorraad tot potentiële sites met exact de SN-buffer-machinerie; Onveranderd-objecten krijgen `OnvS_<id>`-site_id (fallback eigen pand); `VergelijkGrootte_Export` schrijft de groottedistributie potentieel-vs-SN voor de validatie/cap-beslissing.
 - **Run gestart** (avond): verse PerObject_Export NL met alles erin + VergelijkGrootte-CSV — geos-clustering over ~4M panden, duurt uren. Daarna: R-herrun (03_sites pakt de kostencomponenten al mee), distributie-analyse #17, en dán R stap 2 (alternatieventabel + residual value).
 
+### 17-07: OnveranderdSites v2 (opgedeeld) klaargezet voor de vólgende run
+
+De v1-route (SN-identiek: landelijke `geos_split_union_polygon`) bleek op voorraadschaal een **single-threaded cross-tile-merge van >12 uur** te hebben (per-tile-fase 83 tiles was in ~6 uur klaar; de stille mergefase draaide daarna nog uren op 1 core). De lopende run is bewust uitgedraaid (resultaat blijft bruikbaar), maar `OnveranderdSites.dms` is herschreven naar **v2 zonder enige landelijke union**: bufferdelen per pand geknipt op weg/spoor en gefilterd op het eigen blok → `polygon_connectivity` (getilde adjacency, geen intersectiegeometrieën) → `connected_parts` (union-find) → site-geometrie via gepartitioneerde `geos_union_polygon` per site. Semantisch equivalent (zelfde 10m/weg-spoor-logica); VBO→site loopt nu via pand-rel i.p.v. point_in_polygon. **Parse-checked maar nog niet gedraaid** — de eerstvolgende verse run gebruikt v2 en zou de OnveranderdSites-fase tot ~1-2 uur moeten terugbrengen; vergelijk dan sitecounts/distributies even met de v1-uitkomst van 16/17-07.
+
 ### Openstaand na deze sessie
 
 1. **R-modelkeuzes (#16 stap 2–5)**: alternatieventabel + residual value, conditional logit, inclusive value, stage-2 logit. Universe-afbakening stage 2 (#13) en clustering Onveranderd (#17) open. Cluster-K bevestigen (elbow.csv); cluster 5 (appartement-laagdicht, FAR 0,14) verdient een blik op de site_size-definitie bij pure nieuwbouw-sites.

@@ -17,12 +17,13 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			, DialogData = "pand_geometry"
 			, DialogType = "map"
 			{
-				// issue #17: onveranderde voorraad geclusterd tot potentiele sites met dezelfde buffer-machinerie
-				// als SN (OnveranderdSites.dms); fallback = eigen pand voor de zeldzame missers op splitranden.
-				attribute<OnveranderdSites/Result> Site_rel    := OnveranderdSites/Result/Bron_rel;
-				attribute<string>      Site_ID                  := MakeDefined(OnveranderdSites/Result/Site_ID[Site_rel], 'Onv_'+string(id(.)));
-				attribute<m2>          site_size                := MakeDefined(OnveranderdSites/Result/site_size[Site_rel], area(pand_geometry, m2));
-				attribute<m2>          site_sum_footprint       := MakeDefined(OnveranderdSites/Result/site_sum_footprint[Site_rel], area(pand_geometry, m2));
+				// issue #17: onveranderde voorraad geclusterd tot potentiele sites met dezelfde vormingslogica als
+				// SN (OnveranderdSites.dms, v2 via connected components); fallback = eigen pand voor randgevallen
+				// (pand zonder blok/bufferdeel, bv. centroide op een wegvlak).
+				attribute<OnveranderdSites/Sites> Site_rel     := OnveranderdSites/Bron/Site_rel;
+				attribute<string>      Site_ID                  := MakeDefined(OnveranderdSites/Sites/Site_ID[Site_rel], 'Onv_'+string(id(.)));
+				attribute<m2>          site_size                := MakeDefined(OnveranderdSites/Sites/site_size[Site_rel], area(pand_geometry, m2));
+				attribute<m2>          site_sum_footprint       := MakeDefined(OnveranderdSites/Sites/site_sum_footprint[Site_rel], area(pand_geometry, m2));
 			}
 		}
 		

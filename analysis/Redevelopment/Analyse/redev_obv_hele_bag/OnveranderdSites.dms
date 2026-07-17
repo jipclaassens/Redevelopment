@@ -1,18 +1,31 @@
-// Potentiele-site-vorming voor de ONVERANDERDE woonvoorraad (issue #17), sessie 2026-07-16.
+// Potentiele-site-vorming voor de ONVERANDERDE woonvoorraad (issue #17), v2 2026-07-17.
 //
 // Stage 2 van het paper vergelijkt herontwikkelde sites met niet-herontwikkelde; die laatste moeten met
-// dezelfde vormingslogica tot 'sites' geclusterd worden als de waargenomen SN-sites, anders vergelijkt de
-// binomiale logit multi-pand-projecten met losse panden. Deze container past daarom exact dezelfde
-// buffer-machinerie toe als AdditionalOperations/SN (inflate big_inflate_m -> knip op weg/spoor ->
-// split-union -> terugvoegen pandgeometrieen -> split-union): aaneengesloten voorraadpanden binnen een
-// blok (niet gescheiden door weg/spoor) vormen samen een potentiele herontwikkelingssite.
+// dezelfde vormingslogica tot 'sites' geclusterd worden als de waargenomen SN-sites (buffer 10m, wegen/
+// spoor scheiden). Anders vergelijkt de binomiale logit multi-pand-projecten met losse panden.
+//
+// v2 — OPGEDEELD i.p.v. landelijke union: de v1-route (identiek aan AdditionalOperations/SN: inflate ->
+// knip op weg/spoor -> geos_split_union_polygon landelijk) bleek op voorraadschaal (~4,6M panden) een
+// single-threaded cross-tile-mergefase van >12 uur te hebben. v2 vermijdt elke landelijke union:
+//   1. bufferdelen per pand, geknipt op weg/spoor, en gefilterd op het BLOK (niet-weg-vlak) waar het pand
+//      zelf staat (voorkomt onterechte verbindingen via buffer-overspill aan de overkant van een weg;
+//      in v1 deed de Cleaned-overlay dat werk);
+//   2. polygon_connectivity over die bufferdelen (getild, geen intersectiegeometrieen) -> rakende paren;
+//   3. connected_parts (union-find) -> site-id per pand;
+//   4. site-geometrie via gepartitioneerde geos_union_polygon per site (klein en parallel).
+// Semantisch equivalent aan v1 (zelfde 10m-nabijheid, zelfde weg/spoor-scheiding); verschillen alleen in
+// maatnul-randgevallen (exact rakende buffers, panden op wegvlakken -> singleton-fallback in PrepDomains).
 //
 // Validatie (de vergelijkingsvraag in #17): VergelijkGrootte exporteert de site-groottedistributie van
 // deze potentiele sites naast die van de gerealiseerde SN-sites. Een eventuele cap op mega-sites
 // (aaneengesloten rijtjesblokken!) is een R-side besluit op basis van die vergelijking.
 container OnveranderdSites
 {
-	unit<uint32> Bron := PrepBAG/BAG_Tabel/Onveranderd_Woon/uq; // 1 rij per onveranderde woon-VBO
+	unit<uint32> Bron := PrepBAG/BAG_Tabel/Onveranderd_Woon/uq // 1 rij per onveranderde woon-VBO
+	{
+		attribute<Panden> pand_rel := rlookup(pand_bag_nr, Panden/values);
+		attribute<Sites>  Site_rel := Sites/part_rel[pand_rel];
+	}
 
 	unit<uint32> Panden := unique(Bron/pand_bag_nr)
 	{
@@ -24,47 +37,54 @@ container OnveranderdSites
 		//buffer om de panden heen zodat aangrenzende voorraadpanden samenclusteren (zelfde parameter als SN)
 		attribute<rdc>    inflate   (poly) := geos_buffer_multi_polygon(geometry, parameters/big_inflate_m[float64], 4b);
 
-		//buffers mogen niet over weg of spoor heen: die scheiden sites (zelfde knip als SN)
-		unit<uint32> PandenBuffer_x_WegSpoor       := geos_overlay_polygon(inflate, SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
-		unit<uint32> PandenBuffer_x_WegSpoor_Split := geos_split_union_polygon(PandenBuffer_x_WegSpoor/geometry)
-		{
-			attribute<rdc> geometry_rd (poly) := geometry;
-		}
-		//bufferdelen die door een weg zijn afgesneden eruit filteren
-		unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden := geos_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry_rd, geometry)
-		{
-			attribute<rdc> Cleaned (poly) := PandenBuffer_x_WegSpoor_Split/geometry_rd[first_rel];
-		}
+		//in welk blok (niet-weg/spoor-vlak) staat het pand zelf
+		unit<uint32>          Blokken   := SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor;
+		attribute<Blokken>    Blok_rel  := point_in_polygon(centroid_or_mid(geometry), Blokken/geometry);
+
+		//buffers geknipt op weg/spoor (zelfde knip als SN); alleen het deel in het eigen blok telt
+		unit<uint32> PandenBuffer_x_WegSpoor := geos_overlay_polygon(inflate, Blokken/geometry);
 	}
 
-	//dissolve van de gecleande buffers + terugvoegen van de originele pandgeometrieen (delen kunnen door
-	//de knip zijn weggevallen), analoog aan SN/Union_with_original_geometry -> SN/Result
-	unit<uint32> Union_with_original_geometry := union_unit(Panden/PandenBuffer_Minus_WegSpoor_x_Panden, Panden)
+	//nodes van de nabijheidsgraaf: bufferdeel in het eigen blok van het pand
+	unit<uint32> BufferDelen := select_with_org_rel(Panden/PandenBuffer_x_WegSpoor/second_rel == Panden/Blok_rel[Panden/PandenBuffer_x_WegSpoor/first_rel])
 	{
-		attribute<rdc> geometry (poly) := union_data(., Panden/PandenBuffer_Minus_WegSpoor_x_Panden/Cleaned, Panden/geometry);
+		attribute<Panden> pand_rel        := Panden/PandenBuffer_x_WegSpoor/first_rel[org_rel];
+		attribute<rdc>    geometry (poly) := Panden/PandenBuffer_x_WegSpoor/geometry[org_rel];
 	}
 
-	unit<uint32> Result := geos_split_union_polygon(Union_with_original_geometry/geometry)
-	, DialogData = "geometry_rd", DialogType = "map"
+	//rakende/overlappende bufferdelen (getilde adjacency, geen landelijke union)
+	unit<uint32> Adjacency := polygon_connectivity(BufferDelen/geometry[rdc_cm])
 	{
-		attribute<rdc>    geometry_rd (poly) := geometry[rdc];
+		attribute<Panden> pand_F1 := BufferDelen/pand_rel[F1];
+		attribute<Panden> pand_F2 := BufferDelen/pand_rel[F2];
+	}
+
+	//union-find over de pand-graaf: elke samenhangende groep panden is een potentiele site;
+	//subitem part_rel (Panden) relateert elk pand aan zijn site
+	unit<uint32> Sites := connected_parts(Adjacency/pand_F1, Adjacency/pand_F2)
+	{
 		attribute<string> Site_ID            := 'OnvS_'+string(id(.));
-		attribute<m2>     site_size          := area(geometry_rd, m2);
 
-		attribute<.>      Panden_rel (Panden)  := point_in_polygon(centroid_or_mid(Panden/geometry), geometry_rd);
-		attribute<m2>     site_sum_footprint   := sum(Panden/area_pand, Panden_rel);
-		attribute<uint32> n_panden             := sum_uint32(const(TRUE, Panden), Panden_rel);
+		attribute<rdc>    geometry    (poly) := geos_union_polygon(UnieInput/geometry, UnieInput/site_rel);
+		attribute<m2>     site_size          := area(geometry, m2);
+		attribute<m2>     site_sum_footprint := sum(Panden/area_pand, part_rel);
+		attribute<uint32> n_panden           := pcount(part_rel);
+		attribute<uint32> n_vbos             := pcount(Bron/Site_rel);
+	}
 
-		attribute<.>      Bron_rel (Bron)      := point_in_polygon(Bron/vbo_geometry, geometry_rd);
-		attribute<uint32> n_vbos               := sum_uint32(const(TRUE, Bron), Bron_rel);
+	//invoer voor de gepartitioneerde site-union: de blok-eigen bufferdelen plus de pandgeometrieen zelf
+	unit<uint32> UnieInput := union_unit(BufferDelen, Panden)
+	{
+		attribute<rdc>   geometry (poly) := union_data(., BufferDelen/geometry, Panden/geometry);
+		attribute<Sites> site_rel        := union_data(., Sites/part_rel[BufferDelen/pand_rel], Sites/part_rel);
 	}
 
 	//validatie #17: groottedistributie potentiele sites vs gerealiseerde SN-sites
-	unit<uint32> VergelijkGrootte := union_unit(Result, AdditionalOperations/SN/Result)
+	unit<uint32> VergelijkGrootte := union_unit(Sites, AdditionalOperations/SN/Result)
 	, Descr = "1 rij per site (potentiele onveranderd-sites + gerealiseerde SN-sites) met omvang; tbv distributievergelijking in R"
 	{
-		attribute<string>  soort     := union_data(., const('Onveranderd_potentieel', Result), const('SN_gerealiseerd', AdditionalOperations/SN/Result));
-		attribute<float64> site_m2   := union_data(., Result/site_size / 1[m2], AdditionalOperations/SN/Result/site_size / 1[m2]);
+		attribute<string>  soort     := union_data(., const('Onveranderd_potentieel', Sites), const('SN_gerealiseerd', AdditionalOperations/SN/Result));
+		attribute<float64> site_m2   := union_data(., Sites/site_size / 1[m2], AdditionalOperations/SN/Result/site_size / 1[m2]);
 	}
 
 	unit<uint32> VergelijkGrootte_Export := VergelijkGrootte

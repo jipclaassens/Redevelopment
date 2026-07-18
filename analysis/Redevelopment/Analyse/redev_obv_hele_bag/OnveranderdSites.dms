@@ -64,14 +64,22 @@ container OnveranderdSites
 		attribute<rdc>    geometry (poly) := Delen/geometry[deel_rel];
 	}
 
-	//overlappende eigen-delen als getilde self-overlay (parallel; geen landelijke union).
-	//NB: polygon_connectivity is hier bewust vermeden — die bleek op ~5M overlappende delen een
-	//lang pagende single-threaded fase te hebben; de overlay-route bewees op deze schaal ~1 uur te kosten.
-	//Semantiek: deel_p ∩ deel_q ≠ ∅ ⟺ pandafstand < 2x buffer (20m) binnen hetzelfde blok — identiek aan SN.
-	unit<uint32> Adjacency := geos_overlay_polygon(EigenDelen/geometry, EigenDelen/geometry)
+	//per deel het eigen-record (delen zonder eigenaar — overkant-reepjes — blijven null en doen niet mee);
+	//bij een deel met meerdere eigenaren pakt invert er een: voor de graaf volstaat dat, de overige
+	//eigenaren zitten via hun eigen (deel, pand)-records toch in dezelfde component.
+	attribute<EigenDelen> EigenDeel_rel (Delen) := invert(EigenDelen/deel_rel);
+
+	//adjacency ZONDER nieuwe geometrie-operaties, rechtstreeks uit de al berekende Delen_x_Panden:
+	//pand p (eigenaar van deel d) – pand q dat d raakt. Semantiek: verbinding bij pandafstand < buffer
+	//(10m), blok-begrensd. NB: SN-union verbindt bij < 2x buffer (20m); dit is een bewuste parameterkeuze —
+	//een deel x deel-self-overlay (20m-equivalent) bleek op deze schaal niet haalbaar (60M+ paren met
+	//complexe intersectiegeometrieen: memory-fail na 6 uur; polygon_connectivity had een lang pagende
+	//single-threaded fase). Effectverschil zit alleen bij panden met 10-20m tussenruimte (ruime vrijstaande
+	//kavels); rijtjes en appartementstroken clusteren identiek. Toetsing via VergelijkGrootte.
+	unit<uint32> Adjacency := select_with_org_rel(IsDefined(EigenDeel_rel[Delen_x_Panden/first_rel]))
 	{
-		attribute<Panden> pand_F1 := EigenDelen/pand_rel[first_rel];
-		attribute<Panden> pand_F2 := EigenDelen/pand_rel[second_rel];
+		attribute<Panden> pand_F1 := EigenDelen/pand_rel[EigenDeel_rel[Delen_x_Panden/first_rel[org_rel]]];
+		attribute<Panden> pand_F2 := Delen_x_Panden/second_rel[org_rel];
 	}
 
 	//union-find over de pand-graaf: elke samenhangende groep panden is een potentiele site;

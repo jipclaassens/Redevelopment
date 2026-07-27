@@ -1,0 +1,131 @@
+// Potentiele-site-vorming voor de ONVERANDERDE woonvoorraad (issue #17), definitief (v2d, 2026-07-18).
+//
+// Stage 2 van het paper vergelijkt herontwikkelde sites met niet-herontwikkelde; die laatste moeten met
+// dezelfde vormingslogica tot 'sites' geclusterd worden als de waargenomen SN-sites (buffer 10m, wegen/
+// spoor scheiden). Anders vergelijkt de binomiale logit multi-pand-projecten met losse panden.
+//
+// Opzet en naamgeving zijn analoog aan AdditionalOperations/SN; alleen de landelijke
+// geos_split_union_polygon is vervangen (die bleek op voorraadschaal, ~5,1M panden, een single-threaded
+// cross-tile-mergefase van >12 uur te hebben). Alle stappen hier zijn getiled/parallel of gepartitioneerd:
+//   1. OnveranderdPanden: uniek pand + inflate (10m) + knip op weg/spoor — exact de SN-expressies;
+//   2. PandenBuffer_x_WegSpoor_Split: multiparts exploderen tot losse delen (geos_split_polygon, geen union);
+//   3. Cleaned: alleen het deel dat het EIGEN pand vrijwel geheel bevat doet mee (>=50% pandoppervlak) —
+//      weert overkant-van-de-weg-reepjes, het werk dat bij SN de Cleaned-overlay en de split-union samen doen;
+//   4. BuurPandParen: pand p (eigenaar van een deel) - pand q dat dat deel raakt, rechtstreeks uit de
+//      al berekende overlay (geen extra geometrie-operaties). Semantiek: verbinding bij pandafstand <
+//      buffer (10m), blok-begrensd. NB: de SN-union verbindt bij < 2x buffer (20m) — bewuste
+//      parameterkeuze; verschil zit alleen bij panden met 10-20m tussenruimte (ruime vrijstaande kavels).
+//   5. Result: union-find (connected_parts) over de pand-graaf -> site per pand; site-geometrie via
+//      gepartitioneerde geos_union_polygon per site.
+//
+// Gevalideerd 2026-07-18 (NL, BAG 20260710): 5.079.585 voorraadpanden -> 893.435 potentiele sites
+// (gem. 5,7 panden/site); groottedistributie ~ gerealiseerde SN-sites (mediaan 1.407 vs 1.477 m2,
+// p25 972/1.000, p75 2.483/2.722; alleen de staart is bij SN dikker). 1,95% > SN-p95, 2 sites > SN-max:
+// een mega-site-cap is daarmee onnodig. Distributie-CSV: Temp/OnveranderdSites_grootte_<area>_<date>.csv
+// (VergelijkGrootte, hieronder uitgecommentarieerd).
+//
+// Gemeten valkuilen (vastgehouden voor later): polygon_rel van geos_split_polygon is TILE-LOKAAL
+// (max 65535) en geen bronrij-relatie; polygon_connectivity paget lang single-threaded op miljoenen
+// overlappende polygonen (is bedoeld voor partities); een deel x deel-self-overlay explodeert in
+// intersectiegeometrieen (memory-fail). Vandaar de routes hierboven.
+container Onveranderd
+{
+	unit<uint32> Src := PrepBAG/BAG_Tabel/Onveranderd_Woon/uq // 1 rij per onveranderde woon-VBO; NIET PrepDomains/Onveranderd (die leest juist dit resultaat)
+	{
+		attribute<OnveranderdPanden> pand_rel := rlookup(pand_bag_nr, OnveranderdPanden/values);
+		attribute<Result>            Site_rel := Result/part_rel[pand_rel];
+	}
+
+	unit<uint32> OnveranderdPanden := unique(Src/pand_bag_nr)
+	{
+		attribute<uint64> pand_bag_nr      := values;
+		attribute<Src>    Src_rel          := rlookup(pand_bag_nr, Src/pand_bag_nr);
+		attribute<rdc>    geometry  (poly) := Src/pand_geometry[Src_rel];
+		attribute<m2>     area_pand        := area(geometry, m2);
+
+		//buffer om de panden heen zodat aangrenzende voorraadpanden samenclusteren (zelfde parameter als SN)
+		attribute<rdc>    inflate   (poly) := geos_buffer_multi_polygon(geometry, parameters/big_inflate_m[float64], 4b);
+
+		//buffers geknipt op weg/spoor (exact de SN-expressie; TiledNonWegSpoor = niet-weg-multipolygon per tile)
+		unit<uint32> PandenBuffer_x_WegSpoor := geos_overlay_polygon(inflate, SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+	}
+
+	//multiparts exploderen: losse aaneengesloten delen van de geknipte buffers (vgl. SN, daar via split_union).
+	//LET OP: polygon_rel van geos_split_polygon is TILE-LOKAAL (max 65535) en dus NIET bruikbaar als
+	//bronrij-relatie; de deel->pand-relatie wordt daarom hieronder geometrisch gelegd.
+	unit<uint32> PandenBuffer_x_WegSpoor_Split := geos_split_polygon(OnveranderdPanden/PandenBuffer_x_WegSpoor/geometry);
+
+	//welke bufferdelen raken welk pand (first_rel -> Split, second_rel -> OnveranderdPanden, geometry = intersectie)
+	unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden := geos_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry, OnveranderdPanden/geometry);
+
+	//de opgeschoonde bufferdelen (vgl. SN/Cleaned): een (deel, pand)-paar telt als het deel het pand
+	//vrijwel geheel bevat (intersectie >= 50% van het pandoppervlak); overkant-van-de-weg-reepjes vallen af
+	unit<uint32> Cleaned := select_with_org_rel(
+		area(PandenBuffer_Minus_WegSpoor_x_Panden/geometry, m2) >= 0.5d * OnveranderdPanden/area_pand[PandenBuffer_Minus_WegSpoor_x_Panden/second_rel])
+	{
+		attribute<PandenBuffer_x_WegSpoor_Split> deel_rel        := PandenBuffer_Minus_WegSpoor_x_Panden/first_rel[org_rel];
+		attribute<OnveranderdPanden>             pand_rel        := PandenBuffer_Minus_WegSpoor_x_Panden/second_rel[org_rel];
+		attribute<rdc>                           geometry (poly) := PandenBuffer_x_WegSpoor_Split/geometry[deel_rel];
+	}
+
+	//per bufferdeel het Cleaned-record van zijn eigenaar (delen zonder eigenaar — overkant-reepjes — blijven
+	//null en doen niet mee); bij meerdere eigenaren pakt invert er een: voor de graaf volstaat dat, de
+	//overige eigenaren zitten via hun eigen (deel, pand)-records toch in dezelfde component
+	attribute<Cleaned> Cleaned_rel (PandenBuffer_x_WegSpoor_Split) := invert(Cleaned/deel_rel);
+
+	//de pand-graaf: pand p (eigenaar van deel d) - pand q dat d raakt; rechtstreeks uit de overlay hierboven
+	unit<uint32> BuurPandParen := select_with_org_rel(IsDefined(Cleaned_rel[PandenBuffer_Minus_WegSpoor_x_Panden/first_rel]))
+	{
+		attribute<OnveranderdPanden> pand_F1 := Cleaned/pand_rel[Cleaned_rel[PandenBuffer_Minus_WegSpoor_x_Panden/first_rel[org_rel]]];
+		attribute<OnveranderdPanden> pand_F2 := PandenBuffer_Minus_WegSpoor_x_Panden/second_rel[org_rel];
+	}
+
+	//EINDRESULTAAT (vgl. SN/Result): elke samenhangende groep panden is een potentiele site.
+	//Subitem part_rel (OnveranderdPanden) relateert elk pand aan zijn site; per VBO loopt de koppeling
+	//via Src/Site_rel (gebruikt in PrepDomains/Onveranderd/domain voor de export).
+	unit<uint32> Result := connected_parts(BuurPandParen/pand_F1, BuurPandParen/pand_F2)
+	{
+		attribute<string> Site_ID            := 'Onv_'+string(id(.));
+
+		attribute<rdc>    geometry    (poly) := geos_union_polygon(Union_with_original_geometry/geometry, Union_with_original_geometry/site_rel);
+		attribute<m2>     site_size          := area(geometry, m2);
+		attribute<m2>     site_sum_footprint := sum(OnveranderdPanden/area_pand, part_rel);
+		attribute<uint32> n_panden           := pcount(part_rel);
+		attribute<uint32> n_vbos             := pcount(Src/Site_rel);
+	}
+
+	//invoer voor de gepartitioneerde site-union: de opgeschoonde bufferdelen plus de originele
+	//pandgeometrieen (vgl. SN/Union_with_original_geometry)
+	unit<uint32> Union_with_original_geometry := union_unit(Cleaned, OnveranderdPanden)
+	{
+		attribute<rdc>    geometry (poly) := union_data(., Cleaned/geometry, OnveranderdPanden/geometry);
+		attribute<Result> site_rel        := union_data(., Result/part_rel[Cleaned/pand_rel], Result/part_rel);
+	}
+
+	//validatie #17 (gedraaid 2026-07-18, resultaat in de kop hierboven): groottedistributie potentiele
+	//sites vs gerealiseerde SN-sites; reactiveren bij een nieuwe BAG-vintage of parameterwijziging
+	// unit<uint32> VergelijkGrootte := union_unit(Result, AdditionalOperations/SN/Result)
+	// , Descr = "1 rij per site (potentiele onveranderd-sites + gerealiseerde SN-sites) met omvang; tbv distributievergelijking in R"
+	// {
+	// 	attribute<string>  soort     := union_data(., const('Onveranderd_potentieel', Result), const('SN_gerealiseerd', AdditionalOperations/SN/Result));
+	// 	attribute<float64> site_m2   := union_data(., Result/site_size / 1[m2], AdditionalOperations/SN/Result/site_size / 1[m2]);
+	// }
+
+	// unit<uint32> VergelijkGrootte_Export := VergelijkGrootte
+	// , StorageName = "='%LocalDataProjDir%/Temp/OnveranderdSites_grootte_'+/Parameters/BAG_Selection_Area+'_'+/Parameters/BAG_file_date+'.csv'"
+	// , StorageType = "gdalwrite.vect"
+	// {
+	// 	attribute<string>  soort   := VergelijkGrootte/soort;
+	// 	attribute<float64> site_m2 := VergelijkGrootte/site_m2;
+	// }
+
+	//diagnosetellingen (gedraaid 2026-07-17/18 tijdens het ontwerp; reactiveren bij twijfel over de keten)
+	// parameter<string> DiagnoseTellingen := 'panden;'+string(#OnveranderdPanden)
+	// 	+';delen;'+string(#PandenBuffer_x_WegSpoor_Split)
+	// 	+';delen_x_panden;'+string(#PandenBuffer_Minus_WegSpoor_x_Panden)
+	// 	+';cleaned;'+string(#Cleaned)
+	// 	+';paren;'+string(#BuurPandParen)
+	// 	+';sites;'+string(#Result)
+	// , StorageName = "%LocalDataProjDir%/Temp/OnveranderdSites_DiagnoseTellingen.csv"
+	// , StorageType = "str";
+}

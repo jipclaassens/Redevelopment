@@ -18,12 +18,12 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			, DialogType = "map"
 			{
 				// issue #17: onveranderde voorraad geclusterd tot potentiele sites met dezelfde vormingslogica als
-				// SN (OnveranderdSites.dms, v2 via connected components); fallback = eigen pand voor randgevallen
-				// (pand zonder blok/bufferdeel, bv. centroide op een wegvlak).
-				attribute<OnveranderdSites/Sites> Site_rel     := OnveranderdSites/Bron/Site_rel;
-				attribute<string>      Site_ID                  := MakeDefined(OnveranderdSites/Sites/Site_ID[Site_rel], 'Onv_'+string(id(.)));
-				attribute<m2>          site_size                := MakeDefined(OnveranderdSites/Sites/site_size[Site_rel], area(pand_geometry, m2));
-				attribute<m2>          site_sum_footprint       := MakeDefined(OnveranderdSites/Sites/site_sum_footprint[Site_rel], area(pand_geometry, m2));
+				// SN (AdditionalOperations/Onveranderd); fallback = eigen pand voor randgevallen (pand zonder
+				// blok/bufferdeel, bv. centroide op een wegvlak) — eigen prefix zodat die ids nooit botsen met sites.
+				attribute<AdditionalOperations/Onveranderd/Result> Site_rel := AdditionalOperations/Onveranderd/Src/Site_rel;
+				attribute<string>      Site_ID                  := MakeDefined(AdditionalOperations/Onveranderd/Result/Site_ID[Site_rel], 'Onv_pand_'+string(id(.)));
+				attribute<m2>          site_size                := MakeDefined(AdditionalOperations/Onveranderd/Result/site_size[Site_rel], area(pand_geometry, m2));
+				attribute<m2>          site_sum_footprint       := MakeDefined(AdditionalOperations/Onveranderd/Result/site_sum_footprint[Site_rel], area(pand_geometry, m2));
 			}
 		}
 		
@@ -79,11 +79,10 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	}
 		
 	#include<AdditionalOperations.dms>
-	#include<ExportMutatieVergelijking.dms>
-	#include<VergelijkWP4.dms>
-	#include<VerifieerExportBronnen.dms>
-	#include<ValidatieTypering.dms>
-	#include<OnveranderdSites.dms>
+	// #include<ExportMutatieVergelijking.dms>
+	// #include<VergelijkWP4.dms>
+	// #include<VerifieerExportBronnen.dms>
+	// #include<ValidatieTypering.dms>
 
 	container FinalDomains
 	{
@@ -97,6 +96,9 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		unit<uint32> Transformatie_Plus_Objecten    := PrepDomains/TMplus/domain;
 		unit<uint32> Transformatie_Min_Objecten     := PrepDomains/TMmin/domain;
 		unit<uint32> Sloop_Objecten                 := AdditionalOperations/Sloop/Result;
+		// objecten-unit = VBO-niveau (1 rij per verblijfsobject, vereist voor de PerObject-union);
+		// de site-VORMING (1 rij per site) is AdditionalOperations/Onveranderd/Result — daar prikt
+		// PrepDomains/Onveranderd/domain zijn Site_ID/site_size uit
 		unit<uint32> Onveranderd_Objecten           := PrepDomains/Onveranderd/domain;
 	}
 	

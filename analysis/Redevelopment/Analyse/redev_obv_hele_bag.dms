@@ -21,6 +21,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				// SN (AdditionalOperations/Onveranderd); fallback = eigen pand voor randgevallen (pand zonder
 				// blok/bufferdeel, bv. centroide op een wegvlak) — eigen prefix zodat die ids nooit botsen met sites.
 				attribute<AdditionalOperations/Onveranderd/Result> Site_rel := AdditionalOperations/Onveranderd/Src/Site_rel;
+				attribute<rdc>         Site_geometry     (poly) := AdditionalOperations/Onveranderd/Result/geometry[Site_rel];
 				attribute<string>      Site_ID                  := MakeDefined(AdditionalOperations/Onveranderd/Result/Site_ID[Site_rel], 'Onv_pand_'+string(id(.)));
 				attribute<m2>          site_size                := MakeDefined(AdditionalOperations/Onveranderd/Result/site_size[Site_rel], area(pand_geometry, m2));
 				attribute<m2>          site_sum_footprint       := MakeDefined(AdditionalOperations/Onveranderd/Result/site_sum_footprint[Site_rel], area(pand_geometry, m2));
@@ -107,6 +108,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	, using = "AdditionalClassifications"
 	{
 		attribute<rdc>               geometry                        := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_geometry')+')';
+		attribute<rdc>               site_geometry            (poly) := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_geometry')+')';
 		
 		// ### Identifiers
 		attribute<string>            site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_id')+')';
@@ -263,6 +265,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			attribute<string>      Site_ID                                     := name+'_'+string(id(.));
 			attribute<m2>          site_size                                   := area(pand_geometry, m2);
 			attribute<m2>          site_sum_footprint                          := site_size;
+			attribute<rdc>         site_geometry                        (poly) := pand_geometry;
+
 				
 			container impl
 			: Descr = "tbv identificatie van afwijkende pand geometrieeen. Buiten NL, of zeer groot, of dunne slivers."

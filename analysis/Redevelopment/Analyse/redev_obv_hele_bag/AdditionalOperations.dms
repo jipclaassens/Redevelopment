@@ -23,6 +23,7 @@ container AdditionalOperations
 
 			attribute<string> Site_ID              := 'NB_'+string(Site_rel);
 			attribute<m2>     site_size            := cluster_panden_docnum/site_size[Site_rel];
+			attribute<rdc>    site_geometry (poly) := cluster_panden_docnum/site_geometry[Site_rel];
 			attribute<m2>     site_sum_footprint   := sum(pand_footprint, Site_rel)[Site_rel];
 			attribute<m2>     pand_footprint       := area(pand_geometry, m2);
 			
@@ -36,8 +37,9 @@ container AdditionalOperations
 				attribute<rdc> dissolve          (poly) := geos_union_polygon(inflate, id(.));
 				attribute<rdc> Outer             (poly) := bg_outer_multi_polygon(Dissolve);
 				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 4b);
-				
-				attribute<m2>  site_size                := area(Deflate, m2);
+
+				attribute<rdc> site_geometry            (poly) := Deflate;
+				attribute<m2>  site_size                := area(site_geometry, m2);
 			}
 		}
 	}
@@ -88,6 +90,7 @@ container AdditionalOperations
 
 			attribute<string> Site_ID              := 'S_'+string(Site_rel);
 			attribute<m2>     site_size            := cluster_panden_docnum/site_size[Site_rel];
+			attribute<rdc>    site_geometry (poly) := cluster_panden_docnum/site_geometry[Site_rel];
 			attribute<m2>     site_sum_footprint   := sum(pand_footprint, Site_rel)[Site_rel];
 			attribute<m2>     pand_footprint       := area(pand_geometry, m2);
 			
@@ -101,11 +104,9 @@ container AdditionalOperations
 				attribute<rdc> dissolve          (poly) := geos_union_polygon(inflate, id(.));
 				attribute<rdc> Outer             (poly) := bg_outer_multi_polygon(Dissolve);
 				attribute<rdc> Deflate           (poly) := geos_buffer_multi_polygon(Outer, -parameters/small_inflate_m[float64], 4b);
-				
-				attribute<m2>  site_size                := area(Deflate, m2);
+				attribute<rdc> site_geometry     (poly) := Deflate;
+				attribute<m2>  site_size                := area(site_geometry, m2);
 			}
-			
-			
 		}
 	}
 	
@@ -316,6 +317,7 @@ container AdditionalOperations
 			unit<uint32> Sloop_Objecten     := select_with_org_rel(IsDefined(Sloop_rel))
 			{
 				attribute<rdc>    pand_geometry (poly) := Sloop/pand_geometry[org_rel];
+				attribute<rdc>    site_geometry (poly) := ../geometry_rd[../sloop_rel][org_rel];
 				attribute<rdc>    vbo_geometry         := Sloop/vbo_geometry[org_rel];
 				attribute<int32>  MutatieMaand         := Sloop/MutatieMaand[org_rel];
 				attribute<int32>  vbo_oppervlakte      := Sloop/vbo_oppervlakte[org_rel];
@@ -336,6 +338,7 @@ container AdditionalOperations
 			unit<uint32> Sloop_NW_Objecten     := select_with_org_rel(IsDefined(Sloop_NW_rel))
 			{
 				attribute<rdc>    pand_geometry (poly) := Sloop_NW/pand_geometry[org_rel];
+				attribute<rdc>    site_geometry (poly) := ../geometry_rd[../Sloop_NW_rel][org_rel];
 				attribute<rdc>    vbo_geometry         := Sloop_NW/vbo_geometry[org_rel];
 				attribute<int32>  MutatieMaand         := Sloop_NW/MutatieMaand[org_rel];
 				attribute<int32>  vbo_oppervlakte      := Sloop_NW/vbo_oppervlakte[org_rel];
@@ -352,6 +355,7 @@ container AdditionalOperations
 			unit<uint32> Nieuwbouw_Objecten := select_with_org_rel(IsDefined(Nieuwbouw_rel))
 			{
 				attribute<rdc>    pand_geometry (poly) := Nieuwbouw/pand_geometry[org_rel];
+				attribute<rdc>    site_geometry (poly) := ../geometry_rd[../Nieuwbouw_rel][org_rel];
 				attribute<rdc>    vbo_geometry         := Nieuwbouw/vbo_geometry[org_rel];
 				attribute<int32>  MutatieMaand         := Nieuwbouw/MutatieMaand[org_rel];
 				attribute<int32>  vbo_oppervlakte      := Nieuwbouw/vbo_oppervlakte[org_rel];

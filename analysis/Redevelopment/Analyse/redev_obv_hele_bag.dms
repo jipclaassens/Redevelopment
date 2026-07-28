@@ -124,6 +124,10 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<bool>              was_redeveloped                 := redev_type != Redev_ObjectTypes/V/Onveranderd;
 		attribute<Redev_ObjectTypes> redev_type                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_ObjectTypes/name)+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten)',',')+'), Redev_ObjectTypes/name)';
 		attribute<int32>             redev_yearmonth                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/MutatieMaand')+')';
+		// SN-site gekwalificeerd via de BBG-2000-woongebied-route (AdditionalOperations/SN, r.261-262): geen
+		// waargenomen sloop in het venster -> verwervingswaarde niet reconstrueerbaar; R flagt deze sites voor
+		// stage 2 (wel volwaardig bruikbaar in stage 1). Koppeling via site_id-rjoin; niet-SN-rijen -> FALSE.
+		attribute<bool>              is_sn_door_bbg                  := MakeDefined(rjoin(site_id, AdditionalOperations/SN/Result/Site_ID, AdditionalOperations/SN/Result/IsSN_door_BBG), FALSE);
 		
 		// ### Site characteristics (incumbent state)
 		attribute<m2>                site_size                       := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_size')+')';

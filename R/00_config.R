@@ -74,6 +74,13 @@ cfg$file_stage1_rds   <- file.path(cfg$dir_work, sprintf("stage1%s_%s_%s.rds", c
 cfg$multiproj_n_doc <- 2L
 cfg$multiproj_mnd   <- 24L
 
+## -- prijsvolatiliteit (stage-2-frictie; geproduceerd door PriceIndices R/06_volatility.R) --
+# sd van de jaar-op-jaar-groei van de hedonisch gecorrigeerde lokale log-prijsindex, 2000-2023.
+# Korrel 'grid5km' = RD-cel floor(x/5000)_floor(y/5000): vintage-vrij te koppelen via x/y_coord.
+cfg$dir_nvm_output  <- "C:/Users/JipClaassens/OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output"
+cfg$file_vol        <- function(korrel) file.path(cfg$dir_nvm_output, sprintf("Volatility_%s_%s.csv", cfg$nvm_filedate, korrel))
+cfg$vol_cel_m       <- 5000L
+
 ## -- parameters k-means (stap 1, Makles 2012) ----------------------------------
 cfg$kmeans_k_max     <- 20
 cfg$kmeans_k_final   <- 6        # definitieve K; heroverwegen na elbow-plot (per sample!)

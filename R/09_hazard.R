@@ -73,12 +73,14 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   s1  <- readRDS(cfg$file_stage1_rds)
   panel <- maak_hazard_panel(alt, s, s1)
 
-  f_haz <- y_jaar ~ iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +
-                    isprotectheritagearea + is_natura2000 + vol_roll + bouwperiode_inc | jaar
+  # NB: geen update() op tweedelige fixest-formules — dat mangelt het FE-deel
+  f_haz      <- y_jaar ~ iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +
+                         isprotectheritagearea + is_natura2000 + vol_roll + bouwperiode_inc | jaar
+  f_haz_kaal <- y_jaar ~ iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +
+                         isprotectheritagearea + is_natura2000 + bouwperiode_inc | jaar
   est <- panel[!is.na(vol_roll)]
-  m      <- feglm(f_haz, data = est, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
-  m_kaal <- feglm(update(f_haz, . ~ . - vol_roll | jaar), data = est, family = binomial(),
-                  cluster = ~gemeente_code, glm.iter = 100)
+  m      <- feglm(f_haz,      data = est, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
+  m_kaal <- feglm(f_haz_kaal, data = est, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
   if (!isTRUE(m$convStatus)) rd_log("NB: hazard-hoofdmodel niet geconvergeerd — check separatie")
 
   ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")

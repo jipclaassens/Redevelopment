@@ -5,7 +5,8 @@
 #   y = 1 : SN-sites (sloop-nieuwbouw gerealiseerd 2012-2026) MET incumbent-rijen;
 #           BBG-route-SN-sites (sloop voor het venster) hebben geen reconstrueerbare
 #           verwerving en vallen buiten de estimatie (wel in stage 1).
-#   y = 0 : potentiele sites uit de onveranderde woonvoorraad (#17, prefix OnvS).
+#   y = 0 : potentiele sites uit de onveranderde woonvoorraad (#17, prefix Onv;
+#           mmd's van voor de naamgevingsronde 27-07 gebruiken OnvS — beide herkend).
 #   eruit : Sloop/Onttrekking zonder vervolg (pijplijn; robuustheid: als y=1),
 #           Transformatie (buiten scope), pure nieuwbouw (geen incumbent).
 #   scope : stedelijk gebied via OAD >= cfg$oad_min (besluit 28-07-avond, vervangt de
@@ -54,7 +55,8 @@ maak_stage2_input <- function(alt, s, s1) {
   # BBG-route-SN-sites (heeft_incumbent == FALSE): alleen voor de imputatie-spec
   uni <- st[heeft_incumbent == TRUE | site_id %like% "^SN_"]
   uni[, prefix := sub("_.*$", "", site_id)]
-  uni <- uni[prefix %chin% c("SN", "OnvS", "S", "O")]          # TMmin buiten scope
+  uni[prefix == "OnvS", prefix := "Onv"]                       # oude naamgeving (mmd < 28-07)
+  uni <- uni[prefix %chin% c("SN", "Onv", "S", "O")]           # TMmin buiten scope
   uni[, y := prefix == "SN"]
   uni[, pijplijn := prefix %chin% c("S", "O")]
   uni[, bbg_sn := heeft_incumbent == FALSE]
@@ -142,7 +144,7 @@ schat_stage2 <- function(uni) {
     vol_gem   = fit1(update(f_basis, . ~ . - vol_dlnp + vol_dlnp_gem), basis, "vol_gem"),
     sloopstart = fit1(f_basis, { d <- uni[prefix != "O" & bbg_sn == FALSE]
                                  d <- d[complete.cases(d[, ..vars]) & !is.na(oad) & oad >= cfg$oad_min]
-                                 d[, y := prefix != "OnvS"]; d }, "sloopstart"),
+                                 d[, y := prefix != "Onv"]; d }, "sloopstart"),
     excl2012  = fit1(f_basis, basis[n_flag_2012 == 0L], "excl2012"),
     bbg_imput = fit1(f_kaal, rbind(basis, bbg), "bbg_imput"))
 

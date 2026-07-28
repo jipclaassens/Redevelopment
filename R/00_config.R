@@ -39,7 +39,7 @@ dir.create(cfg$dir_work, recursive = TRUE, showWarnings = FALSE)
 
 cfg$file_perobject_rds <- file.path(cfg$dir_work, sprintf("perobject_%s_%s.rds", cfg$area, cfg$bag_date))
 cfg$file_sites_rds     <- file.path(cfg$dir_work, sprintf("sites_%s_%s.rds", cfg$area, cfg$bag_date))
-cfg$file_clusters_rds  <- file.path(cfg$dir_work, sprintf("clusters_%s_%s.rds", cfg$area, cfg$bag_date))
+# clusters/alternatieven krijgen een sample-suffix; zie 'stage-1-sample' hieronder
 
 ## -- classificaties (volgorde = GeoDMS-id!) -----------------------------------
 # AdditionalClassifications.dms / Redev_ObjectTypes (uint8, ids 0..9)
@@ -59,9 +59,24 @@ cfg$wp4_english  <- c("detached", "semidetached", "terraced", "apartment")
 cfg$prijspeil_jaar   <- 2023      # Parameters/NVM_coeff_Year: trans_year-dummy die als prijspeil dient
 cfg$ovknoop_floor    <- 0.01     # ondergrens (min) voor log(tt_ovknoop); schattingsinput had min ~0.1, tif-min ~0.087
 
+## -- stage-1-sample: welke gerealiseerde sites vormen het menu + de keuzedata ----
+# 'sn'    = alleen sloop-nieuwbouw-sites (echte herontwikkeling; aanbevolen default)
+# 'sn_tr' = SN + transformatie-sites
+# 'alle'  = alle replacement-sites incl. pure nieuwbouw/toevoeging (oude gedrag;
+#           gedomineerd door uitleg en 1-unit-toevoegingssites, zie STATUS 27-07)
+cfg$stage1_sample  <- "sn"
+cfg$sample_suffix  <- if (cfg$stage1_sample == "alle") "" else paste0("_", cfg$stage1_sample)
+cfg$file_clusters_rds <- file.path(cfg$dir_work, sprintf("clusters%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
+cfg$file_alt_rds      <- file.path(cfg$dir_work, sprintf("alternatieven%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
+cfg$file_stage1_rds   <- file.path(cfg$dir_work, sprintf("stage1%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
+# multi-projectflag (robuustheid stage 1): site met >multiproj_n_doc documentnummers EN
+# >multiproj_mnd maanden spreiding in de nieuwbouw geldt als "samengeklonterde projecten"
+cfg$multiproj_n_doc <- 2L
+cfg$multiproj_mnd   <- 24L
+
 ## -- parameters k-means (stap 1, Makles 2012) ----------------------------------
 cfg$kmeans_k_max     <- 20
-cfg$kmeans_k_final   <- 6        # definitieve K; heroverwegen na elbow-plot
+cfg$kmeans_k_final   <- 6        # definitieve K; heroverwegen na elbow-plot (per sample!)
 cfg$kmeans_nstart    <- 50
 cfg$winsor_p         <- c(0.01, 0.99)
 cfg$kmeans_seed      <- 20260716
@@ -82,3 +97,10 @@ cfg$vormfactor <- c(eengezins = 0.76, meergezins = 0.78, hoogbouw = 0.65)
 cfg$sloopkosten_2017 <- c(rijtjeswoning = 22, twee_onder_1_kap = 40, vrijstaand = 57,
                           appartement = 22, kantoor = 25)
 cfg$sloopkosten_2023 <- cfg$sloopkosten_2017 * cfg$prijsindex_bouw_2017_2023
+
+## -- parameters alternatieventabel (stap 2a-2c, 05_alternatieven.R) -------------
+# BESLISPUNTEN met defaults; zie de header van 05_alternatieven.R voor de motivatie.
+cfg$bouwkosten_kolom <- "koop_eur_m2"  # CBS 83673NED: koop- of huurkental ('huur_eur_m2')
+cfg$alt_d_maintgood  <- 1              # nieuwbouw verkeert in goede onderhoudsstaat (regiogemiddelde = alternatief)
+cfg$vormfactor_wp4   <- c(vrijstaand = "eengezins", twee_onder_1_kap = "eengezins",
+                          rijtjeswoning = "eengezins", appartement = "meergezins")  # hoogbouw (0.65) ongebruikt: geen hoogte-info per cluster

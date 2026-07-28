@@ -38,8 +38,19 @@ maak_sites <- function(x) {
     is_natura2000         = any(is_natura2000, na.rm = TRUE)
   ), by = site_id]
 
+  # regiogemiddelde NVM-kenmerken (grid-waarden: binnen een site ~identiek -> eerste rij volstaat);
+  # nodig in 05_alternatieven voor de prijs-predictie van alle 4 typen op elke site
+  reg_cols <- as.vector(outer(cfg$wp4_names, c("lotsize", "nrooms", "d_maintgood", "d_highrise", "size"),
+                              function(w, c) paste0("reg_", w, "_", c)))
+  site_attrs <- unique(x[, c("site_id", reg_cols), with = FALSE], by = "site_id")[site_attrs, on = "site_id"]
+
   # -- incumbent-staat ----------------------------------------------------------
   inc <- x[is_incumbent == TRUE]
+  # sloopkental per object (Eur/m2, 2023-peil): woon naar WP4 (onbekend type -> gemiddelde
+  # van de vier), niet-woon naar 'kantoor'; toegepast op het vloeroppervlak (BVO-benadering)
+  kent_woon <- unname(cfg$sloopkosten_2023[match(inc$obj_housetype_lbl, names(cfg$sloopkosten_2023))])
+  kent_woon[is.na(kent_woon)] <- mean(cfg$sloopkosten_2023[cfg$wp4_names])
+  inc[, sloop_kental := fifelse(obj_is_woon, kent_woon, cfg$sloopkosten_2023[["kantoor"]])]
   sites_inc <- inc[, .(
     n_obj                = .N,
     n_units_res          = sum(obj_is_woon),
@@ -53,6 +64,7 @@ maak_sites <- function(x) {
     # verwervingskosten: hedonische woningwaarde + WOZ-waarde niet-woon (rauwe euro's, censoring in estimatiestap)
     acq_cost_res_eur     = sum(fifelse(obj_is_woon, acq_waarde, 0), na.rm = TRUE),
     acq_cost_nonres_eur  = sum(fifelse(!obj_is_woon, acq_waarde, 0), na.rm = TRUE),
+    sloop_cost_eur       = sum(sloop_kental * as.numeric(obj_floor_area_res_m2), na.rm = TRUE),
     was_redeveloped      = any(redev_type_lbl != "Onveranderd"),
     n_flag_2012_dubbel   = sum(flag_2012_dubbel)
   ), by = site_id]
@@ -66,7 +78,12 @@ maak_sites <- function(x) {
     unit_size_mean    = mean(obj_floor_area_res_m2, na.rm = TRUE),
     redev_yearmonth   = { v <- redev_yearmonth[!is.na(redev_yearmonth)]; if (length(v)) min(v) else NA_integer_ },
     heeft_transformatie = any(redev_type_lbl == "Transformatie_Plus"),
-    heeft_sn            = any(redev_type_lbl == "SN_Nieuwbouw")
+    heeft_sn            = any(redev_type_lbl == "SN_Nieuwbouw"),
+    # multi-projectdiagnose (28-07): >1 vergunning of lange bouwperiode wijst op ruimtelijk
+    # samengeklonterde projecten (7,1% heeft n_doc>2 en >24 mnd; flag voor robuustheid stage 1)
+    n_doc      = uniqueN(pand_docnum),
+    mnd_spread = { v <- redev_yearmonth[!is.na(redev_yearmonth)]
+                   if (length(v)) (max(v) %/% 100L - min(v) %/% 100L) * 12L + (max(v) %% 100L - min(v) %% 100L) else NA_integer_ }
   ), as.list(prop.table(table(factor(obj_housetype_lbl, levels = cfg$wp4_names))) |> setNames(paste0("aandeel_", cfg$wp4_names)))
   ), by = site_id]
 

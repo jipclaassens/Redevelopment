@@ -20,6 +20,19 @@ winsorize <- function(v, p = cfg$winsor_p) {
 
 cluster_vars <- function() c(paste0("aandeel_", cfg$wp4_names), "far", "dichtheid_per_ha", "unit_size_mean")
 
+# stage-1-sample (cfg$stage1_sample): het "menu" hoort te bestaan uit wat HERONTWIKKELAARS
+# bouwen; met 'alle' domineren uitleg- en 1-unit-toevoegingssites (zie STATUS 27-07)
+filter_stage1 <- function(sites_nieuw) {
+  d <- switch(cfg$stage1_sample,
+              alle  = sites_nieuw,
+              sn    = sites_nieuw[heeft_sn == TRUE],
+              sn_tr = sites_nieuw[heeft_sn == TRUE | heeft_transformatie == TRUE],
+              stop("onbekend stage1_sample: ", cfg$stage1_sample))
+  rd_log("Stage-1-sample '%s': %s van %s replacement-sites", cfg$stage1_sample,
+         format(nrow(d), big.mark = ","), format(nrow(sites_nieuw), big.mark = ","))
+  d
+}
+
 maak_clusterinput <- function(sites_nieuw) {
   cv <- cluster_vars()
   d <- sites_nieuw[complete.cases(sites_nieuw[, ..cv]) & is.finite(far) & is.finite(dichtheid_per_ha)]
@@ -56,12 +69,12 @@ definitieve_clustering <- function(ci, k = cfg$kmeans_k_final) {
 ## ---------------------------------------------------------------------------
 if (sys.nframe() == 0L || isTRUE(get0("run_04", ifnotfound = FALSE))) {
   s  <- readRDS(cfg$file_sites_rds)
-  ci <- maak_clusterinput(s$nieuw)
+  ci <- maak_clusterinput(filter_stage1(s$nieuw))
 
   eb <- elbow(ci$m)
   rd_log("Elbow-curve (kies K waar PRE afvlakt):")
   print(eb)
-  fwrite(eb, file.path(cfg$dir_work, "elbow.csv"))
+  fwrite(eb, file.path(cfg$dir_work, paste0("elbow", cfg$sample_suffix, ".csv")))
 
   res <- definitieve_clustering(ci)
   rd_log("Definitieve clustering K = %d; omvang per cluster:", cfg$kmeans_k_final)

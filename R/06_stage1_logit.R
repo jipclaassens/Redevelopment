@@ -38,9 +38,13 @@ schat_stage1 <- function(alt, s) {
   est <- est[site_id %chin% compleet]
   est[, rv_mln := rv_eur / 1e6]
   est[, alt_f  := factor(cluster_alt)]
-  rd_log("Stage 1: %s sites x %d alternatieven (%s rijen); %s gerealiseerde sites vielen af (incomplete RV)",
-         format(length(compleet), big.mark = ","), K, format(nrow(est), big.mark = ","),
-         format(length(real_ids) - length(compleet), big.mark = ","))
+  # afbakening stedelijk gebied via OAD (cfg$oad_min; besluit 28-07 — vervangt 22 agglomeraties)
+  est[st, on = "site_id", oad := i.oad]
+  n_voor <- uniqueN(est$site_id)
+  est <- est[!is.na(oad) & oad >= cfg$oad_min]
+  rd_log("Stage 1: %s van %s SN-sites binnen OAD >= %d; %s afgevallen op incomplete RV",
+         format(uniqueN(est$site_id), big.mark = ","), format(n_voor, big.mark = ","),
+         cfg$oad_min, format(length(real_ids) - length(compleet), big.mark = ","))
 
   fit <- clogit(ca ~ rv_mln + alt_f + strata(site_id), data = est)
 

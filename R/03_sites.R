@@ -66,7 +66,9 @@ maak_sites <- function(x) {
     acq_cost_nonres_eur  = sum(fifelse(!obj_is_woon, acq_waarde, 0), na.rm = TRUE),
     sloop_cost_eur       = sum(sloop_kental * as.numeric(obj_floor_area_res_m2), na.rm = TRUE),
     was_redeveloped      = any(redev_type_lbl != "Onveranderd"),
-    n_flag_2012_dubbel   = sum(flag_2012_dubbel)
+    # startmoment herontwikkeling (09_hazard): eerste min-mutatie op de site (sloop/onttrekking);
+    # Onveranderd-sites hebben geen mutatiemaand -> NA
+    event_yearmonth      = { v <- redev_yearmonth[!is.na(redev_yearmonth)]; if (length(v)) min(v) else NA_integer_ }
   ), by = site_id]
   sites_inc[, acq_cost_total_eur := acq_cost_res_eur + acq_cost_nonres_eur]
 
@@ -79,6 +81,9 @@ maak_sites <- function(x) {
     redev_yearmonth   = { v <- redev_yearmonth[!is.na(redev_yearmonth)]; if (length(v)) min(v) else NA_integer_ },
     heeft_transformatie = any(redev_type_lbl == "Transformatie_Plus"),
     heeft_sn            = any(redev_type_lbl == "SN_Nieuwbouw"),
+    # 2012-dubbeltellingenflag (#26): hoort bij de PLUS-kant (Nieuwbouw/SN_Nieuwbouw-rijen;
+    # stond eerder abusievelijk in de incumbent-aggregatie waar hij altijd 0 telde)
+    n_flag_2012 = sum(flag_2012_dubbel),
     # multi-projectdiagnose (28-07): >1 vergunning of lange bouwperiode wijst op ruimtelijk
     # samengeklonterde projecten (7,1% heeft n_doc>2 en >24 mnd; flag voor robuustheid stage 1)
     n_doc      = uniqueN(pand_docnum),

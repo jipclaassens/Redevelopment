@@ -69,17 +69,29 @@ cfg$sample_suffix  <- if (cfg$stage1_sample == "alle") "" else paste0("_", cfg$s
 cfg$file_clusters_rds <- file.path(cfg$dir_work, sprintf("clusters%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
 cfg$file_alt_rds      <- file.path(cfg$dir_work, sprintf("alternatieven%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
 cfg$file_stage1_rds   <- file.path(cfg$dir_work, sprintf("stage1%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
+cfg$file_stage2_rds   <- file.path(cfg$dir_work, sprintf("stage2%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
 # multi-projectflag (robuustheid stage 1): site met >multiproj_n_doc documentnummers EN
 # >multiproj_mnd maanden spreiding in de nieuwbouw geldt als "samengeklonterde projecten"
 cfg$multiproj_n_doc <- 2L
 cfg$multiproj_mnd   <- 24L
+
+## -- afbakening studiegebied (besluit 28-07-avond) -------------------------------
+# Stedelijk gebied via omgevingsadressendichtheid (OAD, buurt), zoals in het vorige
+# paper — vervangt de eerdere 22-agglomeraties-afbakening. CBS-klassegrenzen:
+# >=1000 = matig stedelijk en hoger (default); sensitiviteit 1500 (sterk stedelijk) en
+# geen filter (heel NL). Geldt voor de estimatiesamples van stage 1 en 2; het
+# clustermenu (04) en de IV-berekening (06, alle sites) blijven landelijk.
+cfg$oad_min <- 1000L
 
 ## -- prijsvolatiliteit (stage-2-frictie; geproduceerd door PriceIndices R/06_volatility.R) --
 # sd van de jaar-op-jaar-groei van de hedonisch gecorrigeerde lokale log-prijsindex, 2000-2023.
 # Korrel 'grid5km' = RD-cel floor(x/5000)_floor(y/5000): vintage-vrij te koppelen via x/y_coord.
 cfg$dir_nvm_output  <- "C:/Users/JipClaassens/OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output"
 cfg$file_vol        <- function(korrel) file.path(cfg$dir_nvm_output, sprintf("Volatility_%s_%s.csv", cfg$nvm_filedate, korrel))
+# rolling variant (per regio x besluitjaar; tbv 09_hazard): sd van 5 groeijaren t/m J-1
+cfg$file_vol_rolling <- function(korrel) file.path(cfg$dir_nvm_output, sprintf("Volatility_rolling_%s_%s.csv", cfg$nvm_filedate, korrel))
 cfg$vol_cel_m       <- 5000L
+cfg$file_hazard_rds <- file.path(cfg$dir_work, sprintf("hazard%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
 
 ## -- parameters k-means (stap 1, Makles 2012) ----------------------------------
 cfg$kmeans_k_max     <- 20

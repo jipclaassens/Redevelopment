@@ -1,41 +1,45 @@
-# R-analysepijplijn densification-paper (issue #16)
+# R analysis pipeline — densification paper (issue #16)
 
-Object-level GeoDMS-export → site-aggregatie → k-means-alternatieven → (t.z.t.) two-stage logit.
-Stijl en opzet volgen de R-pipeline in `C:/ProjDir/_Tools/PriceIndices/R`.
+Object-level GeoDMS export → site aggregation → k-means alternatives → two-stage logit →
+discrete-time hazard. Style follows the R pipeline in `C:/ProjDir/_Tools/PriceIndices/R`.
 
-## Vereisten (GeoDMS-kant, eenmalig per BAG-vintage)
+## Prerequisites (GeoDMS side, once per BAG vintage)
 
 1. `GeoDmsRun.exe Redevelopment.dms /MaakOntkoppeldeData/Write_FinalMutationTable`
 2. `GeoDmsRun.exe Redevelopment.dms /MaakOntkoppeldeData/PerObject_Export`
    → `%LocalDataProjDir%/Temp/PerObject_Export_<StudyArea>_<BAG_file_date>.mmd`
 3. `GeoDmsRun.exe Redevelopment.dms /Analyse/PriceComponents/ExportCoefficients_WP4/Export_CSV`
    → `%LocalDataProjDir%/Temp/PriceCoefficients_WP4_<NVM_filedate>.csv`
+4. PriceIndices `R/06_volatility.R` → `NVM Prijsindex/Output/Volatility[_rolling]_<tag>_*.csv`
 
-## Stappen
+## Steps
 
-| script | doet | output (in `%LocalDataDir%/Redevelopment/R_werk`) |
+| script | does | output (in `%LocalDataDir%/Redevelopment/R_werk`) |
 |---|---|---|
-| `00_config.R` | paden (registry), classificatie-maps, parameters | — |
-| `01_read_mmd.R` | leesfuncties GeoDMS-mmd (binair, tiled strings, bit-packed bools) | — |
-| `02_load_perobject.R` | mmd → data.table; labels, 2012-flag (#26); hedonische incumbentwaarde `exp(constant + Σ coef·kenmerk)` per WP4 + WOZ-waarde niet-woon | `perobject_*.rds` |
-| `03_sites.R` | stap 0: aggregatie naar sites (incumbent-staat + gerealiseerde nieuwe staat) op `site_id` | `sites_*.rds` |
-| `04_kmeans.R` | stap 1: winsorize p1/p99 → standaardiseren → elbow (Makles 2012) → definitieve k-means (K uit `cfg$kmeans_k_final`, 50 starts) | `clusters_*.rds`, `elbow.csv` |
-| `05_alternatieven.R` | stap 2a–2c: long-tabel site × cluster met opbrengst (bulk hedonic predict), kosten (grondproductie/bouw/sloop) en residual value + keuze-indicator; defaults gedocumenteerd in de header | `alternatieven_*.rds` |
-| `06_stage1_logit.R` | stap 3+4: conditional logit (survival::clogit, RV + ASC's) op het stage-1-sample; robuustheid zonder multi-projectsites; inclusive value voor álle sites | `stage1_*.rds` |
-| `run_all.R` | alles achter elkaar | |
+| `00_config.R` | paths (registry), classification maps, parameters and defaults | — |
+| `01_read_mmd.R` | reader for GeoDMS mmd exports (binary, tiled strings, bit-packed bools; polygon columns skipped) | — |
+| `02_load_perobject.R` | mmd → data.table; labels, 2012 flag (#26); hedonic incumbent value `exp(constant + Σ coef·char)` per WP4 + WOZ value non-residential | `perobject_*.rds` |
+| `03_sites.R` | step 0: aggregate to sites (incumbent state + realised new state) on `site_id`; demolition costs, permit/timing flags, event year | `sites_*.rds` |
+| `04_kmeans.R` | step 1: stage-1 sample filter (`cfg$stage1_sample`, default SN) → winsorize p1/p99 → standardise → elbow (Makles 2012) → final k-means (K = 6, confirmed) | `clusters_sn_*.rds`, `elbow_sn.csv` |
+| `05_alternatives.R` | steps 2a–2c: long table site × cluster with revenue (bulk hedonic predict), costs (land production / construction / demolition) and residual value + choice indicator | `alternatieven_sn_*.rds` |
+| `06_stage1_logit.R` | steps 3+4: conditional logit (survival::clogit, RV + ASCs) on the stage-1 sample within the OAD scope; robustness without multi-project sites; inclusive value for ALL sites | `stage1_sn_*.rds` |
+| `07_stage2_logit.R` | step 5: binomial logit redevelopment (fixest::feglm, SEs clustered on gemeente); 10-spec battery + AMEs | `stage2_sn_*.rds`, `stage2_specs_sn_*.csv` |
+| `08_tables.R` | paper tables (markdown): stage 1, stage-2 main + robustness specs, AMEs | `paper_tabellen_sn_*.md` |
+| `09_hazard.R` | extension: discrete-time hazard (site × year panel), time-varying rolling volatility + growth (Capozza-Li), H1–H4 battery | `hazard_sn_*.rds` |
+| `run_all.R` | everything in sequence | |
 
-Draaien: `Rscript run_all.R` (of stap voor stap; elk script is zelfstandig draaibaar).
+Run: `Rscript run_all.R` (or per step; every script runs standalone).
 
-## Bewuste keuzes / open punten
+## Key choices (details in the script headers and STATUS.md)
 
-- **Prijspeil**: vaste `trans_year_2023`-dummy (`cfg$prijspeil_jaar`); transacties liepen t/m 2023, objecten van 2024–2026 krijgen dus 2023-prijzen.
-- **Incumbent-proxies**: nrooms/lotsize/d_maintgood/d_highrise van het object zijn onbekend → regiogemiddelden (`reg_<wp4>_*`, potential 5 km); `d_hoogte_onbekend` heeft geen regiogemiddelde en staat op 0.
-- **log(tt_ovknoop)**: ondergrens `cfg$ovknoop_floor` (0.01 min) tegen log(0); de schatting zag waarden vanaf ~0.1.
-- **Alternatieventabel (stap 2a–2c)**: defaults en beslispunten staan in de header van
-  `05_alternatieven.R` en als `cfg$`-parameters (bouwkosten koop-kental, d_maintgood=1 voor
-  nieuwbouw, vormfactor-mapping). Sloopkosten zijn k-invariant: vallen weg in stage 1, tellen
-  door in de inclusive value.
-- **Stap 3–5** (conditional logit, inclusive value, stage-2 logit) volgen; zie issue #16.
-- **Universum stage 2** ("welke sites hadden herontwikkeld kunnen worden") is nog niet afgebakend —
-  `sites` in `alternatieven_*.rds` heeft `heeft_incumbent`/`was_redeveloped` als bouwstenen;
-  de onveranderde voorraad is via #17 tot potentiële sites geclusterd (`Onv_`-site-ids).
+- **Scope**: urban area via OAD ≥ `cfg$oad_min` (1000; replaces the earlier 22-agglomerations
+  idea) for the stage-1/2 estimation samples; the cluster menu and inclusive values stay national.
+- **Outcome**: sloop-nieuwbouw (SN) = redeveloped; transformation is out of scope (decision
+  28-07); demolition/withdrawal without follow-up = pipeline censoring (robustness: `demol_start`).
+- **BBG-route SN sites** (`is_sn_door_bbg`): fine for stage 1, excluded from stage-2 estimation
+  (acquisition unknown); imputation robustness `bbg_imput`.
+- **Price level**: fixed `trans_year_2023` dummy; transactions run through 2023.
+- **Incumbent proxies**: regional averages (`reg_<wp4>_*`) for unobserved characteristics;
+  `d_hoogte_onbekend` has no regional mean and is set to 0.
+- **Volatility**: no robust real-options evidence in regionally identified specs (H1–H3);
+  the national uncertainty cycle is strongly negative (H4) but only indicatively identified.

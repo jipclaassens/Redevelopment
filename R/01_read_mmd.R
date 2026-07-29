@@ -1,12 +1,12 @@
-# 01_read_mmd.R — leesfuncties voor GeoDMS mmd-exports (memory-mapped data)
+# 01_read_mmd.R — reader functions for GeoDMS mmd exports (memory-mapped data)
 #
-# Een .mmd is een DIRECTORY met per attribuut een plat little-endian binair bestand
-# (geen header) plus een 0Dictionary.dms die domein-range en attribuuttypen beschrijft.
-# Strings staan als <naam> (indexparen, 2x uint64 per rij: [begin, eind) in bytes)
-# met de karakterdata in <naam>.seq. Bool is bit-packed (1 bit per rij, LSB eerst).
+# An .mmd is a DIRECTORY with one flat little-endian binary file per attribute
+# (no header) plus a 0Dictionary.dms describing the domain range and attribute types.
+# Strings are stored as <name> (index pairs, 2x uint64 per row: [begin, end) in bytes)
+# with the character data in <name>.seq. Bool is bit-packed (1 bit per row, LSB first).
 #
-# Waardetypen die niet uit de dictionary volgen (unit-referenties zoals /units/m2)
-# staan in een expliciete mappingtabel; een file-size-check vangt elke mismatch af.
+# Value types that do not follow from the dictionary (unit references such as /units/m2)
+# are held in an explicit mapping table; a file-size check catches any mismatch.
 
 read_mmd_dictionary <- function(dir_mmd) {
   dict_file <- file.path(dir_mmd, "0Dictionary.dms")
@@ -20,17 +20,17 @@ read_mmd_dictionary <- function(dir_mmd) {
   data.table(
     name = vapply(m, `[`, "", 3L),
     type = vapply(m, `[`, "", 2L),
-    # polygonen ('(., poly)') zijn variabele-lengte-sequenties (indexbestand + .seq met de
-    # coordinaatreeksen); het indexbestand is toevallig even groot als een puntkolom
-    # (16 bytes/rij) en zou als onzin-coordinaten gelezen worden -> expliciet overslaan
+    # polygons ('(., poly)') are variable-length sequences (index file + .seq with the
+    # coordinate series); the index file happens to be the same size as a point column
+    # (16 bytes/row) and would be read as garbage coordinates -> skip explicitly
     poly = grepl("\\(\\s*\\.\\s*,\\s*poly\\s*\\)", attr_lines),
     n    = n
   )
 }
 
-# GeoDMS-type -> leesspecificatie. bytes = bytes per rij; what/size voor readBin.
+# GeoDMS type -> read specification. bytes = bytes per row; what/size for readBin.
 .mmd_type_spec <- function(type) {
-  # unit-referenties uit deze configuratie (waardetype per Units.dms / Classifications)
+  # unit references from this configuration (value type per Units.dms / Classifications)
   ref_map <- list(
     "/units/m2"                = list(what = "double",  size = 8, bytes = 8),
     "/units/eur"               = list(what = "double",  size = 8, bytes = 8),
@@ -55,7 +55,7 @@ read_mmd_dictionary <- function(dir_mmd) {
   )
   if (type %in% names(base_map)) return(base_map[[type]])
   if (type %in% names(ref_map))  return(ref_map[[type]])
-  # classificatie-referenties (WP4, Redev_ObjectTypes, UrbanisationK, ...) zijn uint8-domeinen
+  # classification references (WP4, Redev_ObjectTypes, UrbanisationK, ...) are uint8 domains
   if (grepl("^/(classifications|Classifications|Analyse)/", type)) {
     return(list(what = "integer", size = 1, bytes = 1, signed = FALSE))
   }
@@ -64,43 +64,43 @@ read_mmd_dictionary <- function(dir_mmd) {
 
 .read_mmd_column <- function(dir_mmd, name, type, n) {
   spec <- .mmd_type_spec(type)
-  if (is.null(spec)) { warning(sprintf("kolom %s: onbekend type %s, overgeslagen", name, type)); return(NULL) }
+  if (is.null(spec)) { warning(sprintf("column %s: unknown type %s, skipped", name, type)); return(NULL) }
   path <- file.path(dir_mmd, name)
   if (!file.exists(path)) {
-    # GeoDMS schrijft namen soms met andere case (bv. Site_ID vs site_id): case-insensitive zoeken
+    # GeoDMS sometimes writes names with different case (e.g. Site_ID vs site_id): search case-insensitively
     cand <- list.files(dir_mmd, full.names = TRUE)
     hit <- cand[tolower(basename(cand)) == tolower(name)]
-    if (!length(hit)) { warning(sprintf("kolom %s: bestand ontbreekt in mmd, overgeslagen", name)); return(NULL) }
+    if (!length(hit)) { warning(sprintf("column %s: file missing in mmd, skipped", name)); return(NULL) }
     path <- hit[1]
   }
 
   fsz <- file.info(path)$size
-  verwacht <- if (spec$what == "bool") ceiling(n / 8) else n * spec$bytes
-  if (fsz != verwacht) {
-    warning(sprintf("kolom %s: bestandsgrootte %d wijkt af van verwacht %d (type %s), overgeslagen",
-                    name, fsz, verwacht, type))
+  expected <- if (spec$what == "bool") ceiling(n / 8) else n * spec$bytes
+  if (fsz != expected) {
+    warning(sprintf("column %s: file size %d differs from expected %d (type %s), skipped",
+                    name, fsz, expected, type))
     return(NULL)
   }
 
   con <- file(path, "rb"); on.exit(close(con))
   if (spec$what == "bool") {
     raw <- readBin(con, "raw", n = ceiling(n / 8))
-    bits <- as.logical(rawToBits(raw))          # LSB eerst per byte
+    bits <- as.logical(rawToBits(raw))          # LSB first per byte
     return(bits[seq_len(n)])
   }
   if (spec$what == "string") {
-    # Indexbestand: 2x uint64 per rij ([begin, eind) in bytes, TILE-LOKAAL); null = 2^64-1.
-    # Lees als 4x uint32 en combineer (offsets << 2^53, dus exact representeerbaar in double).
+    # Index file: 2x uint64 per row ([begin, end) in bytes, TILE-LOCAL); null = 2^64-1.
+    # Read as 4x uint32 and combine (offsets << 2^53, so exactly representable in double).
     u <- readBin(con, "integer", n = 4L * n, size = 4)
     ofs <- bitwAnd_u32(u[seq(1, 4L * n, by = 2)]) + bitwAnd_u32(u[seq(2, 4L * n, by = 2)]) * 2^32
     begin <- ofs[seq(1, 2L * n, by = 2)]
-    eind  <- ofs[seq(2, 2L * n, by = 2)]
+    end   <- ofs[seq(2, 2L * n, by = 2)]
 
-    # .seq: header van 3 uint64 per tile — (start_in_file, used_bytes, alloc_bytes) — gevolgd door de
-    # tile-datasegmenten. LET OP: de segmenten staan in WILLEKEURIGE volgorde in het bestand
-    # (multithreaded writes); start_t is dus de enige betrouwbare positie-informatie.
-    # Tiles zijn 65536 rijen (GeoDMS-tiling); index-offsets zijn tile-lokaal vanaf start_t.
-    # Gevalideerd tegen PerObject_Export_AMS_20260108 en PerObject_Export_Nederland_20260710.
+    # .seq: header of 3 uint64 per tile — (start_in_file, used_bytes, alloc_bytes) — followed by the
+    # tile data segments. NOTE: the segments appear in ARBITRARY order in the file
+    # (multithreaded writes); start_t is therefore the only reliable position information.
+    # Tiles are 65536 rows (GeoDMS tiling); index offsets are tile-local from start_t.
+    # Validated against PerObject_Export_AMS_20260108 and PerObject_Export_Nederland_20260710.
     seqf <- paste0(path, ".seq")
     stopifnot(file.exists(seqf))
     seq_raw <- readBin(seqf, "raw", n = file.info(seqf)$size)
@@ -114,21 +114,21 @@ read_mmd_dictionary <- function(dir_mmd) {
     tile_alloc <- hdr64[seq(3, 3L * n_tiles, by = 3)]
     stopifnot(all(tile_start + tile_alloc <= length(seq_raw)))
 
-    seq_raw[seq_raw == as.raw(0)] <- as.raw(32)   # NULs (header/padding) -> spatie; posities verschuiven niet
+    seq_raw[seq_raw == as.raw(0)] <- as.raw(32)   # NULs (header/padding) -> space; positions do not shift
     buf <- rawToChar(seq_raw)
-    Encoding(buf) <- "latin1"   # 1 byte == 1 char, zodat substring op byte-offsets klopt
+    Encoding(buf) <- "latin1"   # 1 byte == 1 char, so substring on byte offsets is correct
     tile_of <- (seq_len(n) - 1L) %/% tile_size
-    is_null <- eind >= 2^63    # null-marker (2^64-1)
+    is_null <- end >= 2^63    # null marker (2^64-1)
     out <- rep(NA_character_, n)
     ok <- !is_null
-    out[ok] <- substring(buf, tile_start[tile_of[ok] + 1L] + begin[ok] + 1, tile_start[tile_of[ok] + 1L] + eind[ok])
+    out[ok] <- substring(buf, tile_start[tile_of[ok] + 1L] + begin[ok] + 1, tile_start[tile_of[ok] + 1L] + end[ok])
     return(out)
   }
   if (spec$what == "uint64") {
     u <- readBin(con, "integer", n = 2L * n, size = 4)
     lo <- bitwAnd_u32(u[seq(1, 2L * n, by = 2)])
     hi <- bitwAnd_u32(u[seq(2, 2L * n, by = 2)])
-    return(lo + hi * 2^32)                                 # BAG-nummers < 2^53: exact in double
+    return(lo + hi * 2^32)                                 # BAG numbers < 2^53: exact in double
   }
   if (isTRUE(spec$point)) {
     v <- readBin(con, spec$what, n = 2L * n, size = spec$size)
@@ -140,21 +140,21 @@ read_mmd_dictionary <- function(dir_mmd) {
   v
 }
 
-# signed int32 -> unsigned waarde (als double)
+# signed int32 -> unsigned value (as double)
 bitwAnd_u32 <- function(x) ifelse(x < 0, x + 2^32, x)
 
-#' Lees een GeoDMS mmd-directory in als data.table.
-#' @param dir_mmd pad naar de .mmd-directory
-#' @param cols optioneel: alleen deze kolommen (character); NULL = alles
+#' Read a GeoDMS mmd directory as a data.table.
+#' @param dir_mmd path to the .mmd directory
+#' @param cols optional: only these columns (character); NULL = everything
 read_mmd <- function(dir_mmd, cols = NULL) {
   d <- read_mmd_dictionary(dir_mmd)
   if (!is.null(cols)) d <- d[tolower(name) %in% tolower(cols)]
   out <- list()
   for (i in seq_len(nrow(d))) {
-    if (isTRUE(d$poly[i])) next   # polygoonkolommen: niet als tabelkolom leesbaar (zie read_mmd_dictionary)
+    if (isTRUE(d$poly[i])) next   # polygon columns: not readable as a table column (see read_mmd_dictionary)
     v <- .read_mmd_column(dir_mmd, d$name[i], d$type[i], d$n[i])
     if (is.null(v)) next
-    if (is.list(v)) {  # puntkolom -> twee kolommen
+    if (is.list(v)) {  # point column -> two columns
       out[[paste0(d$name[i], "_x")]] <- v$x
       out[[paste0(d$name[i], "_y")]] <- v$y
     } else out[[d$name[i]]] <- v

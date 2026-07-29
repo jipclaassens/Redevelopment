@@ -20,6 +20,10 @@ read_mmd_dictionary <- function(dir_mmd) {
   data.table(
     name = vapply(m, `[`, "", 3L),
     type = vapply(m, `[`, "", 2L),
+    # polygonen ('(., poly)') zijn variabele-lengte-sequenties (indexbestand + .seq met de
+    # coordinaatreeksen); het indexbestand is toevallig even groot als een puntkolom
+    # (16 bytes/rij) en zou als onzin-coordinaten gelezen worden -> expliciet overslaan
+    poly = grepl("\\(\\s*\\.\\s*,\\s*poly\\s*\\)", attr_lines),
     n    = n
   )
 }
@@ -147,6 +151,7 @@ read_mmd <- function(dir_mmd, cols = NULL) {
   if (!is.null(cols)) d <- d[tolower(name) %in% tolower(cols)]
   out <- list()
   for (i in seq_len(nrow(d))) {
+    if (isTRUE(d$poly[i])) next   # polygoonkolommen: niet als tabelkolom leesbaar (zie read_mmd_dictionary)
     v <- .read_mmd_column(dir_mmd, d$name[i], d$type[i], d$n[i])
     if (is.null(v)) next
     if (is.list(v)) {  # puntkolom -> twee kolommen

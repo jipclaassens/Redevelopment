@@ -131,7 +131,18 @@ Resterende robuustheids-agenda: BBG-SN-imputatie; K-bevestiging (elbow-knik bij 
 - **PerObject_Export vers** (1u42; `Onv_`-prefix uit de naamgevingsronde + `is_sn_door_bbg`): typeverdeling, prijzen en sitecounts byte-gelijk aan de 18-07-mmd; stage-1/2-resultaten en papertabellen identiek — volledige reproduceerbaarheid bevestigd.
 - **`is_sn_door_bbg` geverifieerd**: 97.537 rijen op exact de 12.000 sites van de R-afleiding (heeft_sn zonder incumbent; 0 verschillen, alle rijen SN_Nieuwbouw) — beide routes valideren elkaar. 07 blijft op de afleiding draaien en herkent beide prefixen (Onv/OnvS), dus oude én nieuwe mmd's werken.
 - **09 hazard gedraaid**: 4.459.369 site-jaren (302.063 sites, 8.400 events = 0,19%/jaar), vol_roll-dekking 99,8%. Resultaat: iv +2,71 (z 7,3), verwerving −0,099/M€ (z −6,0), eigenaar-bewoners −0,015, corporatie −0,008, heritage −0,40 (z −3,7 — nog sterker dan cross-sectioneel); **vol_roll +1,27 (z 1,0, n.s.)** — óók met tijdvariërende volatiliteit geen real-options-bewijs. NB identificatie: na jaar-FE resteert de regionale afwijking van de nationale volatiliteitscyclus; de #28-lijn (rapporteren als geen bewijs) blijft dus staan, nu extra onderbouwd.
-- Fixes: 07 prefixfilter Onv/OnvS; 09 `m_kaal` kreeg een expliciete formule (update() op een tweedelige fixest-formule mangelt het FE-deel). mmd-reader-nootje: `Site_geometry` (poly) leest als lege kolom met recycle-warning — ongebruikt in R; t.z.t. poly-kolommen expliciet skippen in 01_read_mmd.
+- Fixes: 07 prefixfilter Onv/OnvS; 09 `m_kaal` kreeg een expliciete formule (update() op een tweedelige fixest-formule mangelt het FE-deel).
+
+### 29-07: real-options v2 (H1–H4) + mmd-reader-polyfix
+
+- **site_geometry-raadsel opgelost**: de mmd-dictionary geeft polygoonkolommen hetzelfde waardetype als punten (`/geography/rdc`; de `(.,poly)`-markering werd niet geparsed) én het polygonen-INDEXbestand is toevallig ook 16 bytes/rij — de reader las dus indexverwijzingen als coördinaten (waarden ~1e-317, full-length onzin; `geometry` als punt was altijd goed). Fix: `01_read_mmd` parset nu de poly-vlag en skipt die kolommen; de huidige perobject-rds bevat tot de volgende 02-run nog twee ongebruikte onzinkolommen (site_geometry_x/_y).
+- **Real-options-batterij 09 (H1–H4)**, met twee nieuwe ingrediënten uit PriceIndices 06: rolling **groeiverwachting** `g_roll5` (Capozza & Li: groei én onzekerheid verhogen de optiewaarde van wachten — zonder groei-control is vol vertekend) en een **nationale reeks** (regio 'NL'):
+  - H1 (jaar-FE, regionale vol): +1,27 (z 1,0) n.s. — als eerder.
+  - H2 (+ regionale groei): vol +1,19 (z 0,9), groei +0,67 (z 0,5) — geen verandering.
+  - H3 (gemeente-korrel primair, minder meetruis): vol +2,31 (z 1,5) — nog steeds n.s.
+  - **H4 (géén jaar-FE; regionale + nationale vol/groei + lineaire trend): vol_nl = −10,77 (z −5,2)** — de nationale volatiliteit remt herontwikkelingsstarts sterk; regionale vol blijft n.s. (+1,75, z 1,4), nationale groei n.s.
+  - iv/acq/fricties in alle vier stabiel (iv +2,7; acq −0,10; heritage −0,40).
+- **Interpretatielijn voor het paper**: het real-options-mechanisme manifesteert zich op macroniveau — in hoogonzekere jaren (crisisperiode) storten de starts in, conditioneel op trend en groeiverwachting — maar zónder jaar-FE vangt vol_nl elke gecorreleerde macroschok mee (krediet, rente, beleid). Rapporteren als "consistent met real options op nationaal niveau; in regionale variatie (wél zuiver geïdentificeerd) geen bewijs". Mogelijke verscherping t.z.t.: rente/kredietvoorwaarden als expliciete controls in H4.
 
 ### 17-07 (historie): OnveranderdSites v2 (opgedeeld) klaargezet voor de vólgende run
 

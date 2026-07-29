@@ -53,13 +53,18 @@ maak_hazard_panel <- function(alt, s, s1) {
   panel[, jaar := 2011L + rowid(site_id)]
   panel[, y_jaar := as.integer(y & jaar == jaar_eind)]
 
-  # tijdvariërende volatiliteit: grid5km-cel, fallback gemeente; laatste bekende waarde na afloop
+  # tijdvariërende volatiliteit + groeiverwachting: grid5km-cel, fallback gemeente (en
+  # andersom als variant); nationale reeks apart; laatste bekende waarde na afloop
   vg  <- fread(cfg$file_vol_rolling("grid5km"))
   vgm <- fread(cfg$file_vol_rolling("gemeente_code"))
+  vnl <- fread(cfg$file_vol_rolling("nationaal"))
   panel[, jaar_vol := pmin(jaar, max(vg$besluitjaar))]
-  panel[vg,  on = .(cel = regio, jaar_vol = besluitjaar),           vol_roll := i.vol_roll5]
-  panel[vgm, on = .(gemeente_code = regio, jaar_vol = besluitjaar), vol_roll_gm := i.vol_roll5]
-  panel[, vol_roll := fcoalesce(vol_roll, vol_roll_gm)]
+  panel[vg,  on = .(cel = regio, jaar_vol = besluitjaar),           `:=`(vol_g_ = i.vol_roll5, gr_g_ = i.g_roll5)]
+  panel[vgm, on = .(gemeente_code = regio, jaar_vol = besluitjaar), `:=`(vol_m_ = i.vol_roll5, gr_m_ = i.g_roll5)]
+  panel[vnl, on = .(jaar_vol = besluitjaar),                        `:=`(vol_nl = i.vol_roll5, g_nl = i.g_roll5)]
+  panel[, `:=`(vol_roll  = fcoalesce(vol_g_, vol_m_), g_roll  = fcoalesce(gr_g_, gr_m_),    # fijnste korrel eerst
+               vol_rollG = fcoalesce(vol_m_, vol_g_), g_rollG = fcoalesce(gr_m_, gr_g_))]   # gemeente primair (minder meetruis)
+  panel[, jaar_c := jaar - 2019L]
   rd_log("Panel: %s site-jaren (%s events, %.3f%% per jaar); vol_roll-dekking %.1f%%",
          format(nrow(panel), big.mark = ","), format(sum(panel$y_jaar), big.mark = ","),
          100 * mean(panel$y_jaar), 100 * mean(!is.na(panel$vol_roll)))
@@ -73,23 +78,42 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   s1  <- readRDS(cfg$file_stage1_rds)
   panel <- maak_hazard_panel(alt, s, s1)
 
-  # NB: geen update() op tweedelige fixest-formules — dat mangelt het FE-deel
-  f_haz      <- y_jaar ~ iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +
-                         isprotectheritagearea + is_natura2000 + vol_roll + bouwperiode_inc | jaar
-  f_haz_kaal <- y_jaar ~ iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +
-                         isprotectheritagearea + is_natura2000 + bouwperiode_inc | jaar
-  est <- panel[!is.na(vol_roll)]
-  m      <- feglm(f_haz,      data = est, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
-  m_kaal <- feglm(f_haz_kaal, data = est, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
-  if (!isTRUE(m$convStatus)) rd_log("NB: hazard-hoofdmodel niet geconvergeerd — check separatie")
+  # Real-options-specbatterij (28-07-avond). NB: geen update() op tweedelige fixest-formules.
+  #  H1 vol      : jaar-FE + regionale vol (identificatie = regionale afwijking vd nationale cyclus)
+  #  H2 capozza  : H1 + groeiverwachting g_roll (Capozza & Li: groei EN onzekerheid verhogen de
+  #                optiewaarde van wachten; zonder groei-control is vol potentieel vertekend)
+  #  H3 gemeente : als H2 maar gemeente-korrel primair (minder meetruis -> minder attenuatie)
+  #  H4 nationaal: GEEN jaar-FE; regionale + nationale vol/groei + lineaire trend. Hier draagt
+  #                ook de nationale volatiliteitscyclus bij aan de identificatie — maar de
+  #                nationale termen vangen dan ELKE macroschok mee (rente, beleid): expliciet
+  #                als indicatief gelabeld, niet als hoofdresultaat.
+  f_rhs <- paste("iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +",
+                 "isprotectheritagearea + is_natura2000 + bouwperiode_inc")
+  mk <- function(extra, fe = TRUE) as.formula(paste("y_jaar ~", f_rhs, "+", extra, if (fe) "| jaar" else ""))
+  est <- panel[!is.na(vol_roll) & !is.na(g_roll) & !is.na(vol_nl)]
 
-  ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")
-  setnames(ct, c("term", "estimate", "se_cluster", "z", "p"))
-  rd_log("Discrete-time hazard (jaar-FE, SE geclusterd op gemeente):")
-  print(ct[!(term %like% "bouwperiode"), .(term, estimate = round(estimate, 4), se_cluster = round(se_cluster, 4), z = round(z, 1))])
-  rd_log("vol_roll = het real-options-resultaat: negatief = onzekerheid remt de start")
+  fits <- list()
+  pak <- function(fml, label) {
+    m <- feglm(fml, data = est, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
+    if (!isTRUE(m$convStatus)) rd_log("  NB: '%s' niet geconvergeerd", label)
+    ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")
+    setnames(ct, c("term", "estimate", "se_cluster", "z", "p"))
+    ct[, spec := label]
+    toon <- ct[term %chin% c("vol_roll", "g_roll", "vol_rollG", "g_rollG", "vol_nl", "g_nl", "iv", "acq_mln")]
+    rd_log("  %-9s: %s", label, toon[, paste(sprintf("%s %+.2f (z %.1f)", term, estimate, z), collapse = "; ")])
+    ct
+  }
+  rd_log("Hazard-specs (SE geclusterd op gemeente):")
+  fits$H1 <- pak(mk("vol_roll"), "H1_vol")
+  fits$H2 <- pak(mk("vol_roll + g_roll"), "H2_capozza")
+  fits$H3 <- pak(mk("vol_rollG + g_rollG"), "H3_gemeente")
+  fits$H4 <- pak(mk("vol_roll + g_roll + vol_nl + g_nl + jaar_c", fe = FALSE), "H4_nationaal")
 
-  saveRDS(list(coef = ct, coef_kaal = coef(m_kaal), n = m$nobs, n_events = est[, sum(y_jaar)]),
+  specs <- rbindlist(fits)
+  rd_log("Kernvariabelen H2 (hoofdspec):")
+  print(specs[spec == "H2_capozza" & !(term %like% "bouwperiode"),
+              .(term, estimate = round(estimate, 4), se_cluster = round(se_cluster, 4), z = round(z, 1))])
+  saveRDS(list(specs = specs, n = uniqueN(est$site_id), n_site_jaren = nrow(est), n_events = est[, sum(y_jaar)]),
           cfg$file_hazard_rds, compress = FALSE)
   rd_log("Weggeschreven: %s", cfg$file_hazard_rds)
 }

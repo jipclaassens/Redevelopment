@@ -3,15 +3,23 @@
 # robustness table, stage-1 table and AMEs. Stars: *** p<0.01, ** p<0.05, * p<0.1.
 # Stage-2 SEs are clustered on gemeente; stage 1 conventional (clogit).
 
+# Locate the directory this script lives in, so 00_config.R can be sourced no matter what
+# the current working directory is: when run via Rscript, the path comes from the --file=
+# command-line argument; otherwise fall back to getwd().
 if (!exists(".rd_script_dir")) {
   f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
   .rd_script_dir <- if (length(f)) dirname(normalizePath(f[1])) else getwd()
 }
 source(file.path(.rd_script_dir, "00_config.R"))
 
+# Formatting helpers: stars() maps p-values to significance stars (fifelse is data.table's
+# fast vectorised if-else); fmt_cell() renders one table cell as "estimate*** (se)".
 stars    <- function(p) fifelse(p < .01, "***", fifelse(p < .05, "**", fifelse(p < .1, "*", "")))
 fmt_cell <- function(est, se, p) sprintf("%.3f%s (%.3f)", est, stars(p), se)
 
+# Named lookup vector: raw regressor names (as they appear in the model output) to readable
+# row labels for the paper. Its ORDER also fixes the row order of the stage-2 tables, and
+# terms without a label here are silently dropped from those tables (see md_table below).
 labels <- c(
   iv = "Inclusive value", acq_mln = "Acquisition costs (EUR M)",
   p_owner_occupier_buurt = "Share owner-occupiers neighbourhood (pp)",
@@ -28,19 +36,37 @@ labels <- c(
   bouwperiode_incbouwperiode_1992_2001 = "Construction period: 1992–2001",
   `(Intercept)` = "Constant")
 
+# Same idea for stage 1: ASC = alternative-specific constant, one per development-type
+# cluster, measured relative to the omitted reference alternative (noted below).
 asc_labels <- c(rv_mln = "Residual value (M€)",
   alt_f2 = "ASC apartment high-density", alt_f3 = "ASC semi-detached",
   alt_f4 = "ASC apartment mid-density", alt_f5 = "ASC terraced",
   alt_f6 = "ASC detached large")   # reference: detached-teardown (cluster 1)
 
+# Build one markdown table (rows = regressors, columns = specifications) from the long
+# stage-2 results table (one row per spec x term). Returns a character vector of markdown
+# lines. NOTE: it edits its input by reference (:=), so callers pass copy(s2$specs).
 md_table <- function(dt, spec_order) {
+  # Keep only the requested specs (%chin% is data.table's fast %in% for strings). The
+  # gemeente-level volatility variable is renamed so it shares the "Price volatility" row
+  # with the base variant; := then adds a formatted "est*** (se)" cell column by reference.
   dt <- dt[spec %chin% spec_order]
   dt[term == "vol_dlnp_gem", term := "vol_dlnp"]
   dt[, cell_ := fmt_cell(estimate, se_cluster, p)]
+  # dcast reshapes long to wide: one row per term, one column per spec. factor(levels=)
+  # fixes the column order to spec_order; fill = "" leaves an empty cell where a term does
+  # not occur in a spec (see README, data.table primer).
   wide <- dcast(dt, term ~ factor(spec, levels = spec_order), value.var = "cell_", fill = "")
+  # Reorder the rows to follow the labels vector (terms without a label are dropped), then
+  # replace the raw term names with the readable labels.
   wide <- wide[match(names(labels)[names(labels) %chin% wide$term], term)]
   wide[, term := labels[term]]
+  # Grouped aggregation (by = spec): sample sizes are constant within a spec, so take the
+  # first value per group and format with "." as thousands separator for the footer rows.
   ns <- dt[, .(n = format(n[1], big.mark = "."), n_y1 = format(n_y1[1], big.mark = ".")), by = spec]
+  # Assemble the markdown lines: header with spec names, divider, one row per term (.SD is
+  # the subset of spec columns, pasted together with " | "), and two footer rows with the
+  # total N and the number of redeveloped sites per spec.
   header <- paste0("| ", paste(c("", spec_order), collapse = " | "), " |")
   divider <- paste0("|", paste(rep("---", length(spec_order) + 1), collapse = "|"), "|")
   rows <- wide[, paste0("| ", term, " | ", do.call(paste, c(.SD, sep = " | ")), " |"), .SDcols = spec_order]
@@ -50,14 +76,26 @@ md_table <- function(dt, spec_order) {
 }
 
 ## ---------------------------------------------------------------------------
+# Guard: the block below runs only when this file is executed directly as a script
+# (sys.nframe() == 0) or when a caller has set run_08 <- TRUE before sourcing it.
+# Sourcing the file without that flag just loads the helpers and label vectors above.
 if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
+  # Load the saved stage-1 (conditional logit) and stage-2 (binomial logit) estimation
+  # results; paths come from cfg (00_config.R).
   s1 <- readRDS(cfg$file_stage1_rds)
   s2 <- readRDS(cfg$file_stage2_rds)
 
+  # Stage-1 coefficient table: point estimates, SEs from the diagonal of the variance
+  # matrix, then := adds by reference a two-sided normal-approximation p-value and the
+  # readable label for each coefficient.
   co1 <- data.table(term = names(s1$coef), est = unname(s1$coef), se = sqrt(diag(s1$vcov)))
   co1[, p := 2 * pnorm(-abs(est / se))]
   co1[, lbl := asc_labels[term]]
 
+  # Build the whole markdown document as one character vector (one element per line):
+  # title and scope, the stage-1 table (one sprintf-formatted row per coefficient), the two
+  # stage-2 tables via md_table (copy() protects s2$specs, since md_table edits its input
+  # by reference), and the AME table, scaled x100 from proportions to percentage points.
   out <- c(
     sprintf("# Paper tables (v1) — %s, BAG %s, sample %s, price level %d", cfg$area, cfg$bag_date, cfg$stage1_sample, cfg$price_level_year),
     "", sprintf("Scope: OAD ≥ %d (base). Stage-2 SEs clustered on gemeente; *** p<0.01 ** p<0.05 * p<0.1.", cfg$oad_min),
@@ -72,6 +110,8 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
     "| | AME (pp) |", "|---|---|",
     s2$ame[, sprintf("| %s | %.3f |", labels[term], 100 * ame)])
 
+  # Write the file to the work directory; the name is stamped with sample suffix, area
+  # and BAG date so runs on different samples never overwrite each other.
   outfile <- file.path(cfg$dir_work, sprintf("paper_tabellen%s_%s_%s.md", cfg$sample_suffix, cfg$area, cfg$bag_date))
   writeLines(out, outfile, useBytes = FALSE)
   rd_log("Written: %s", outfile)

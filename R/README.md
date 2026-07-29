@@ -30,6 +30,31 @@ discrete-time hazard. Style follows the R pipeline in `C:/ProjDir/_Tools/PriceIn
 
 Run: `Rscript run_all.R` (or per step; every script runs standalone).
 
+## How to read this code (data.table primer)
+
+The pipeline is written in `data.table` style, which is compact but unusual if you know base R
+or dplyr. The grammar is `dt[i, j, by]`: select rows (`i`), then compute (`j`), optionally per
+group (`by`). The idioms you will meet, once each:
+
+| idiom | what it does |
+|---|---|
+| `dt[, x := ...]` | adds/overwrites column `x` **in place** (no `dt <- ...` needed); `:=`(a=..., b=...)` sets several at once |
+| `dt[other, on = "key", x := i.x]` | **update join**: look up each row of `dt` in `other` via `key` and copy the matched value in; the `i.` prefix means "column from the joined table". Rows without a match get `NA` |
+| `dt[is.na(x), x := 0]` | the usual follow-up: give the non-matched rows an explicit default |
+| `dt[, .(m = mean(v)), by = g]` | grouped aggregation; `.()` is shorthand for `list()`, `.N` is the group size |
+| `dt[, .SD, .SDcols = cols]` | `.SD` = "the selected columns as a sub-table", used with `complete.cases`, `lapply`, etc. |
+| `x %chin% v` | fast `%in%` for character vectors |
+| `fifelse(test, a, b)` / `fcoalesce(a, b)` | vectorised if-else / first-non-NA (like SQL COALESCE) |
+| `shift(x)` | lag: the previous row's value (within `by` groups) |
+| `dt[rep(seq_len(.N), k)]` + `rowid(id)` | row expansion: repeat each row k times, then number the copies (used to build the site x year panel) |
+| `dcast` / `melt` | long-to-wide / wide-to-long reshaping |
+| `CJ(a, b)` | cross join: all combinations (like `expand.grid`) |
+
+Script layout: every step file defines functions first and ends with an
+`if (sys.nframe() == 0L || isTRUE(get0("run_XX", ...)))` block. That guard means: run the main
+block when the script is called directly (`Rscript 05_...R`), or when `run_all.R` sets the
+`run_XX` flag; when another script `source()`s it just for its functions, nothing executes.
+
 ## Key choices (details in the script headers and STATUS.md)
 
 - **Scope**: urban area via OAD ≥ `cfg$oad_min` (1000; replaces the earlier 22-agglomerations

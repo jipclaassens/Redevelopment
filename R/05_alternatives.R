@@ -35,6 +35,9 @@
 # default 'sn'); the long table itself ALWAYS covers all sites (the inclusive value of
 # step 4 is also needed for undeveloped sites).
 
+# Locate the folder this script lives in, so the helper scripts below can be sourced with
+# absolute paths regardless of the current working directory (works both when run via
+# Rscript and when sourced from another script).
 if (!exists(".rd_script_dir")) {
   f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
   .rd_script_dir <- if (length(f)) dirname(normalizePath(f[1])) else getwd()
@@ -43,10 +46,20 @@ source(file.path(.rd_script_dir, "00_config.R"))
 source(file.path(.rd_script_dir, "02_load_perobject.R"))   # for read_coefficients/coef_for
 
 build_alternatives <- function(s, cl, co = read_coefficients()) {
+  # Work on a copy: data.tables are modified "by reference" (:= writes new columns into the
+  # table in place, without copying), so copy() protects the input s$attrs from being
+  # changed. site_ha converts the site area from m2 to hectares for the land cost formulas.
   st <- copy(s$attrs)
   st[, site_ha := site_size / 1e4]
 
   # incumbent side (acquisition/demolition/outcome); sites without incumbent rows = pure new construction
+  # Attach the incumbent-side aggregates to the site table via a data.table "update join":
+  # each site_id of st is looked up in s$incumbent and := writes the matched values into st
+  # itself (the i. prefix = "column from the joined table"; see README, data.table primer).
+  # Sites WITHOUT incumbent rows are pure new construction (nothing stood there); the join
+  # leaves them NA, and the second statement makes that explicit: nothing to acquire or
+  # demolish (costs 0), and was_redeveloped = TRUE because the site exists precisely
+  # because something was built.
   st[s$incumbent, on = "site_id", `:=`(
     has_incumbent      = TRUE,
     was_redeveloped    = i.was_redeveloped,
@@ -58,11 +71,19 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
                                 acq_cost_total_eur = 0, demolition_cost_eur = 0)]
 
   # realized cluster (k-means assignment from 04) = choice indicator later on
+  # Same update-join idiom: copy the observed cluster of each site from cl$sites into st.
+  # Sites outside the stage-1 clustering sample get no match and stay NA; cluster_real
+  # later becomes the chosen-alternative dummy ca (step 2c).
   st[cl$sites, on = "site_id", cluster_real := i.cluster]
 
   # construction cost rate per site via landsdeel
+  # Plain base-R table lookup: match() finds each site's landsdeel in the CBS cost table
+  # and picks the euro-per-m2 construction rate for that region (2023 price level).
   st[, bouw_kental := cfg$construction_costs_2023[[cfg$construction_costs_column]][match(landsdeel, cfg$construction_costs_2023$landsdeel)]]
 
+  # Diagnostic only: flag sites that miss any price/cost input. .SDcols restricts .SD (the
+  # "subset of data", i.e. the listed columns only) and complete.cases() marks rows without
+  # NA; the log line reports how many sites will end up with an NA residual value.
   unusable <- st[, !complete.cases(.SD),
                  .SDcols = c("site_size", "loc_tt_500k_2024_min", "loc_tt_ovknoop_2026_min",
                              "uai_2012", "loc_grondprod_eur_ha", "bouw_kental")]
@@ -70,7 +91,12 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
          format(nrow(st), big.mark = ","), format(sum(unusable), big.mark = ","), 100 * mean(unusable))
 
   # -- 2a: base price per (site, type): everything except the lnsize term --------
-  ct <- function(term, t) coef_for(co, term, t)  # scalar
+  # sapply loops over the four WP4 dwelling types and returns a matrix P_base with one row
+  # per site and one column per type: the hedonic price of a unit of that type at that
+  # location (regional-mean characteristics, chosen price level), WITHOUT the size term.
+  # The size term is applied per cluster below (price scales with size_k to the power of
+  # the lnsize coefficient), so the expensive part runs once per site, not per (site, k).
+  ct <- function(term, t) coef_for(co, term, t)  # scalar: one coefficient for (term, type)
   P_base <- sapply(cfg$wp4_names, function(t)
     exp(ct("constant", t) +
         ct("lnlotsize", t)   * log(pmax(st[[paste0("reg_", t, "_lotsize")]], 1)) +
@@ -81,10 +107,18 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
         ct("lntt_500k_2024", t) * log(st$loc_tt_500k_2024_min) +
         ct("lntt_ovknoop", t)   * log(pmax(st$loc_tt_ovknoop_2026_min, cfg$ovknoop_floor)) +
         ct("uai_2012", t)       * st$uai_2012))
+  # Per-type ingredients for the cluster loop: the lnsize coefficient (size scaling of the
+  # price) and the vormfactor (living area per m2 gross floor area, so bvo = size / vf).
   ls_coef <- vapply(cfg$wp4_names, function(t) ct("lnsize", t), numeric(1))
   vf      <- unname(cfg$vormfactor[cfg$vormfactor_wp4[cfg$wp4_names]])
 
   # -- one block of the long table per cluster alternative -----------------------
+  # Row expansion: lapply builds one data.table ("block") holding ALL sites for each of the
+  # K cluster alternatives; rbindlist() below stacks the K blocks into the long table
+  # (sites x K rows). Per block: shares = centroid type mix normalized to sum 1; the matrix
+  # product P_base %*% (shares * size^coef) collapses the four type prices into one price
+  # per site in a single step; revenue and the three cost parts then follow the header
+  # formulas (2a/2b), and rv_eur = revenue minus costs (2c).
   K <- nrow(cl$centroids)
   share_cols <- paste0("share_", cfg$wp4_names)
   blocks <- lapply(seq_len(K), function(k) {
@@ -106,9 +140,12 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
     # land production sensitivity (RV variants only, no separate cost columns)
     block[, rv_eur_grond_low  := rv_eur + cost_land_eur - st$loc_grondprod_eur_ha_low  * st$site_ha]
     block[, rv_eur_grond_high := rv_eur + cost_land_eur - st$loc_grondprod_eur_ha_high * st$site_ha]
+    # choice indicator: 1 if this alternative k equals the cluster actually built on the site
     block[, ca := as.integer(!is.na(st$cluster_real) & st$cluster_real == k)]
     block
   })
+  # Stack the K blocks into one long table; setkey sorts it by (site_id, cluster_alt) and
+  # marks those columns as the key, so later scripts can join on it fast.
   long <- rbindlist(blocks)
   setkey(long, site_id, cluster_alt)
 
@@ -116,6 +153,10 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
 }
 
 ## ---------------------------------------------------------------------------
+# Runner: executes only when the script is run as a standalone program (sys.nframe() == 0
+# means "not called from inside a function or source()") or when a caller explicitly sets
+# run_05 <- TRUE. Sourcing this file just for build_alternatives() does not trigger it.
+# It reads the sites (03) and clusters (04), builds the table, logs checks, and saves.
 if (sys.nframe() == 0L || isTRUE(get0("run_05", ifnotfound = FALSE))) {
   s  <- readRDS(cfg$file_sites_rds)
   cl <- readRDS(cfg$file_clusters_rds)
@@ -124,9 +165,13 @@ if (sys.nframe() == 0L || isTRUE(get0("run_05", ifnotfound = FALSE))) {
   rd_log("Long table: %s rows (%s sites x %d alternatives)",
          format(nrow(alt$long), big.mark = ","), format(nrow(alt$sites), big.mark = ","), nrow(alt$centroids))
   rd_log("RV (mln Eur, median per alternative, all sites):")
+  # Grouped aggregation (by = cluster_alt): median RV and the share of sites with positive
+  # RV, computed per cluster alternative. Console check only, nothing is stored.
   print(alt$long[, .(rv_mln_med = median(rv_eur, na.rm = TRUE) / 1e6,
                      rv_pos_pct = 100 * mean(rv_eur > 0, na.rm = TRUE)), by = cluster_alt])
   # sanity: does the realized site pick the highest-RV alternative more often than chance (1/K)?
+  # Join the long table to the realized sites, then per site (by = site_id) find which
+  # alternative has the highest RV and compare it with the cluster actually built there.
   real <- alt$sites[!is.na(cluster_real), .(site_id, cluster_real)]
   chosen <- alt$long[real, on = "site_id"][!is.na(rv_eur),
                      .(best = cluster_alt[which.max(rv_eur)], cluster_real = cluster_real[1]), by = site_id]

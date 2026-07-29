@@ -22,39 +22,74 @@
 #
 # Output: cfg$file_hazard_rds (coefficient tables main model + variant without vol; n's).
 
+# Locate the folder this script lives in, so the source() below finds its sibling script
+# from any working directory: under Rscript the path comes from the --file= argument,
+# in an interactive session it falls back to getwd().
 if (!exists(".rd_script_dir")) {
   f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
   .rd_script_dir <- if (length(f)) dirname(normalizePath(f[1])) else getwd()
 }
+# Load the helper functions and config from script 07 WITHOUT re-running its estimation:
+# run_07 is forced to FALSE while sourcing (07 checks that flag), then restored afterwards.
 run_07_saved <- get0("run_07", ifnotfound = FALSE); run_07 <- FALSE
 source(file.path(.rd_script_dir, "07_stage2_logit.R"))   # build_stage2_input + config/fixest
 run_07 <- run_07_saved
 
 build_hazard_panel <- function(alt, s, s1) {
+  # Build the site x year risk panel. Start from the stage-2 universe (one row per site)
+  # and keep only sites where the hazard clock is well defined: no BBG-SN (start year
+  # unknown), no pipeline sites, and a known building period of the incumbent.
+  # droplevels then removes the factor levels emptied by this filter, so the regression
+  # later does not create dummies for categories with zero observations.
   uni <- build_stage2_input(alt, s, s1)
   uni <- uni[bbg_sn == FALSE & pipeline == FALSE & bouwperiode_inc != "bp_onbekend"]
   uni[, bouwperiode_inc := droplevels(bouwperiode_inc)]
+  # Update join: each site_id of uni is looked up in s$incumbent, and := writes the matched
+  # event_yearmonth into uni itself as event_ym (the i. prefix = "column from the joined
+  # table"). This is the first minus-mutation date, used as the redevelopment decision
+  # moment. See README, data.table primer, for update joins.
   uni[s$incumbent, on = "site_id", event_ym := i.event_yearmonth]
 
+  # Estimation-sample filter: keep only sites where all listed regressors are observed
+  # (complete.cases; ..vars means "the columns named in the vars vector") and where OAD
+  # meets the configured density threshold, mirroring the stage-2 sample.
   vars <- c("iv", "acq_mln", "p_owner_occupier_buurt", "p_socialhousing_buurt",
             "isprotectheritagearea", "is_natura2000")
   uni <- uni[complete.cases(uni[, ..vars]) & !is.na(oad) & oad >= cfg$oad_min]
+  # Redeveloped sites (y = TRUE) without an event date cannot be placed on the time axis;
+  # count them for the log, then drop them. Censored sites (y = FALSE) need no date.
   n_without_event <- uni[y == TRUE & is.na(event_ym), .N]
   uni <- uni[y == FALSE | !is.na(event_ym)]
   rd_log("Hazard universe: %s sites (y=1: %s; %s SN sites without event date dropped)",
          format(nrow(uni), big.mark = ","), format(uni[, sum(y)], big.mark = ","),
          format(n_without_event, big.mark = ","))
 
+  # Last at-risk year per site: event_ym is coded YYYYMM, so integer division %/% 100
+  # extracts the year. Redeveloped sites leave the risk set in their event year (capped at
+  # 2026); censored sites stay at risk through 2026. Events before the 2012 panel start
+  # have no at-risk years inside the window and are dropped.
   uni[, event_year := fifelse(y, event_ym %/% 100L, NA_integer_)]
   uni[, year_end  := fifelse(y, pmin(event_year, 2026L), 2026L)]
   uni <- uni[year_end >= 2012L]
 
+  # Row expansion into the panel: rep(seq_len(.N), k) repeats each site's row k times,
+  # once for every year the site is at risk (2012 through year_end). rowid(site_id) then
+  # numbers those copies 1,2,3,... within each site, which 2011L + turns into the calendar
+  # year. y_year is the discrete-time hazard outcome: 1 only in the site's own event year.
   panel <- uni[rep(seq_len(.N), year_end - 2012L + 1L)]
   panel[, year := 2011L + rowid(site_id)]
   panel[, y_year := as.integer(y & year == year_end)]
 
   # time-varying volatility + growth expectation: grid5km cell, fallback gemeente (and
   # vice versa as variant); national series separate; last known value after the end
+  # Mechanics: fread loads the three volatility CSVs; three update joins then write the
+  # matched vol/growth values into the panel by reference (:=). The join key can rename on
+  # the fly: on = .(cel = regio, year_vol = besluitjaar) matches panel$cel to csv$regio and
+  # panel$year_vol to csv$besluitjaar. year_vol caps the lookup year at the last year the
+  # series covers, so later panel years reuse the last known value (carry-forward).
+  # fcoalesce takes the first non-missing value per row, implementing the fallback order:
+  # vol_roll prefers grid5km with gemeente as backup, vol_rollG the other way around.
+  # See README, data.table primer, for update joins.
   vg  <- fread(cfg$file_vol_rolling("grid5km"))
   vgm <- fread(cfg$file_vol_rolling("gemeente_code"))
   vnl <- fread(cfg$file_vol_rolling("nationaal"))
@@ -64,6 +99,7 @@ build_hazard_panel <- function(alt, s, s1) {
   panel[vnl, on = .(year_vol = besluitjaar),                        `:=`(vol_nl = i.vol_roll5, g_nl = i.g_roll5)]
   panel[, `:=`(vol_roll  = fcoalesce(vol_g_, vol_m_), g_roll  = fcoalesce(gr_g_, gr_m_),    # finest grain first
                vol_rollG = fcoalesce(vol_m_, vol_g_), g_rollG = fcoalesce(gr_m_, gr_g_))]   # gemeente primary (less measurement noise)
+  # Center the calendar year on 2019 (roughly mid-panel); used as linear trend in spec H4.
   panel[, year_c := year - 2019L]
   rd_log("Panel: %s site-years (%s events, %.3f%% per year); vol_roll coverage %.1f%%",
          format(nrow(panel), big.mark = ","), format(sum(panel$y_year), big.mark = ","),
@@ -72,7 +108,11 @@ build_hazard_panel <- function(alt, s, s1) {
 }
 
 ## ---------------------------------------------------------------------------
+# The estimation below runs only when this file is executed directly (sys.nframe() == 0)
+# or when a caller explicitly sets run_09 <- TRUE; sourcing the file just for the function
+# above stays side-effect free.
 if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
+  # Load the objects saved by earlier pipeline steps, then build the site x year panel.
   alt <- readRDS(cfg$file_alt_rds)
   s   <- readRDS(cfg$file_sites_rds)
   s1  <- readRDS(cfg$file_stage1_rds)
@@ -87,11 +127,18 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   #                volatility cycle also contributes to identification — but the national
   #                terms then absorb EVERY macro shock (interest rates, policy): explicitly
   #                labeled as indicative, not as a main result.
+  # Common right-hand side shared by all four specs; mk() appends the spec-specific
+  # volatility terms and, unless fe = FALSE, the year fixed effects ("| year" is fixest
+  # notation for fixed effects). est keeps only site-years where every volatility series
+  # is observed, so H1-H4 are all estimated on the identical sample and are comparable.
   f_rhs <- paste("iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +",
                  "isprotectheritagearea + is_natura2000 + bouwperiode_inc")
   mk <- function(extra, fe = TRUE) as.formula(paste("y_year ~", f_rhs, "+", extra, if (fe) "| year" else ""))
   est <- panel[!is.na(vol_roll) & !is.na(g_roll) & !is.na(vol_nl)]
 
+  # Helper: fit one binomial logit with fixest::feglm, SE clustered on gemeente; convert
+  # the coefficient table into a data.table, tag it with the spec label, and log the key
+  # coefficients. %chin% is data.table's fast %in% for character vectors.
   fits <- list()
   fit_and_log <- function(fml, label) {
     m <- feglm(fml, data = est, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
@@ -109,6 +156,8 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   fits$H3 <- fit_and_log(mk("vol_rollG + g_rollG"), "H3_muni")
   fits$H4 <- fit_and_log(mk("vol_roll + g_roll + vol_nl + g_nl + year_c", fe = FALSE), "H4_national")
 
+  # Stack the four per-spec coefficient tables into one long table (rbindlist), print the
+  # headline H2 estimates, and save results plus sample sizes to cfg$file_hazard_rds.
   specs <- rbindlist(fits)
   rd_log("Key variables H2 (main spec):")
   print(specs[spec == "H2_capozza" & !(term %like% "bouwperiode"),

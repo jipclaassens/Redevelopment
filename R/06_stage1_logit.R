@@ -19,6 +19,9 @@
 #
 # Output: cfg$file_stage1_rds = list(coef, vcov, coef_rob, n_sites, n_sites_rob, iv).
 
+# Bootstrap: recover this script's own directory (from Rscript's --file argument, or the
+# current working directory when sourced interactively) so 00_config.R is found no matter
+# from where R was started.
 if (!exists(".rd_script_dir")) {
   f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
   .rd_script_dir <- if (length(f)) dirname(normalizePath(f[1])) else getwd()
@@ -26,19 +29,34 @@ if (!exists(".rd_script_dir")) {
 source(file.path(.rd_script_dir, "00_config.R"))
 suppressPackageStartupMessages(library(survival))
 
+# Inputs: alt = list from 05_alternatives.R with $long (one row per site x cluster
+# alternative, incl. rv_eur and choice indicator ca), $sites (one row per site) and
+# $centroids (the K cluster definitions). s = list from 03_sites.R; only s$new
+# (per-site permit aggregates of the realized redevelopment) is used here.
 estimate_stage1 <- function(alt, s) {
+  # Short handles; note data.tables are passed by reference, so lg IS alt$long (no copy).
   lg <- alt$long
   st <- alt$sites
   K  <- nrow(alt$centroids)
 
   # -- estimation sample: realized menu sites with complete RV over all K ------
+  # cluster_real is only filled for sites where redevelopment actually happened, so real_ids
+  # selects the realized sites. %chin% is data.table's fast %in% for character vectors.
+  # The grouped aggregation (by = site_id) flags sites whose K alternatives ALL have a
+  # non-missing residual value: the conditional logit needs a complete choice set per site.
   real_ids <- st[!is.na(cluster_real), site_id]
   est <- lg[site_id %chin% real_ids]
   complete <- est[, .(ok = !anyNA(rv_eur)), by = site_id][ok == TRUE, site_id]
   est <- est[site_id %chin% complete]
+  # := adds columns in place, by reference (see README, data.table primer): RV rescaled to
+  # millions of euros (readable coefficient size) and the alternative id as a factor, so
+  # clogit turns it into K-1 dummy variables = the alternative-specific constants (ASCs).
   est[, rv_mln := rv_eur / 1e6]
   est[, alt_f  := factor(cluster_alt)]
   # urban-area delineation via OAD (cfg$oad_min; decision 28-07 — replaces 22 agglomerations)
+  # Update join: each site_id of est is looked up in st and := copies the matched OAD
+  # (address density) into est itself (i. prefix = column from the joined table). Then only
+  # sites in sufficiently urban areas are kept; n_before exists just for the log line.
   est[st, on = "site_id", oad := i.oad]
   n_before <- uniqueN(est$site_id)
   est <- est[!is.na(oad) & oad >= cfg$oad_min]
@@ -46,9 +64,15 @@ estimate_stage1 <- function(alt, s) {
          format(uniqueN(est$site_id), big.mark = ","), format(n_before, big.mark = ","),
          cfg$oad_min, format(length(real_ids) - length(complete), big.mark = ","))
 
+  # The conditional logit itself: strata(site_id) makes every site its own choice set, with
+  # exactly one chosen alternative (ca = 1) against the other K-1 rows of that site.
   fit <- clogit(ca ~ rv_mln + alt_f + strata(site_id), data = est)
 
   # -- robustness: exclude multi-project sites ---------------------------------
+  # Update join from s$new: pull per site the number of permit documents (n_doc) and how many
+  # months those permits span. Sites exceeding BOTH thresholds are flagged multi-project
+  # (likely several unrelated projects merged into one site). The robustness fit drops them;
+  # sites without a match in s$new keep NA and are retained via is.na(multiproj).
   est[s$new, on = "site_id", `:=`(n_doc = i.n_doc, months_spread = i.months_spread)]
   est[, multiproj := n_doc > cfg$multiproj_n_doc & months_spread > cfg$multiproj_months]
   est_rob <- est[multiproj == FALSE | is.na(multiproj)]
@@ -57,13 +81,25 @@ estimate_stage1 <- function(alt, s) {
          format(uniqueN(est[multiproj == TRUE, site_id]), big.mark = ","))
 
   # -- step 4: inclusive value for all sites (logsumexp) -----------------------
+  # Deterministic utility V per (site, alternative) from the MAIN fit: b_rv * RV + ASC.
+  # The reference alternative (cluster 1) gets ASC 0; asc[cluster_alt] is vectorized
+  # indexing, so each row picks the ASC belonging to its own alternative.
   b   <- coef(fit)
   asc <- c(0, b[paste0("alt_f", 2:K)])
   lg[, V := b[["rv_mln"]] * rv_eur / 1e6 + asc[cluster_alt]]
+  # Logsumexp trick: subtract the per-site maximum (grouped := by site_id) before exp() so
+  # the largest term is exp(0) = 1 and nothing overflows; Vmax is added back inside the log
+  # below. max() over an all-NA group returns -Inf plus a warning, hence suppressWarnings.
   suppressWarnings(lg[, Vmax := max(V, na.rm = TRUE), by = site_id])   # -Inf if all NA
   lg[, e_ := exp(V - Vmax)]
+  # Grouped aggregation to one row per site; n_alt_ok counts alternatives with a usable V,
+  # so IV falls back to the sum over available alternatives (NA only if none at all).
+  # fifelse = data.table's fast vectorized if-else.
   iv <- lg[, .(Vmax = Vmax[1], som = sum(e_, na.rm = TRUE), n_alt_ok = sum(!is.na(V))), by = site_id]
   iv[, iv := fifelse(n_alt_ok > 0L, Vmax + log(som), NA_real_)]
+  # Delete the helper columns again (":= NULL" removes a column by reference). For lg this
+  # matters: lg is alt$long itself, so without this cleanup the caller's table would keep
+  # the temporary V/Vmax/e_ columns.
   iv[, c("Vmax", "som") := NULL]
   lg[, c("V", "Vmax", "e_") := NULL]
 
@@ -72,6 +108,9 @@ estimate_stage1 <- function(alt, s) {
 }
 
 ## ---------------------------------------------------------------------------
+## Runner block: executes only when this file is run as a script (sys.nframe() == 0 means
+## "not called from inside a function") or when run_all.R sets run_06 <- TRUE before
+## sourcing. Plain source() from the console therefore only defines the function above.
 if (sys.nframe() == 0L || isTRUE(get0("run_06", ifnotfound = FALSE))) {
   alt <- readRDS(cfg$file_alt_rds)
   s   <- readRDS(cfg$file_sites_rds)
@@ -81,11 +120,15 @@ if (sys.nframe() == 0L || isTRUE(get0("run_06", ifnotfound = FALSE))) {
   print(summary(r$fit))
   rd_log("Robustness (without multi-project sites) — rv_mln coefficient:")
   print(cbind(coef = coef(r$fit_rob), se = sqrt(diag(vcov(r$fit_rob))))["rv_mln", , drop = FALSE])
+  # Log line comparing the median IV of realized sites with that of the unchanged
+  # (undeveloped) universe; the %chin% filter splits iv on membership of the realized set.
   rd_log("Inclusive value: %s sites, median %.3f (realized) vs %.3f (unchanged universe)",
          format(nrow(r$iv), big.mark = ","),
          r$iv[site_id %chin% alt$sites[!is.na(cluster_real), site_id], median(iv, na.rm = TRUE)],
          r$iv[!site_id %chin% alt$sites[!is.na(cluster_real), site_id], median(iv, na.rm = TRUE)])
 
+  # Persist coefficients, covariance matrices, sample sizes and the per-site IV table for
+  # the downstream scripts (07_stage2_logit, 08_tables, 09_hazard read cfg$file_stage1_rds).
   saveRDS(list(coef = coef(r$fit), vcov = vcov(r$fit), coef_rob = coef(r$fit_rob),
                vcov_rob = vcov(r$fit_rob), n_sites = r$n_sites, n_sites_rob = r$n_sites_rob,
                iv = r$iv),

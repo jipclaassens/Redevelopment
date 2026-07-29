@@ -42,6 +42,8 @@
 # Output: cfg$file_stage2_rds + R_werk/stage2_specs<suffix>_<area>_<date>.csv
 # (term;estimate;se_cluster;z;spec;n;n_y1) + AMEs of the core variables (base).
 
+# Bootstrap: locate the directory this script lives in, so that config and helpers can be
+# sourced by absolute path no matter where R was started (Rscript call or interactive use).
 if (!exists(".rd_script_dir")) {
   f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
   .rd_script_dir <- if (length(f)) dirname(normalizePath(f[1])) else getwd()
@@ -50,25 +52,42 @@ source(file.path(.rd_script_dir, "00_config.R"))
 source(file.path(.rd_script_dir, "02_load_perobject.R"))   # for building_period_term()
 suppressPackageStartupMessages(library(fixest))
 
+# Build the estimation table: one row per site with the outcome y and all regressors
+# (stage-1 investment value, acquisition cost, neighbourhood shares, volatility, bouwperiode).
 build_stage2_input <- function(alt, s, s1) {
   st <- alt$sites
+  # Universe: sites that had a standing building (incumbent), plus SN sites without one
+  # (the BBG route). st[...] is data.table row filtering; %like% is a regex match on site_id.
   # BBG-route SN sites (has_incumbent == FALSE): only for the imputation spec
   uni <- st[has_incumbent == TRUE | site_id %like% "^SN_"]
+  # The site_id prefix encodes the mutation type (SN = sloop-nieuwbouw, Onv = unchanged
+  # stock, S = sloop only, O = onttrekking). := creates columns "by reference", i.e. it
+  # writes into uni itself without copying; see README, data.table primer. y is the
+  # outcome; pipeline marks demolition/onttrekking without follow-up construction.
   uni[, prefix := sub("_.*$", "", site_id)]
   uni[prefix == "OnvS", prefix := "Onv"]                       # old naming (mmd < 28-07)
   uni <- uni[prefix %chin% c("SN", "Onv", "S", "O")]           # TMmin out of scope
   uni[, y := prefix == "SN"]
   uni[, pipeline := prefix %chin% c("S", "O")]
   uni[, bbg_sn := has_incumbent == FALSE]
+  # For BBG-route sites the demolition predates the window, so these costs cannot be
+  # reconstructed: the filtered := overwrites the upstream zeros with an honest NA.
   uni[bbg_sn == TRUE, `:=`(acq_cost_total_eur = NA_real_, demolition_cost_eur = NA_real_)]  # 05 set 0; here truly unknown
   rd_log("BBG-route SN sites (acquisition unknown, imputation spec only): %s",
          format(uni[bbg_sn == TRUE, .N], big.mark = ","))
 
+  # Update join: each site_id of uni is looked up in the stage-1 table s1$iv, and := writes
+  # the matched investment value into uni itself (the i. prefix = "column from the joined
+  # table"); see README, data.table primer. Then two derived regressors: acquisition cost
+  # in mln euro and log site size (the latter only used in the size spec).
   uni[s1$iv, on = "site_id", iv := i.iv]
   uni[, acq_mln := acq_cost_total_eur / 1e6]
   uni[, ln_site_ha := log(site_ha)]
 
   # bouwperiode of incumbent (mode building year per site; unknown as its own level — discard nothing)
+  # Update join pulls the modal building year from the incumbent aggregates; fifelse maps
+  # missing years to their own factor level "bp_onbekend" instead of dropping those sites,
+  # and relevel() makes the newest period (va2002) the reference category of the dummy set.
   uni[s$incumbent, on = "site_id", mode_building_year := i.mode_building_year]
   uni[, bouwperiode_inc := factor(fifelse(is.na(mode_building_year), "bp_onbekend", building_period_term(mode_building_year)))]
   uni[, bouwperiode_inc := relevel(bouwperiode_inc, "bouwperiode_va2002")]
@@ -77,6 +96,10 @@ build_stage2_input <- function(alt, s, s1) {
   # only where the GM code has been unchanged since our 2012 classification)
   vol_g  <- fread(cfg$file_vol("grid5km"))
   vol_gm <- fread(cfg$file_vol("gemeente_code"))
+  # Assign each site to a 5km grid cell: %/% is integer division of the RD coordinates,
+  # so sites in the same 5km block get the same cell key. Two update joins then attach the
+  # price volatility per grid cell and per gemeente; fcoalesce takes the first non-missing
+  # value, giving a grid-first series (base) and a gemeente-first variant (robustness).
   uni[, cel := paste0(x_coord %/% cfg$vol_cel_m, "_", y_coord %/% cfg$vol_cel_m)]
   uni[vol_g,  on = .(cel = regio),           vol_grid_ := i.vol_dlnp]
   uni[vol_gm, on = .(gemeente_code = regio), vol_gem_  := i.vol_dlnp]
@@ -86,12 +109,20 @@ build_stage2_input <- function(alt, s, s1) {
          100 * uni[, mean(!is.na(vol_grid_))], 100 * uni[, mean(!is.na(vol_dlnp))])
 
   # 2012 double-counting flag (#26) sits on the plus side (sites_new)
+  # Update join attaches the flag; sites without new-construction rows are left NA by the
+  # join and set to 0 (= not flagged). The bare uni[] at the end returns the finished table
+  # (the empty brackets make a data.table that was modified by := return/print correctly).
   uni[s$new, on = "site_id", n_flag_2012 := i.n_flag_2012]
   uni[is.na(n_flag_2012), n_flag_2012 := 0L]
   uni[]
 }
 
+# Estimate the stage-2 logit in every specification from the header and collect the
+# coefficient tables plus average marginal effects (AMEs) of the base model.
 estimate_stage2 <- function(uni) {
+  # f_base is the base regression formula: outcome y explained by the covariates listed in
+  # the header. w() is a winsorizer: it clips a variable at its 1st and 99th percentile
+  # (used only in the winsor spec, to tame mega-site tails).
   f_base <- y ~ iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +
                 isprotectheritagearea + is_natura2000 + vol_dlnp + bouwperiode_inc
   vars <- setdiff(all.vars(f_base), "bouwperiode_inc")
@@ -104,10 +135,17 @@ estimate_stage2 <- function(uni) {
   uni       <- uni[bbg_sn == TRUE | bouwperiode_inc != "bp_onbekend"]
   rd_log("Sites with unknown building year removed from the estimation: %s", format(n_unknown, big.mark = ","))
 
+  # Core sample: genuine yes/no choices only (no pipeline sites, no BBG-SN) with all
+  # covariates observed. The .. prefix in core[, ..vars] means "vars is a character vector
+  # in the calling scope, not a column name"; see README, data.table primer.
   core <- uni[pipeline == FALSE & bbg_sn == FALSE]
   core <- core[complete.cases(core[, ..vars]) & !is.na(oad)]
   urban_subset <- function(d, oad_min) d[oad >= oad_min]
 
+  # fit1 estimates one specification: copy() prevents the := below from touching the
+  # caller's table, droplevels() removes unused bouwperiode levels (no empty dummies),
+  # feglm runs the logit with SEs clustered on gemeente, and the coefficient table is
+  # converted to a data.table tagged with spec label and sample sizes for the export CSV.
   fit1 <- function(fml, d, label) {
     d <- copy(d)[, bouwperiode_inc := droplevels(bouwperiode_inc)]
     m <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
@@ -125,15 +163,20 @@ estimate_stage2 <- function(uni) {
 
   rd_log("Specs (SE clustered on gemeente):")
   base    <- urban_subset(core, cfg$oad_min)
+  # update() edits a formula: ". ~ . - x" means "same model, but without x" ("+ x" adds one).
   f_no_bp <- update(f_base, . ~ . - bouwperiode_inc)
 
   # BBG imputation sample: acquisition = median acq/ha of the observed SN sites x site_ha
+  # (rate taken from the y=1 sites of the base sample, then applied to each BBG site's own
+  # area, so these sites can enter the bbg_imput spec despite unknown acquisition costs)
   acq_rate <- base[y == TRUE, median(acq_mln / site_ha)]
   bbg <- uni[bbg_sn == TRUE & !is.na(oad) & oad >= cfg$oad_min]
   bbg[, acq_mln := acq_rate * site_ha]
   bbg <- bbg[complete.cases(bbg[, ..vars])]
   rd_log("BBG imputation: %s sites added as y=1 (acq = %.2f M/ha x site_ha)", format(nrow(bbg), big.mark = ","), acq_rate)
 
+  # One estimation per specification (the header lists what each one tests). demol_start
+  # builds its own sample inline: S sites (sloop without follow-up) count as y=1 there.
   fits <- list(
     base      = fit1(f_base, base, "base"),
     no_bp     = fit1(f_no_bp, base, "no_bp"),
@@ -149,6 +192,8 @@ estimate_stage2 <- function(uni) {
     bbg_imput = fit1(f_no_bp, rbind(base, bbg), "bbg_imput"))
 
   # AMEs (base): average marginal effect on P(redevelopment), logit: mean(p(1-p)) x beta
+  # Logit coefficients are not probability effects by themselves; multiplying by mean(p(1-p))
+  # converts each beta into the average change in redevelopment probability per unit of x.
   p <- predict(fits$base$m, type = "response")
   scale_factor <- mean(p * (1 - p))
   ame <- fits$base$ct[term %chin% c("iv", "acq_mln", "vol_dlnp", "p_owner_occupier_buurt"),
@@ -157,7 +202,11 @@ estimate_stage2 <- function(uni) {
 }
 
 ## ---------------------------------------------------------------------------
+# Run block: executes only when the file is run as a script (sys.nframe() == 0 means the
+# code is not being sourced from inside a function) or when run_07 was set to TRUE.
 if (sys.nframe() == 0L || isTRUE(get0("run_07", ifnotfound = FALSE))) {
+  # Load the upstream pipeline results from RDS: the site/alternatives object (alt),
+  # the per-site aggregate tables (s) and the stage-1 estimates (s1).
   alt <- readRDS(cfg$file_alt_rds)
   s   <- readRDS(cfg$file_sites_rds)
   s1  <- readRDS(cfg$file_stage1_rds)
@@ -170,6 +219,8 @@ if (sys.nframe() == 0L || isTRUE(get0("run_07", ifnotfound = FALSE))) {
   rd_log("AMEs (percentage points on P(redevelopment), base):")
   print(r$ame[, .(term, ame_pp = round(100 * ame, 4))])
 
+  # rbindlist stacks the per-spec coefficient tables into one long table for the CSV export;
+  # the RDS additionally stores base coefficients and covariance matrix for downstream use.
   specs <- rbindlist(lapply(r$fits, `[[`, "ct"))
   out_file <- file.path(cfg$dir_work, sprintf("stage2_specs%s_%s_%s.csv", cfg$sample_suffix, cfg$area, cfg$bag_date))
   fwrite(specs, out_file, sep = ";")

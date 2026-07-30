@@ -1,6 +1,20 @@
 # STATUS — sessie-overdracht densification-paper
 
-*Laatst bijgewerkt: 2026-07-27. Bij nieuwe sessie: dit bestand + open GitHub-issues lezen, dan verder.*
+*Laatst bijgewerkt: 2026-07-29. Bij nieuwe sessie: eerst dit overdrachtsblok, dan de detailsecties eronder + open GitHub-issues.*
+
+## Overdracht in het kort (stand 29-07-2026, geschreven op OVSRV08)
+
+**Wat af is.** De volledige keten voor het densification-paper staat en is end-to-end geverifieerd: GeoDMS-export (PerObject_Export, 8,7 mln VBO-rijen incl. `is_sn_door_bbg` en de Onv_-siteclustering van #17) plus R-pipeline 00 t/m 09 (`Rscript R/run_all.R`). Resultaten: stage 1 b_RV +0,037/M€ (z 19,7; robuust +0,065), stage 2 iv +10,0 / verwerving −0,28 / eigenaar-bewoners − / heritage −0,28 (10 specs, SE geclusterd op gemeente, McFadden 0,149), hazard-extensie: regionale volatiliteit n.s. (H1 t/m H3), nationale volatiliteitscyclus −10,8 (z −5,2, H4, indicatief). Papertabellen: `R_werk/paper_tabellen_sn_*.md`. Details en tussenstappen: de gedateerde secties hieronder.
+
+**Besluiten deze sessie.** Scope = OAD ≥ 1000 (vervangt 22 agglomeraties); uitkomst = sloop-nieuwbouw, transformatie buiten scope (#28); stage-1-sample = SN-only; K = 6 bevestigd; pijplijn-censoring (robuustheid demol_start); BBG-SN-sites alleen via imputatie in stage 2; volatiliteit rapporteren als "geen regionaal bewijs, nationaal consistent met real options"; vergunning-flags (n_doc/months_spread) als robuustheid, niet als site-definitie.
+
+**Werkafspraken Jip (belangrijk, mijn machinegebonden memory reist niet mee):** grote thematische commits, géén Co-Authored-By-trailer, Jip pusht altijd zelf; nooit gedachtenstreepjes (—) in door mij geschreven tekst; R-code en comments in het Engels (BAG-/domeintermen en datalabels blijven Nederlands); GeoDMS heeft geen persistente CalcCache (alleen expliciete storages; praat niet over "cache keys").
+
+**Machine-valkuilen.** R draaien via Git Bash, niet PowerShell (de Claude-app virtualiseert AppData: packages data.table/bit64/fixest staan in de sandbox-user-lib; op een andere machine eenmalig installeren). GeoDmsRun via PowerShell (MSYS verminkt /Item-paden); versie 20.8.0.m; verse PerObject_Export ± 1u45. Multiline `Rscript -e` faalt stil: altijd scriptbestanden. mmd-reader: polygoonkolommen worden geskipt; strings zijn tile-lokaal. Cloud-sync kan WP5-mmd-caches terugrollen: sync uit tijdens rekenen.
+
+**Op een andere computer eerst:** (1) alles is lokaal gecommit op OVSRV08 maar mogelijk nog niet gepusht (Redevelopment, PriceIndices, Redevelopment.wiki): eerst push vanaf OVSRV08, dan pull; (2) registry HKCU\Software\ObjectVision\<machine> moet SourceDataDir/LocalDataDir hebben; (3) data regenereren (GeoDMS-runs + `Rscript R/run_all.R`) of `%LocalDataDir%/Redevelopment/{Temp,R_werk}` kopiëren; volatiliteits-CSV's komen vanzelf mee via OneDrive (NVM Prijsindex/Output).
+
+**Open punten.** Paper-tekst langs de #28-lijst (Jip); NVM 2024-update t.z.t. (dan verse hedoon + trein); optioneel: 20m-adjacency-variant Onveranderd als reviewers om site-vorming vragen, rente-control in hazard-H4; de wiki (Home, Papers, Site-vorming, PerObject-export, R-pipeline, Two-stage-model + sidebar) is actueel t/m 29-07.
 
 ## Context
 

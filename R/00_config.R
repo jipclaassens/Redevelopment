@@ -39,6 +39,27 @@ dir.create(cfg$dir_work, recursive = TRUE, showWarnings = FALSE)
 
 cfg$file_perobject_rds <- file.path(cfg$dir_work, sprintf("perobject_%s_%s.rds", cfg$area, cfg$bag_date))
 cfg$file_sites_rds     <- file.path(cfg$dir_work, sprintf("sites_%s_%s.rds", cfg$area, cfg$bag_date))
+
+## -- Word output: convert a markdown table file to docx via pandoc -------------
+# The paper is written in Word; pandoc turns our markdown tables into real Word
+# tables (RStudio bundles pandoc, so no extra R packages are needed).
+cfg$pandoc <- local({
+  cand <- c(Sys.which("pandoc"),
+            "C:/Program Files/RStudio/resources/app/bin/quarto/bin/tools/pandoc.exe",
+            "C:/Program Files/RStudio/bin/quarto/bin/tools/pandoc.exe",
+            "C:/Program Files/RStudio/bin/pandoc/pandoc.exe")
+  cand <- cand[nzchar(cand) & file.exists(cand)]
+  if (length(cand)) cand[1] else NA_character_
+})
+rd_md_to_docx <- function(md_file) {
+  if (is.na(cfg$pandoc)) { rd_log("pandoc not found; no docx for %s", basename(md_file)); return(invisible(NULL)) }
+  docx <- sub("[.]md$", ".docx", md_file)
+  status <- system2(cfg$pandoc, c("-f", "gfm", "-t", "docx",
+                                  "--resource-path", shQuote(dirname(md_file), type = "cmd"),
+                                  "-o", shQuote(docx, type = "cmd"), shQuote(md_file, type = "cmd")))
+  if (status == 0) rd_log("Written: %s", docx) else rd_log("pandoc failed (status %d) on %s", status, md_file)
+  invisible(docx)
+}
 # clusters/alternatives get a sample suffix; see 'stage-1 sample' below
 
 ## -- classifications (order = GeoDMS id!) -------------------------------------
@@ -86,7 +107,14 @@ cfg$oad_min <- 1000L
 ## -- price volatility (stage-2 friction; produced by PriceIndices R/06_volatility.R) --
 # sd of the year-on-year growth of the hedonically corrected local log price index, 2000-2023.
 # Granularity 'grid5km' = RD cell floor(x/5000)_floor(y/5000): vintage-free join via x/y_coord.
-cfg$dir_nvm_output  <- "C:/Users/JipClaassens/OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output"
+# The OneDrive sync root differs per machine; take the first candidate that exists.
+cfg$dir_nvm_output <- local({
+  cand <- c("D:/OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output",
+            "C:/Users/JipClaassens/OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output",
+            file.path(Sys.getenv("USERPROFILE"), "OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output"))
+  hit <- cand[dir.exists(cand)]
+  if (length(hit)) hit[1] else cand[1]
+})
 cfg$file_vol        <- function(korrel) file.path(cfg$dir_nvm_output, sprintf("Volatility_%s_%s.csv", cfg$nvm_filedate, korrel))
 # rolling variant (per regio x besluitjaar; for 09_hazard): sd of 5 growth years up to J-1
 cfg$file_vol_rolling <- function(korrel) file.path(cfg$dir_nvm_output, sprintf("Volatility_rolling_%s_%s.csv", cfg$nvm_filedate, korrel))

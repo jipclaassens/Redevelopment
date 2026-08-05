@@ -24,11 +24,15 @@ discrete-time hazard. Style follows the R pipeline in `C:/ProjDir/_Tools/PriceIn
 | `05_alternatives.R` | steps 2a–2c: long table site × cluster with revenue (bulk hedonic predict), costs (land production / construction / demolition) and residual value + choice indicator | `alternatieven_sn_*.rds` |
 | `06_stage1_logit.R` | steps 3+4: conditional logit (survival::clogit, RV + ASCs) on the stage-1 sample within the OAD scope; robustness without multi-project sites; inclusive value for ALL sites | `stage1_sn_*.rds` |
 | `07_stage2_logit.R` | step 5: binomial logit redevelopment (fixest::feglm, SEs clustered on gemeente); 10-spec battery + AMEs | `stage2_sn_*.rds`, `stage2_specs_sn_*.csv` |
-| `08_tables.R` | paper tables (markdown): stage 1, stage-2 main + robustness specs, AMEs | `paper_tabellen_sn_*.md` |
+| `08_tables.R` | paper tables (markdown + docx): stage 1, stage-2 main + robustness specs, urban/rural scopes, hazard H1–H4, AMEs | `paper_tabellen_sn_*.md/.docx` |
 | `09_hazard.R` | extension: discrete-time hazard (site × year panel), time-varying rolling volatility + growth (Capozza-Li), H1–H4 battery | `hazard_sn_*.rds` |
+| `10_descriptives.R` | descriptive tables D1–D4 (mutation types, sample-construction funnel, covariates by outcome, densification before/after, cluster menu) + four figures | `descriptives_sn_*.md/.docx`, `fig*.png` |
 | `run_all.R` | everything in sequence | |
 
 Run: `Rscript run_all.R` (or per step; every script runs standalone).
+
+Tables are also written as Word documents: `rd_md_to_docx()` (00_config.R) pipes the markdown
+through the pandoc that ships with RStudio, so the tables can be pasted into the paper.
 
 ## How to read this code (data.table primer)
 
@@ -59,6 +63,13 @@ block when the script is called directly (`Rscript 05_...R`), or when `run_all.R
 
 - **Scope**: urban area via OAD ≥ `cfg$oad_min` (1000; replaces the earlier 22-agglomerations
   idea) for the stage-1/2 estimation samples; the cluster menu and inclusive values stay national.
+  Both stages also report the `nl` / `urban1500` / `rural` scopes side by side. Note that OAD ≥ 1000
+  is a CBS class boundary ("moderately urban") and not a boundary of the `UrbanisationK`
+  classification in the export, whose High class starts at 1500.
+- **Natura 2000** is not in the base specification (30-07): development there is not forbidden
+  but needs a nitrogen assessment, so it entered as a permitting friction; empirically the
+  indicator is uninformative (384 of 603,727 rural sites) and dropping it leaves every other
+  coefficient unchanged to four decimals. Spec `n2000` adds it back as a check.
 - **Outcome**: sloop-nieuwbouw (SN) = redeveloped; transformation is out of scope (decision
   28-07); demolition/withdrawal without follow-up = pipeline censoring (robustness: `demol_start`).
 - **BBG-route SN sites** (`is_sn_door_bbg`): fine for stage 1, excluded from stage-2 estimation

@@ -65,6 +65,12 @@ load_perobject <- function(dir_mmd = cfg$dir_mmd) {
   if ("obj_building_year" %in% names(x))    x[obj_building_year >= 65535L, obj_building_year := NA_integer_]
   if ("obj_floor_area_res_m2" %in% names(x)) x[obj_floor_area_res_m2 <= -2147483647L, obj_floor_area_res_m2 := NA_integer_]
   if ("redev_yearmonth" %in% names(x))       x[redev_yearmonth <= -2147483647L, redev_yearmonth := NA_integer_]
+  # OAD is uint32: objects whose point falls outside every CBS buurt polygon get the
+  # uint32 null (2^32-1) instead of a density. Left as-is these pass the urban scope
+  # filter (oad >= cfg$oad_min) as if they were the densest places in the country
+  # (found 30-07: 251 sites, all in the export's OAD column). NA is the honest value;
+  # 06/07/09 already drop sites with !is.na(oad).
+  if ("oad" %in% names(x)) x[oad >= 4294967295, oad := NA_integer_]
 
   # role assignment: plus rows = new state, min rows + Onveranderd = incumbent state
   # A mutation appears as a "plus" row (what was built) and/or a "min" row (what
@@ -146,7 +152,14 @@ add_price_reconstruction <- function(x, co = read_coefficients()) {
   bp <- building_period_term(x$obj_building_year)
   co_bp <- melt(co[coef_name %like% "^bouwperiode_"], id.vars = "coef_name",
                 variable.name = "wp4", value.name = "coef")
-  bp_lookup <- co_bp[data.table(coef_name = bp, wp4 = wp4), on = c("coef_name", "wp4"), x.coef]
+  # The key table MUST be built outside the co_bp[...] call: inside the brackets data.table
+  # evaluates the expression with co_bp's own columns in scope, so `wp4` would resolve to
+  # co_bp$wp4 (32 rows = 8 periods x 4 types, silently recycled over all objects) instead of
+  # each object's own housing type. Fixed 30-07; before that every object got the building
+  # period coefficient of a cyclically assigned type.
+  co_bp[, wp4 := as.character(wp4)]        # melt makes it a factor; the key below is character
+  bp_key <- data.table(coef_name = bp, wp4 = wp4)
+  bp_lookup <- co_bp[bp_key, on = c("coef_name", "wp4"), x.coef]
   lp <- lp + fifelse(is.na(bp_lookup), 0, bp_lookup)
 
   # Final value columns, added by reference with :=. prijs_hat_woon = exp(linear

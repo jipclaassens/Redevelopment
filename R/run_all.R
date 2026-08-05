@@ -15,4 +15,5 @@ run_05 <- TRUE; source(file.path(.rd_script_dir, "05_alternatives.R"));   run_05
 run_06 <- TRUE; source(file.path(.rd_script_dir, "06_stage1_logit.R"));   run_06 <- FALSE
 run_07 <- TRUE; source(file.path(.rd_script_dir, "07_stage2_logit.R"));   run_07 <- FALSE
 run_08 <- TRUE; source(file.path(.rd_script_dir, "08_tables.R"));         run_08 <- FALSE
-run_09 <- TRUE; source(file.path(.rd_script_dir, "09_hazard.R"))
+run_09 <- TRUE; source(file.path(.rd_script_dir, "09_hazard.R"));         run_09 <- FALSE
+run_10 <- TRUE; source(file.path(.rd_script_dir, "10_descriptives.R"))

@@ -1,2 +1,7 @@
 /git.txt
 /.vs
+
+# R-werkbestanden (machinegebonden, horen niet in de repo)
+.Rhistory
+.RData
+.Rproj.user/

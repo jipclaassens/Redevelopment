@@ -33,7 +33,9 @@ suppressPackageStartupMessages(library(survival))
 # alternative, incl. rv_eur and choice indicator ca), $sites (one row per site) and
 # $centroids (the K cluster definitions). s = list from 03_sites.R; only s$new
 # (per-site permit aggregates of the realized redevelopment) is used here.
-estimate_stage1 <- function(alt, s) {
+# oad_min/oad_max override the scope (default: the base urban scope); compute_iv = FALSE
+# skips the inclusive-value step (used for the scope variants in the runner below).
+estimate_stage1 <- function(alt, s, oad_min = cfg$oad_min, oad_max = Inf, compute_iv = TRUE) {
   # Short handles; note data.tables are passed by reference, so lg IS alt$long (no copy).
   lg <- alt$long
   st <- alt$sites
@@ -59,10 +61,13 @@ estimate_stage1 <- function(alt, s) {
   # sites in sufficiently urban areas are kept; n_before exists just for the log line.
   est[st, on = "site_id", oad := i.oad]
   n_before <- uniqueN(est$site_id)
-  est <- est[!is.na(oad) & oad >= cfg$oad_min]
-  rd_log("Stage 1: %s of %s SN sites within OAD >= %d; %s dropped for incomplete RV",
-         format(uniqueN(est$site_id), big.mark = ","), format(n_before, big.mark = ","),
-         cfg$oad_min, format(length(real_ids) - length(complete), big.mark = ","))
+  est <- est[!is.na(oad) & oad >= oad_min & oad < oad_max]
+  n_est <- uniqueN(est$site_id)
+  rd_log("Stage 1: %s of %s SN sites within OAD [%s, %s); %s dropped for incomplete RV",
+         format(n_est, big.mark = ","), format(n_before, big.mark = ","),
+         format(oad_min, big.mark = ","),
+         if (is.finite(oad_max)) format(oad_max, big.mark = ",") else "Inf",
+         format(length(real_ids) - length(complete), big.mark = ","))
 
   # The conditional logit itself: strata(site_id) makes every site its own choice set, with
   # exactly one chosen alternative (ca = 1) against the other K-1 rows of that site.
@@ -84,27 +89,30 @@ estimate_stage1 <- function(alt, s) {
   # Deterministic utility V per (site, alternative) from the MAIN fit: b_rv * RV + ASC.
   # The reference alternative (cluster 1) gets ASC 0; asc[cluster_alt] is vectorized
   # indexing, so each row picks the ASC belonging to its own alternative.
-  b   <- coef(fit)
-  asc <- c(0, b[paste0("alt_f", 2:K)])
-  lg[, V := b[["rv_mln"]] * rv_eur / 1e6 + asc[cluster_alt]]
-  # Logsumexp trick: subtract the per-site maximum (grouped := by site_id) before exp() so
-  # the largest term is exp(0) = 1 and nothing overflows; Vmax is added back inside the log
-  # below. max() over an all-NA group returns -Inf plus a warning, hence suppressWarnings.
-  suppressWarnings(lg[, Vmax := max(V, na.rm = TRUE), by = site_id])   # -Inf if all NA
-  lg[, e_ := exp(V - Vmax)]
-  # Grouped aggregation to one row per site; n_alt_ok counts alternatives with a usable V,
-  # so IV falls back to the sum over available alternatives (NA only if none at all).
-  # fifelse = data.table's fast vectorized if-else.
-  iv <- lg[, .(Vmax = Vmax[1], som = sum(e_, na.rm = TRUE), n_alt_ok = sum(!is.na(V))), by = site_id]
-  iv[, iv := fifelse(n_alt_ok > 0L, Vmax + log(som), NA_real_)]
-  # Delete the helper columns again (":= NULL" removes a column by reference). For lg this
-  # matters: lg is alt$long itself, so without this cleanup the caller's table would keep
-  # the temporary V/Vmax/e_ columns.
-  iv[, c("Vmax", "som") := NULL]
-  lg[, c("V", "Vmax", "e_") := NULL]
+  iv <- NULL
+  if (compute_iv) {
+    b   <- coef(fit)
+    asc <- c(0, b[paste0("alt_f", 2:K)])
+    lg[, V := b[["rv_mln"]] * rv_eur / 1e6 + asc[cluster_alt]]
+    # Logsumexp trick: subtract the per-site maximum (grouped := by site_id) before exp() so
+    # the largest term is exp(0) = 1 and nothing overflows; Vmax is added back inside the log
+    # below. max() over an all-NA group returns -Inf plus a warning, hence suppressWarnings.
+    suppressWarnings(lg[, Vmax := max(V, na.rm = TRUE), by = site_id])   # -Inf if all NA
+    lg[, e_ := exp(V - Vmax)]
+    # Grouped aggregation to one row per site; n_alt_ok counts alternatives with a usable V,
+    # so IV falls back to the sum over available alternatives (NA only if none at all).
+    # fifelse = data.table's fast vectorized if-else.
+    iv <- lg[, .(Vmax = Vmax[1], som = sum(e_, na.rm = TRUE), n_alt_ok = sum(!is.na(V))), by = site_id]
+    iv[, iv := fifelse(n_alt_ok > 0L, Vmax + log(som), NA_real_)]
+    # Delete the helper columns again (":= NULL" removes a column by reference). For lg this
+    # matters: lg is alt$long itself, so without this cleanup the caller's table would keep
+    # the temporary V/Vmax/e_ columns.
+    iv[, c("Vmax", "som") := NULL]
+    lg[, c("V", "Vmax", "e_") := NULL]
+  }
 
   list(fit = fit, fit_rob = fit_rob, iv = iv,
-       n_sites = length(complete), n_sites_rob = uniqueN(est_rob$site_id))
+       n_sites = length(complete), n_est = n_est, n_sites_rob = uniqueN(est_rob$site_id))
 }
 
 ## ---------------------------------------------------------------------------
@@ -127,11 +135,21 @@ if (sys.nframe() == 0L || isTRUE(get0("run_06", ifnotfound = FALSE))) {
          r$iv[site_id %chin% alt$sites[!is.na(cluster_real), site_id], median(iv, na.rm = TRUE)],
          r$iv[!site_id %chin% alt$sites[!is.na(cluster_real), site_id], median(iv, na.rm = TRUE)])
 
+  # Scope variants for the urban/rural table in 08 (coefficients only, no IV): all of NL,
+  # strongly urban (OAD >= 1500) and rural (OAD < cfg$oad_min). The main fit above is the
+  # base scope (OAD >= cfg$oad_min) and is added to the same list for the table.
+  scope_def <- list(nl = c(0, Inf), urban1500 = c(1500, Inf), rural = c(0, cfg$oad_min))
+  scope <- lapply(scope_def, function(b) {
+    v <- estimate_stage1(alt, s, oad_min = b[1], oad_max = b[2], compute_iv = FALSE)
+    list(coef = coef(v$fit), vcov = vcov(v$fit), n = v$n_est)
+  })
+  scope$base <- list(coef = coef(r$fit), vcov = vcov(r$fit), n = r$n_est)
+
   # Persist coefficients, covariance matrices, sample sizes and the per-site IV table for
   # the downstream scripts (07_stage2_logit, 08_tables, 09_hazard read cfg$file_stage1_rds).
   saveRDS(list(coef = coef(r$fit), vcov = vcov(r$fit), coef_rob = coef(r$fit_rob),
                vcov_rob = vcov(r$fit_rob), n_sites = r$n_sites, n_sites_rob = r$n_sites_rob,
-               iv = r$iv),
+               iv = r$iv, scope = scope),
           cfg$file_stage1_rds, compress = FALSE)
   rd_log("Written: %s", cfg$file_stage1_rds)
 }

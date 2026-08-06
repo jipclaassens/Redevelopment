@@ -222,7 +222,7 @@ container SourceData :  using = "units;geography;classifications"
 		}
 		
 		unit<uint32> StadsDorpsGezichten_src
-		:  StorageName = "%SourceDataDir%/Overig/Stads_en_Dorpsgezichten_2020.gdb"
+		:  StorageName = "%Redev_DataDir%/Omgeving/Monumenten/Stads_en_Dorpsgezichten_2020.gdb"
 		,  StorageType = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	SyncMode = "AllTables"

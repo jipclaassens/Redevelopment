@@ -18,14 +18,26 @@
 #
 # Explanatory variables (theory + frictions):
 #   iv [+], acq_mln [-], p_owner_occupier_buurt [- holdout], p_socialhousing_buurt [?],
-#   isprotectheritagearea [-], is_natura2000 [-], vol_dlnp [- real options],
+#   isprotectheritagearea [-], vol_dlnp [- real options],
 #   bouwperiode_inc (mode building year of incumbent, ref va2002) [older -> +, depreciation]
+#
+# Natura 2000 is NOT in the base specification (decision 30-07). Development there is not
+# forbidden but requires a nitrogen assessment, so it was included as a permitting friction;
+# empirically the indicator is uninformative (urban: +0.69, z 0.8; rural: only 384 of
+# 603,727 sites, 26 events). Dropping it leaves every other coefficient unchanged to four
+# decimals (iv 10.0212 either way). Spec 'n2000' adds it back as a check.
+#
+# glm.tol: fixest's default convergence tolerance is tighter than base R's glm() and is
+# never formally reached on some subsamples, even though the estimates are bit-identical
+# across 50/100/300 iterations (checked 30-07 on excl2012 and rural: iv 9.970848 and
+# deviance 64934.1476 in all three). 1e-6 reports convergence with identical coefficients.
 #
 # Specs (all in the export CSV):
 #   base       OAD>=1000, full covariates
 #   no_bp      base without the bouwperiode control (isolates what building year does with heritage)
 #   urban1500  OAD>=1500 (strongly urban)
 #   nl         no OAD filter
+#   rural      OAD<1000 (outside the urban scope; complement of base)
 #   size       base + ln(site_ha) (comparability control for site formation 10m/20m)
 #   winsor     base with iv/acq winsorized p1/p99 (mega-site tails; separation warning)
 #   vol_muni   volatility with gemeente granularity primary (instead of grid5km-first)
@@ -35,6 +47,7 @@
 #   excl2012   base without sites suspected of 2012 double counting (#26: new construction
 #              registered in 2012 with building year <= 2010 = presumably Woningregister
 #              administration, not real redevelopment)
+#   n2000      base + the Natura 2000 indicator (see the note above)
 #   bbg_imput  base + the BBG-route SN sites (no demolition rows in the window) as y=1,
 #              with IMPUTED acquisition (median acq/ha of observed SN sites x
 #              site_ha); without the bouwperiode control (incumbent unknown for those sites)
@@ -124,8 +137,10 @@ estimate_stage2 <- function(uni) {
   # the header. w() is a winsorizer: it clips a variable at its 1st and 99th percentile
   # (used only in the winsor spec, to tame mega-site tails).
   f_base <- y ~ iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +
-                isprotectheritagearea + is_natura2000 + vol_dlnp + bouwperiode_inc
-  vars <- setdiff(all.vars(f_base), "bouwperiode_inc")
+                isprotectheritagearea + vol_dlnp + bouwperiode_inc
+  # is_natura2000 stays in the completeness filter (it is never NA, so the sample is
+  # identical) so that the n2000 robustness spec runs on exactly the same rows as base.
+  vars <- c(setdiff(all.vars(f_base), "bouwperiode_inc"), "is_natura2000")
   w    <- function(v) { q <- quantile(v, c(.01, .99), na.rm = TRUE); pmin(pmax(v, q[1]), q[2]) }
 
   # sites without building year: quasi-separation (nearly no events on the bp_onbekend dummy
@@ -148,8 +163,25 @@ estimate_stage2 <- function(uni) {
   # converted to a data.table tagged with spec label and sample sizes for the export CSV.
   fit1 <- function(fml, d, label) {
     d <- copy(d)[, bouwperiode_inc := droplevels(bouwperiode_inc)]
-    m <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
-    if (!isTRUE(m$convStatus)) rd_log("    NB: '%s' did not converge — check separation", label)
+    m <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code,
+               glm.iter = 100, glm.tol = 1e-6)
+    # On some subsamples the IRLS lands on a numerical plateau: the deviance and every
+    # coefficient stop moving, but fixest's convergence criterion is never formally
+    # satisfied. Rather than trusting that, refit with a ten times larger iteration cap
+    # and compare: identical estimates prove the flag is a stopping-criterion artefact,
+    # a real difference means the model genuinely has not settled and must be examined.
+    if (!isTRUE(m$convStatus)) {
+      m_long <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code,
+                      glm.iter = 1000, glm.tol = 1e-6)
+      drift <- max(abs(coef(m) - coef(m_long)))
+      if (drift < 1e-8) {
+        rd_log("    NB: '%s' does not trip fixest's convergence flag, but the estimates are", label)
+        rd_log("        identical at 100 and 1000 iterations (max drift %.1e) — flag artefact.", drift)
+      } else {
+        rd_log("    WARNING: '%s' has NOT settled: coefficients move %.2e between 100 and", label, drift)
+        rd_log("        1000 iterations. Check separation before using this spec.")
+      }
+    }
     ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")
     setnames(ct, c("term", "estimate", "se_cluster", "z", "p"))
     ct[, `:=`(spec = label, n = m$nobs, n_y1 = d[, sum(y)])]
@@ -182,6 +214,7 @@ estimate_stage2 <- function(uni) {
     no_bp     = fit1(f_no_bp, base, "no_bp"),
     urban1500 = fit1(f_base, urban_subset(core, 1500L), "urban1500"),
     nl        = fit1(f_base, core, "nl"),
+    rural     = fit1(f_base, core[oad < cfg$oad_min], "rural"),
     size      = fit1(update(f_base, . ~ . + ln_site_ha), base, "size"),
     winsor    = fit1(f_base, copy(base)[, `:=`(iv = w(iv), acq_mln = w(acq_mln))], "winsor"),
     vol_muni  = fit1(update(f_base, . ~ . - vol_dlnp + vol_dlnp_gem), base, "vol_muni"),
@@ -189,6 +222,7 @@ estimate_stage2 <- function(uni) {
                                  d <- d[complete.cases(d[, ..vars]) & !is.na(oad) & oad >= cfg$oad_min]
                                  d[, y := prefix != "Onv"]; d }, "demol_start"),
     excl2012  = fit1(f_base, base[n_flag_2012 == 0L], "excl2012"),
+    n2000     = fit1(update(f_base, . ~ . + is_natura2000), base, "n2000"),
     bbg_imput = fit1(f_no_bp, rbind(base, bbg), "bbg_imput"))
 
   # AMEs (base): average marginal effect on P(redevelopment), logit: mean(p(1-p)) x beta

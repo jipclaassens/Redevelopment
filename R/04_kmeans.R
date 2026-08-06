@@ -70,8 +70,14 @@ build_cluster_input <- function(sites_new) {
 # reproducibility; vapply is just a type-safe loop returning one number per K.
 elbow <- function(m, k_max = cfg$kmeans_k_max) {
   set.seed(cfg$kmeans_seed)
+  # The high-K runs emit R's "Quick-TRANSfer stage steps exceeded maximum" warning: a limit
+  # inside Hartigan-Wong that raising iter.max does not lift (checked 30-07 at 50 and 200).
+  # It only touches the tail of the diagnostic curve; the knee this function exists to find
+  # is unaffected (PRE 0.27 at K=6 against 0.12 and 0.07 at K=7 and 8), and the FINAL
+  # clustering is clean: it converges in 3 iterations, warning-free, and comes out identical
+  # at iter.max 100 and 10,000.
   wss <- vapply(seq_len(k_max), function(k)
-    kmeans(m, centers = k, nstart = 10, iter.max = 50)$tot.withinss, numeric(1))
+    kmeans(m, centers = k, nstart = 10, iter.max = 200)$tot.withinss, numeric(1))
   # One row per candidate K. eta2 = share of total variance explained by the clustering;
   # PRE = relative WSS drop versus K-1 (NA for K=1, which has no predecessor).
   data.table(k = seq_len(k_max), wss = wss,

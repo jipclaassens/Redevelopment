@@ -54,7 +54,7 @@ build_hazard_panel <- function(alt, s, s1) {
   # (complete.cases; ..vars means "the columns named in the vars vector") and where OAD
   # meets the configured density threshold, mirroring the stage-2 sample.
   vars <- c("iv", "acq_mln", "p_owner_occupier_buurt", "p_socialhousing_buurt",
-            "isprotectheritagearea", "is_natura2000")
+            "isprotectheritagearea")
   uni <- uni[complete.cases(uni[, ..vars]) & !is.na(oad) & oad >= cfg$oad_min]
   # Redeveloped sites (y = TRUE) without an event date cannot be placed on the time axis;
   # count them for the log, then drop them. Censored sites (y = FALSE) need no date.
@@ -131,8 +131,9 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   # volatility terms and, unless fe = FALSE, the year fixed effects ("| year" is fixest
   # notation for fixed effects). est keeps only site-years where every volatility series
   # is observed, so H1-H4 are all estimated on the identical sample and are comparable.
+  # Natura 2000 is left out here too, matching the stage-2 base spec (see the note in 07).
   f_rhs <- paste("iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +",
-                 "isprotectheritagearea + is_natura2000 + bouwperiode_inc")
+                 "isprotectheritagearea + bouwperiode_inc")
   mk <- function(extra, fe = TRUE) as.formula(paste("y_year ~", f_rhs, "+", extra, if (fe) "| year" else ""))
   est <- panel[!is.na(vol_roll) & !is.na(g_roll) & !is.na(vol_nl)]
 
@@ -141,7 +142,8 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   # coefficients. %chin% is data.table's fast %in% for character vectors.
   fits <- list()
   fit_and_log <- function(fml, label) {
-    m <- feglm(fml, data = est, family = binomial(), cluster = ~gemeente_code, glm.iter = 100)
+    m <- feglm(fml, data = est, family = binomial(), cluster = ~gemeente_code,
+               glm.iter = 100, glm.tol = 1e-6)   # see the glm.tol note in 07
     if (!isTRUE(m$convStatus)) rd_log("  NB: '%s' did not converge", label)
     ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")
     setnames(ct, c("term", "estimate", "se_cluster", "z", "p"))

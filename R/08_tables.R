@@ -43,6 +43,47 @@ asc_labels <- c(rv_mln = "Residual value (M€)",
   alt_f4 = "ASC apartment mid-density", alt_f5 = "ASC terraced",
   alt_f6 = "ASC detached large")   # reference: detached-teardown (cluster 1)
 
+# Hazard battery (09): row labels for the H1-H4 table; order = row order in the table.
+hz_labels <- c(iv = "Inclusive value", acq_mln = "Acquisition costs (EUR M)",
+  vol_roll  = "Regional volatility (rolling 5y sd)", g_roll  = "Regional growth expectation",
+  vol_rollG = "Regional volatility (municipality)",  g_rollG = "Regional growth (municipality)",
+  vol_nl    = "National volatility", g_nl = "National growth", year_c = "Linear trend (year)")
+
+# Build the stage-1 scope table (residual-value coefficient per OAD scope) from the
+# $scope element of the stage-1 rds. Returns markdown lines, or NULL for old rds files.
+scope_table_stage1 <- function(s1) {
+  if (is.null(s1$scope)) return(NULL)
+  order <- intersect(c("nl", "base", "urban1500", "rural"), names(s1$scope))
+  cells <- vapply(order, function(k) {
+    b  <- s1$scope[[k]]$coef[["rv_mln"]]
+    se <- sqrt(diag(s1$scope[[k]]$vcov))[["rv_mln"]]
+    fmt_cell(b, se, 2 * pnorm(-abs(b / se)))
+  }, character(1))
+  ns <- vapply(order, function(k) format(s1$scope[[k]]$n, big.mark = ","), character(1))
+  c(paste0("| | ", paste(order, collapse = " | "), " |"),
+    paste0("|", paste(rep("---", length(order) + 1), collapse = "|"), "|"),
+    paste0("| Residual value (M EUR) | ", paste(cells, collapse = " | "), " |"),
+    paste0("| N SN sites | ", paste(ns, collapse = " | "), " |"),
+    "", "ASCs included in every scope; full ASC sets available on request.")
+}
+
+# Build the hazard H1-H4 table from the hazard rds (skipped if 09 has not run yet).
+hazard_table <- function(hz) {
+  specs <- unique(hz$specs$spec)
+  dt <- copy(hz$specs)[term %chin% names(hz_labels)]
+  dt[, cell_ := fmt_cell(estimate, se_cluster, p)]
+  wide <- dcast(dt, term ~ factor(spec, levels = specs), value.var = "cell_", fill = "")
+  wide <- wide[match(names(hz_labels)[names(hz_labels) %chin% wide$term], term)]
+  wide[, term := hz_labels[term]]
+  c(paste0("| | ", paste(specs, collapse = " | "), " |"),
+    paste0("|", paste(rep("---", length(specs) + 1), collapse = "|"), "|"),
+    wide[, paste0("| ", term, " | ", do.call(paste, c(.SD, sep = " | ")), " |"), .SDcols = specs],
+    paste0("| Site-years (events) | ", paste(rep(sprintf("%s (%s)",
+           format(hz$n_site_jaren, big.mark = ","), format(hz$n_events, big.mark = ",")),
+           length(specs)), collapse = " | "), " |"),
+    "", "All specs on the identical site-year sample; H1-H3 include year fixed effects, H4 replaces them by a linear trend plus the national series (indicative identification).")
+}
+
 # Build one markdown table (rows = regressors, columns = specifications) from the long
 # stage-2 results table (one row per spec x term). Returns a character vector of markdown
 # lines. NOTE: it edits its input by reference (:=), so callers pass copy(s2$specs).
@@ -63,7 +104,7 @@ md_table <- function(dt, spec_order) {
   wide[, term := labels[term]]
   # Grouped aggregation (by = spec): sample sizes are constant within a spec, so take the
   # first value per group and format with "." as thousands separator for the footer rows.
-  ns <- dt[, .(n = format(n[1], big.mark = "."), n_y1 = format(n_y1[1], big.mark = ".")), by = spec]
+  ns <- dt[, .(n = format(n[1], big.mark = ","), n_y1 = format(n_y1[1], big.mark = ",")), by = spec]
   # Assemble the markdown lines: header with spec names, divider, one row per term (.SD is
   # the subset of spec columns, pasted together with " | "), and two footer rows with the
   # total N and the number of redeveloped sites per spec.
@@ -84,6 +125,7 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
   # results; paths come from cfg (00_config.R).
   s1 <- readRDS(cfg$file_stage1_rds)
   s2 <- readRDS(cfg$file_stage2_rds)
+  hz <- if (file.exists(cfg$file_hazard_rds)) readRDS(cfg$file_hazard_rds) else NULL
 
   # Stage-1 coefficient table: point estimates, SEs from the diagonal of the variance
   # matrix, then := adds by reference a two-sided normal-approximation p-value and the
@@ -105,7 +147,14 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
     "", "## Stage 2 — binomial logit redevelopment: main specifications", "",
     md_table(copy(s2$specs), c("base", "size", "urban1500", "nl", "demol_start")),
     "", "## Stage 2 — robustness", "",
-    md_table(copy(s2$specs), c("no_bp", "winsor", "vol_muni", "excl2012", "bbg_imput")),
+    md_table(copy(s2$specs), c("no_bp", "winsor", "vol_muni", "excl2012", "n2000", "bbg_imput")),
+    "", "## Urban vs rural: stage 1 (residual-value coefficient per scope)", "",
+    scope_table_stage1(s1),
+    "", "## Urban vs rural: stage 2", "",
+    md_table(copy(s2$specs), intersect(c("nl", "base", "urban1500", "rural"), s2$specs$spec)),
+    if (!is.null(hz)) c(
+      "", "## Discrete-time hazard: real-options battery (H1-H4)", "",
+      hazard_table(hz)),
     "", "## Average marginal effects (base, percentage points)", "",
     "| | AME (pp) |", "|---|---|",
     s2$ame[, sprintf("| %s | %.3f |", labels[term], 100 * ame)])
@@ -115,4 +164,5 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
   outfile <- file.path(cfg$dir_work, sprintf("paper_tabellen%s_%s_%s.md", cfg$sample_suffix, cfg$area, cfg$bag_date))
   writeLines(out, outfile, useBytes = FALSE)
   rd_log("Written: %s", outfile)
+  rd_md_to_docx(outfile)
 }

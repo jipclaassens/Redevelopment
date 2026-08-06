@@ -265,7 +265,7 @@ container SourceData :  using = "units;geography;classifications"
 			//
 	
 			unit<uint32> XLSX 
-			:   StorageName     = "='%SourceDataDir%/Overig/CBS_Kerncijfers_WijkBuurt/kwb-'+jaar+'.xlsx'"
+			:   StorageName     = "='%Alt_DataDir%/Overig/CBS_Kerncijfers_WijkBuurt/kwb-'+jaar+'.xlsx'"
 			,   StorageType     = "gdal.vect"
 			,	StorageReadOnly = "True"
 			{

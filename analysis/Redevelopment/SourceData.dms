@@ -39,7 +39,7 @@ container SourceData :  using = "units;geography;classifications"
 	
 	
 		unit<uint32> landprice_pc4_2007
-		:  StorageName = "%SourceDataDir%/Overig/Weighted_avg_landprice_pc4_1985-2007.csv"
+		:  StorageName = "%OneDriveDir%/Overig/Weighted_avg_landprice_pc4_1985-2007.csv"
 		,  StorageType = "gdal.vect"
 		,  StorageReadOnly = "True" 
 		{
@@ -51,7 +51,7 @@ container SourceData :  using = "units;geography;classifications"
 		}
 		
 		unit<uint32> StadsDorpsGezichten_src
-		:  StorageName = "%SourceDataDir%/Overig/Stads_en_Dorpsgezichten_2020.gdb"
+		:  StorageName = "%Redev_DataDir%/Omgeving/Monumenten/Stads_en_Dorpsgezichten_2020.gdb"  
 		,  StorageType = "gdal.vect"
 		,	StorageReadOnly = "True"
 		,	SyncMode = "AllTables"
@@ -94,7 +94,7 @@ container SourceData :  using = "units;geography;classifications"
 			//
 	
 			unit<uint32> XLSX 
-			:   StorageName     = "='%SourceDataDir%/Overig/CBS_Kerncijfers_WijkBuurt/kwb-'+jaar+'.xlsx'"
+			:   StorageName     = "='%OneDriveDir%/Overig/CBS_Kerncijfers_WijkBuurt/kwb-'+jaar+'.xlsx'"
 			,   StorageType     = "gdal.vect"
 			,	StorageReadOnly = "True"
 			{

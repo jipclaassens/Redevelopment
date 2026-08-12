@@ -57,6 +57,13 @@ container RegioIndelingen : using = "geography"
 				attribute<string>      name                                            := AsItemName(statnaam);
 				attribute<uint32>      OAD                                             := uint32(Kerncijfers/OAD[kerncijfers_rel]);
 				attribute<float32>     P_HUURCORP                                      := float32(Kerncijfers/P_HUURCORP[kerncijfers_rel]);
+				attribute<float32>     GEM_HH_GR                                       := float32(Kerncijfers/GEM_HH_GR[kerncijfers_rel]);
+				attribute<float32>     P_00_14_jr                                      := float32(Kerncijfers/P_00_14_jr[kerncijfers_rel]);
+				attribute<float32>     P_15_24_jr                                      := float32(Kerncijfers/P_15_24_jr[kerncijfers_rel]);
+				attribute<float32>     P_25_44_jr                                      := float32(Kerncijfers/P_25_44_jr[kerncijfers_rel]);
+				attribute<float32>     P_45_64_jr                                      := float32(Kerncijfers/P_45_64_jr[kerncijfers_rel]);
+				attribute<float32>     P_65_eo_jr                                      := float32(Kerncijfers/P_65_eo_jr[kerncijfers_rel]);
+				attribute<float32>     AANT_INW                                        := float32(Kerncijfers/AANT_INW[kerncijfers_rel]);
 				attribute<float32>     Landprice                                       := mean(SourceData/BAG/VolledigeBAG/nummeraanduiding/nummeraanduiding/PC4_centroids/Landprice, point_in_polygon(SourceData/BAG/VolledigeBAG/nummeraanduiding/nummeraanduiding/PC4_centroids/geometry, geometry));
 				unit<uint32>           Kerncijfers                                     := ='SourceData/Kerncijfer_WijkBuurt/read/Y'+jaar+'/XLSX'; 
 				attribute<Kerncijfers> kerncijfers_rel                                 := rlookup(code, Kerncijfers/code);
@@ -67,10 +74,12 @@ container RegioIndelingen : using = "geography"
 				attribute<float32>     share_opp_BeschermdeStadDorpsgezichten          := opp_BeschermdeStadDorpgezichten / area;
 				// container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
 				
-				unit<uint32> x_BeschermdeStadDorpgezichten := bp_overlay_polygon(geometry[rdc_cm], SourceData/overig/StadsDorpsGezichten/geometry[rdc_cm])
+				//boost-polygon -> GEOS, in lijn met brt.dms. De oude route ging via rdc_cm, dus de
+				//wijk- en gezichtsgrenzen werden op centimeters afgerond voor de overlay; GEOS rekent
+				//direct in rdc. Voedt opp_BeschermdeStadDorpgezichten en daarmee p_beschermd.
+				unit<uint32> x_BeschermdeStadDorpgezichten := geos_overlay_polygon(geometry, SourceData/overig/StadsDorpsGezichten/geometry)
 				{
-					attribute<rdc> geometry_rd (poly) := geometry[rdc];
-					attribute<m2>  area := area(geometry_rd, m2);
+					attribute<m2>  area := area(geometry, m2);
 				}
 				
 			}

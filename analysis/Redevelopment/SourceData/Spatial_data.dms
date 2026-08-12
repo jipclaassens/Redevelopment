@@ -114,19 +114,19 @@ container Spatial_data
 		// ,	StorageReadOnly = "True";
 		// attribute<float32> Reistijd_100k_inw_edit (rdc_100m) := (Reistijd_100k_inwoners / 60f) < 1f ? 1f : (Reistijd_100k_inwoners / 60f);
 		attribute<float32> Reistijd_100k_inwoners (rdc_100m)
-		:	StorageName     = "%Alt_DataDir%/Overig/Reistijd100kInw_2020_500m_DE_BE.tif"
+		:	StorageName     = "%Redev_DataDir%/Omgeving/TraveltimeTo100k_Population_2024_From_100m_Points.tif"
 		,	StorageType     = "gdal.grid"
 		,	StorageReadOnly = "True";
 		attribute<float32> Reistijd_100k_inw_edit (rdc_100m) := (Reistijd_100k_inwoners / 60f) < 1f ? 1f : (Reistijd_100k_inwoners / 60f);
 		
 		attribute<float32> Reistijd_500k_inwoners (rdc_100m)
-		:	StorageName     = "%Alt_DataDir%/Overig/Reistijd500kInw_2020_500m_DE_BE.tif"
+		:	StorageName     = "%Redev_DataDir%/Omgeving/TraveltimeTo500k_Population_2024_From_100m_Points.tif"
 		,	StorageType     = "gdal.grid"
 		,	StorageReadOnly = "True";
 		attribute<float32> Reistijd_500k_inw_edit (rdc_100m) := (Reistijd_500k_inwoners / 60f) < 1f ? 1f : (Reistijd_500k_inwoners / 60f);
 		
 		attribute<float32> Reistijd_1000k_inwoners (rdc_100m)
-		:	StorageName     = "%Alt_DataDir%/Overig/Reistijd1000kInw_2020_500m_DE_BE.tif"
+		:	StorageName     = "%Redev%/Overig/Reistijd1000kInw_2020_500m_DE_BE.tif"
 		,	StorageType     = "gdal.grid"
 		,	StorageReadOnly = "True";
 		attribute<float32> Reistijd_1000k_inw_edit (rdc_100m) := (Reistijd_1000k_inwoners / 60f) < 1f ? 1f : (Reistijd_1000k_inwoners / 60f);

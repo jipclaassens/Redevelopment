@@ -73,7 +73,7 @@ container AdditionalOperations
 			attribute<m2>      area_pand                        := area(geometry, m2);
 			
 			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de nieuwbouw panden.
-			attribute<rdc> inflate                       (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+			attribute<rdc> inflate                       (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 4b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
 			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
@@ -97,7 +97,7 @@ container AdditionalOperations
 			attribute<m2>                       area_pand                    := area(geometry, m2);
 			
 			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de sloop panden.
-			attribute<rdc> inflate                       (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 16b);
+			attribute<rdc> inflate                       (poly) := geos_buffer_multi_polygon(geometry,  parameters/big_inflate_m[float64], 4b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
 			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
@@ -129,7 +129,7 @@ container AdditionalOperations
 			attribute<rdc>     pand_geometry (poly)         := NieuwbouwPanden/geometry[first_rel];
 			
 			//buffer om de panden heen zodat deze later gerelateerd kunnen worden aan de sloop panden.
-			attribute<rdc>     inflate               (poly) := geos_buffer_multi_polygon(pand_geometry,  parameters/big_inflate_m[float64], 16b);
+			attribute<rdc>     inflate               (poly) := geos_buffer_multi_polygon(pand_geometry,  parameters/big_inflate_m[float64], 4b);
 			
 			//Maar, deze buffers mogen niet over een weg heen gaan. Dus die snijden we eruit.
 			unit<uint32> PandenBuffer_x_WegSpoor                := geos_overlay_polygon(inflate, SourceData/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
@@ -154,8 +154,8 @@ container AdditionalOperations
 			//opschonen van de geometry
 			unit<uint32>   Dissolve                             := geos_split_union_polygon(geometry), DialogData = "Deflate", DialogType = "map";
 			attribute<rdc> Outer               (poly, dissolve) := bg_outer_multi_polygon(Dissolve/geometry);
-			attribute<rdc> Inflate             (poly, dissolve) := geos_buffer_multi_polygon(Outer, parameters/big_inflate_m[float64], 16b);
-			attribute<rdc> Deflate             (poly, dissolve) := geos_buffer_multi_polygon(Inflate, -parameters/big_inflate_m[float64], 16b);
+			attribute<rdc> Inflate             (poly, dissolve) := geos_buffer_multi_polygon(Outer, parameters/big_inflate_m[float64], 4b);
+			attribute<rdc> Deflate             (poly, dissolve) := geos_buffer_multi_polygon(Inflate, -parameters/big_inflate_m[float64], 4b);
 			
 			
 			//nu willen we alleen die polygon overhouden die sloop EN nieuwbouw panden bevatten.

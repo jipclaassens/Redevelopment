@@ -11,5 +11,9 @@ container ConfigSettings
 		// parameter<String> Redev_DataDir      := 'D:/SourceData/RSopen'; //OVSRV09=c OVSRV06=D
 		parameter<String> Alt_DataDir        := '%SourceDataDir%';
 		// parameter<string> AHNDrive           := 'E:/SourceData/AHN';
+		
+		parameter<string> OneDriveDir           := 'D:/Objectvision/Object Vision - SourceData';
+		
+		
 	}
 }

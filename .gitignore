@@ -1,1 +1,7 @@
 /git.txt
+/.vs
+
+# R werkbestanden
+.Rhistory
+.RData
+.Rproj.user

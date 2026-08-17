@@ -25,7 +25,7 @@ cfg <- list()
 # logic as the first submission but a newer BAG source file, so the counts are about 5%
 # higher (net additions 972,611 against 923,895) while the composition is unchanged
 # (55.1% within the existing urban fabric in both).
-cfg$filedate <- "20260812_updates"
+cfg$filedate <- "20260813"
 
 # Replication baseline: the vintage the first submission was estimated on. 04_validate.R
 # pins to this and must keep passing, so that any change in results is traceable to a
@@ -137,6 +137,15 @@ cfg$outcomes <- list(
   nb  = list(label = "New build",       expr = quote(count_nieuwbouw)),
   div = list(label = "Within-building", expr = quote(count_toevoeging - count_onttrekking)),
   trf = list(label = "Transf.",         expr = quote(count_transformatie_plus - count_transformatie_min))
+)
+
+## -- new build split by the 2000 built-up area contour (reviewer 1, comment 1) -------
+# Present from the export that carries count_Nieuwbouw_infill / _expansion. 01_load_perwijk.R
+# appends these to cfg$outcomes when the columns exist, so every downstream script picks them
+# up without further changes; on older exports the pipeline runs unchanged.
+cfg$outcomes_nb_split <- list(
+  nb_in  = list(label = "New build: infill",    expr = quote(count_nieuwbouw_infill)),
+  nb_out = list(label = "New build: expansion", expr = quote(count_nieuwbouw_expansion))
 )
 
 ## -- Word output: convert a markdown table file to docx via pandoc ----------------

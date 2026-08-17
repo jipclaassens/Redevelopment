@@ -46,6 +46,8 @@ container classifications : using = "units"
 		attribute<uint32>    BrushColor   :  [rgb(237,80,40), rgb(168,164,164),rgb(166,207,138)] , DialogType = "BrushColor";
 		// attribute<uint32>    SymbolColor   :  [rgb(200,0,0), rgb(128,128,128),rgb(0,200,0)] , DialogType = "SymbolColor";
 		
+		attribute<km2>       Area_Wijken  := sum(/Analyse/DetermineUrbanisationK/Wijken/area[km2], /Analyse/DetermineUrbanisationK/Wijken/UrbanisationK_rel);
+		
 		container V := for_each_nedv(Label, 'value('+string(id(.))+', ..)', void, .);
 	}
 	

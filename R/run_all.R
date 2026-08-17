@@ -17,3 +17,6 @@ run_04 <- TRUE; source(file.path(.rd_script_dir, "04_validate.R"));     run_04 <
 run_05 <- TRUE; source(file.path(.rd_script_dir, "05_revision.R"));    run_05 <- FALSE
 run_06 <- TRUE; source(file.path(.rd_script_dir, "06_omitted.R"));     run_06 <- FALSE
 run_07 <- TRUE; source(file.path(.rd_script_dir, "07_spatial.R"));     run_07 <- FALSE
+run_08 <- TRUE; source(file.path(.rd_script_dir, "08_nbsplit.R"));     run_08 <- FALSE
+run_09 <- TRUE; source(file.path(.rd_script_dir, "09_supplement.R"));  run_09 <- FALSE
+run_10 <- TRUE; source(file.path(.rd_script_dir, "10_papertables.R")); run_10 <- FALSE

@@ -64,6 +64,19 @@ load_perwijk <- function(file = cfg$file_perwijk()) {
   dt[, land_area    := total_area - water_area]
   dt[, land_area_ha := land_area * 100]
 
+  # -- new build split, when the export carries it (reviewer 1, comment 1) ------------
+  # Extending cfg$outcomes here means 02/03/05/06/07 gain two columns automatically. The
+  # split is checked against the unsplit total, because a mismatch would silently mean the
+  # BBG-2000 overlay classified some objects into neither category.
+  if (all(c("count_nieuwbouw_infill", "count_nieuwbouw_expansion") %in% names(dt))) {
+    gap <- dt[, sum(count_nieuwbouw_infill + count_nieuwbouw_expansion) - sum(count_nieuwbouw)]
+    if (gap != 0L) stop(sprintf("New build split does not add up: infill + expansion - total = %d", gap))
+    cfg$outcomes <<- c(cfg$outcomes, cfg$outcomes_nb_split)
+    rd_log("New build split present: %s infill, %s expansion (sums to count_nieuwbouw)",
+           format(dt[, sum(count_nieuwbouw_infill)], big.mark = ","),
+           format(dt[, sum(count_nieuwbouw_expansion)], big.mark = ","))
+  }
+
   # -- dependent variables (do-file lines 80, 90-95) ---------------------------------
   # Counts first (needed for the descriptives and for the Poisson revision), logs after.
   for (nm in names(cfg$outcomes)) {

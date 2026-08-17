@@ -138,7 +138,17 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// attribute<bool>             IsGreyBrownfield_1996 := SourceData/bestand_bodem_gebruik/BBG/Dominant/IsGreyBrownField_1996_augm[per_25m_rel];
 		// attribute<m2>               site_oppervlakte     := rjoin(site_id, Read_PerSite_Export/site_id, Read_PerSite_Export/site_oppervlakte);
 		// attribute<bool>             IsWithinUrbanContour := IsDefined(point_in_polygon(geometry, /SourceData/begenzing_bebouwd_gebied/Bevolkingskern_2011/shapes/geometry));
-		
+
+		//Ligt het object binnen de Begrenzing Bebouwd Gebied 2000, de contour uit de Nota Ruimte die
+		//ook onder de Ladder voor duurzame verstedelijking ligt? Splitst nieuwbouw in infill (binnen)
+		//en uitleg (buiten). Reviewer 1, punt 1: de categorie 'new build' mengde beide.
+		//NB: nieuwbouw op grond die in 2000 al woongebied was, is elders al als sloop-nieuwbouw
+		//geclassificeerd (AdditionalOperations/SN, BBGWoon_x_NieuwbouwPanden); wat hier als infill
+		//overblijft is dus vooral voormalig bedrijventerrein, kantoor- of braakliggende locatie.
+		attribute<bool>             IsBinnenBBG2000      := SourceData/begenzing_bebouwd_gebied/BBG_2000/is_bbg[per_grid];
+		attribute<bool>             IsBinnenBBG2011      := SourceData/begenzing_bebouwd_gebied/Bevolkingskern_2011/is_bbg[per_grid];
+		attribute<bool>             IsBinnenBBG2011_augm := SourceData/begenzing_bebouwd_gebied/Bevolkingskern_2011/is_bbg_augmBegr2000[per_grid];
+
 		attribute<RegioUnit_Wijk12>   Wijk12_rel             := point_in_polygon(geometry, RegioUnit_Wijk12/geometry);
 		// attribute<RegioUnit_Wijk23>   Wijk23_rel             := point_in_polygon(geometry, RegioUnit_Wijk23/geometry);
 		attribute<string>             WK_CODE_2012         := RegioUnit_Wijk12/WK_CODE[Wijk12_rel];
@@ -230,11 +240,14 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				, replace('union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Totalen_PerRedevType/@OT@', ',')+')', '@OT@', Redev_ObjectTypes/name)
 				, Verslagmaanden
 				, uint32
-			)
+			), 	StorageName = "='%LocalDataProjDir%/Output/Count_PerRedevType_PerVerslagMaand_'+Export_Date+'.csv'", StorageType = "gdalwrite.vect"
 		{
 			attribute<string> Label (Verslagmaanden) := Verslagmaanden/label;
+			//Twee extra kolommen naast de tien procestypen: nieuwbouw binnen/buiten de BBG-2000-contour.
+			attribute<uint32> Nieuwbouw_infill    (Verslagmaanden) := ='union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Totalen_Nieuwbouw_Split/Nieuwbouw_infill', ',')+')';
+			attribute<uint32> Nieuwbouw_expansion (Verslagmaanden) := ='union_data(Verslagmaanden, '+AsList('Per_VerslagMaand/'+Verslagmaanden/label+'/Totalen_Nieuwbouw_Split/Nieuwbouw_expansion', ',')+')';
 		}
-		
+
 		// container Count_Urban_PerRedevType_PerVerslagMaand :=
 			// for_each_nedv(
 				// Redev_ObjectTypes/name
@@ -266,13 +279,30 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 			// );
 			
 		parameter<int32> AvgObjectSize_RelevantSaldi := mean(Redev_ObjectTypes/IsRelevantSaldi[type_class] ? vbo_oppervlakte_edit : null_i);
+		parameter<int32> MedObjectSize_RelevantSaldi := rth_element(Redev_ObjectTypes/IsRelevantSaldi[type_class] ? vbo_oppervlakte_edit : null_i, 0.5f);
+		parameter<uint32> Count_Onveranderd           := sum_uint32(type_class == Redev_ObjectTypes/v/Onveranderd);
 		container AvgObjectSize_PerRedevType :=
 			for_each_nedv(
 				Redev_ObjectTypes/name
 				, 'mean(type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' ? vbo_oppervlakte_edit : null_i)'
 				, void
 				, int32
-			);
+			)
+		{
+			parameter<int32> Nieuwbouw_infill    := mean(type_class == Redev_ObjectTypes/v/Nieuwbouw && IsBinnenBBG2011_augm ? vbo_oppervlakte_edit : null_i);
+			parameter<int32> Nieuwbouw_expansion := mean(type_class == Redev_ObjectTypes/v/Nieuwbouw && not(IsBinnenBBG2011_augm) ? vbo_oppervlakte_edit : null_i);
+		}
+		container MedObjectSize_PerRedevType :=
+			for_each_nedv(
+				Redev_ObjectTypes/name
+				, 'rth_element(type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' ? vbo_oppervlakte_edit : null_i, 0.5f)'
+				, void
+				, int32
+			)
+		{
+			parameter<int32> Nieuwbouw_infill    := rth_element(type_class == Redev_ObjectTypes/v/Nieuwbouw && IsBinnenBBG2011_augm ? vbo_oppervlakte_edit : null_i, 0.5f);
+			parameter<int32> Nieuwbouw_expansion := rth_element(type_class == Redev_ObjectTypes/v/Nieuwbouw && not(IsBinnenBBG2011_augm) ? vbo_oppervlakte_edit : null_i, 0.5f);
+		}
 			
 		// container AvgSiteSize_PerRedevType :=
 			// for_each_nedv(
@@ -313,14 +343,21 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		{
 			parameter<int32> VerslagMaand;
 			///
-			container Totalen_PerRedevType := 
+			container Totalen_PerRedevType :=
 				for_each_nedv(
 					Redev_ObjectTypes/name
 					, 'sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+')'
 					, void
 					, uint32
 				);
-			container Count_Urban_PerRedevType := 
+			//Nieuwbouw gesplitst naar de BBG-2000-contour, zodat Tabel 1 infill en uitleg apart kan
+			//tonen (reviewer 1, punt 1). Som van beide == Totalen_PerRedevType/Nieuwbouw.
+			container Totalen_Nieuwbouw_Split
+			{
+				parameter<uint32> Nieuwbouw_infill    := ='sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/Nieuwbouw &&      MakeDefined(IsBinnenBBG2011_augm, FALSE) )';
+				parameter<uint32> Nieuwbouw_expansion := ='sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/Nieuwbouw && not(MakeDefined(IsBinnenBBG2011_augm, FALSE)))';
+			}
+			container Count_Urban_PerRedevType :=
 				for_each_nedv(
 					Redev_ObjectTypes/name
 					, 'sum_uint32((MutatieMaand * 100i + 1i) == '+string(VerslagMaand)+'[int32] && type_class == Redev_ObjectTypes/v/'+Redev_ObjectTypes/name+' && UrbanisationK_rel == UrbanisationK/v/urban)'
@@ -369,7 +406,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	
 	}
 	
-	parameter<string> Export_Date := '20260812'; //today?
+	parameter<string> Export_Date := '20260813'; //today?
 	
 	unit<uint32> Analyse_PerWijk := RegioUnit_Wijk12
 	, using = "AdditionalClassifications"
@@ -412,6 +449,17 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// attribute<uint32>                count_SN_Sloop_nw        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop_nw, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_SN_Nieuwbouw             := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Nieuwbouw, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Nieuwbouw                := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw, Read_PerObject_Export/wijk12_rel);
+		//Splitsing van nieuwbouw in infill en uitleg (reviewer 1, punt 1). Som van beide == count_Nieuwbouw.
+		//Hoofdvariant is de unie bevolkingskern 2011 + BBG 2000: bevolkingskernen hebben de goede
+		//peildatum maar sluiten bedrijventerreinen uit, BBG 2000 dekt die wel maar ligt twaalf jaar
+		//voor de startdatum. MakeDefined vangt punten buiten het grid, anders telt zo'n object in
+		//geen van beide categorieen en klopt de optelling niet.
+		attribute<uint32>                count_Nieuwbouw_infill         := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw &&      MakeDefined(Read_PerObject_Export/IsBinnenBBG2011_augm, FALSE) , Read_PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Nieuwbouw_expansion      := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && not(MakeDefined(Read_PerObject_Export/IsBinnenBBG2011_augm, FALSE)), Read_PerObject_Export/wijk12_rel);
+		//Gevoeligheid: dezelfde splitsing onder de twee losse contouren, zodat de keuze in het paper
+		//onderbouwd kan worden. Uitleg volgt telkens als count_Nieuwbouw minus de infill-kolom.
+		attribute<uint32>                count_Nieuwbouw_infill_bbg2000 := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && MakeDefined(Read_PerObject_Export/IsBinnenBBG2000, FALSE), Read_PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Nieuwbouw_infill_kern2011:= sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && MakeDefined(Read_PerObject_Export/IsBinnenBBG2011, FALSE), Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Toevoeging               := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Toevoeging, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Onttrekking              := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, Read_PerObject_Export/wijk12_rel);
 		attribute<uint32>                count_Transformatie_Plus       := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/transformatie_plus, Read_PerObject_Export/wijk12_rel);

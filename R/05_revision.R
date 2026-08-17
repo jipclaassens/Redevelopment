@@ -48,16 +48,32 @@ add_province <- function(wijk) {
 
 ## -- gross additions per process --------------------------------------------------
 # One entry per column, mirroring cfg$outcomes but counting additions only.
+# NOTE ON LABELS. These are GROSS additions, not the net change the log-linear models used.
+# The labels say so, because otherwise a column headed "Replacement" silently changes meaning
+# between the published table (units built minus units demolished on replacement sites) and the
+# Poisson table (units built on replacement sites). Removals are a separate outcome with their own
+# logic; Table 1 continues to report both sides.
 cfg$gross <- list(
-  all = list(label = "All",             expr = quote(count_sn_nieuwbouw + count_nieuwbouw + count_toevoeging + count_transformatie_plus)),
-  sn  = list(label = "Replacement",     expr = quote(count_sn_nieuwbouw)),
-  nb  = list(label = "New build",       expr = quote(count_nieuwbouw)),
-  div = list(label = "Within-building", expr = quote(count_toevoeging)),
-  trf = list(label = "Transf.",         expr = quote(count_transformatie_plus))
+  all = list(label = "All additions",              expr = quote(count_sn_nieuwbouw + count_nieuwbouw + count_toevoeging + count_transformatie_plus)),
+  sn  = list(label = "Replacement: construction",  expr = quote(count_sn_nieuwbouw)),
+  nb  = list(label = "New build",                  expr = quote(count_nieuwbouw)),
+  div = list(label = "Within-building: additions", expr = quote(count_toevoeging)),
+  trf = list(label = "Transformation: to resid.",  expr = quote(count_transformatie_plus))
+)
+# Mirrors the split that 01_load_perwijk.R appends to cfg$outcomes; gross and net coincide
+# for new build, since it has no removal counterpart.
+cfg$gross_nb_split <- list(
+  nb_in  = list(label = "New build: infill",    expr = quote(count_nieuwbouw_infill)),
+  nb_out = list(label = "New build: expansion", expr = quote(count_nieuwbouw_expansion))
 )
 
 add_gross <- function(wijk) {
-  for (nm in names(cfg$gross)) wijk[, (paste0("gross_", nm)) := eval(cfg$gross[[nm]]$expr)]
+  g <- cfg$gross
+  if (all(c("count_nieuwbouw_infill", "count_nieuwbouw_expansion") %in% names(wijk))) {
+    g <- c(g, cfg$gross_nb_split)
+    cfg$gross <<- g
+  }
+  for (nm in names(g)) wijk[, (paste0("gross_", nm)) := eval(g[[nm]]$expr)]
   wijk[]
 }
 
@@ -133,8 +149,8 @@ spec_table <- function(res, nm) {
   # In the Randstad column the reference group is the rest of the country, so the main
   # effects there are the associations OUTSIDE the Randstad; the difference is tabulated
   # separately below.
-  hdr   <- c("OLS log net (published)", "PPML gross", "PPML gross + municipality FE",
-             "PPML gross, outside Randstad")
+  hdr   <- c("OLS, log net change (as published)", "PPML, gross additions",
+             "PPML + municipality FE", "PPML, outside Randstad")
   dt <- res$specs[[nm]][term %chin% names(main_terms)]
   dt[, cell_ := fmt_cell(estimate, se, p)]
   wide <- dcast(dt, term ~ factor(spec, levels = specs), value.var = "cell_", fill = "")

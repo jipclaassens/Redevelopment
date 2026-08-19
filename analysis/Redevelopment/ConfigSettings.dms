@@ -2,14 +2,14 @@ container ConfigSettings
 {
 	container Overridable
 	{
-		parameter<String> BAG_DataDir        := 'D:/SourceData/BAG';  //LAPTOP
-		// parameter<String> BAG_DataDir        := 'C:/SourceData/BAG';  //OVSRV09=c OVSRV06=D
-		// parameter<String> BAG_DataDir        := 'd:/SourceData/BAG';  //OVSRV09=c OVSRV06=D
-		// parameter<String> Redev_DataDir      := 'C:/SourceData/RSopen'; //OVSRV09=c OVSRV06=D  
-		// parameter<String> Redev_DataDir      := 'C:/GeoDMS/SourceData/RSopen'; //LAPTOP
-		// parameter<String> Redev_DataDir      := '%SourceDataDir%/RSopen'; //OVSRV08
-		// parameter<String> Redev_DataDir      := '%SourceDataDir%/RuimteScanner/SD/RSOpen'; //OVSRV08
-		parameter<String> Redev_DataDir      := '%SourceDataDir%/RSOpen'; //OVSRV06 (D:/SourceData/RSOpen)
+		// parameter<String> BAG_DataDir        := 'D:/SourceData/BAG';  //LAPTOP
+		// parameter<String> BAG_DataDir        := 'C:/SourceData/BAG';  //OVSRV09
+		// parameter<String> BAG_DataDir        := 'd:/SourceData/BAG';  //OVSRV06=D
+		// parameter<String> Redev_DataDir      := 'C:/SourceData/RSopen';                    //OVSRV09
+		// parameter<String> Redev_DataDir      := 'C:/GeoDMS/SourceData/RSopen';             //LAPTOP
+		// parameter<String> Redev_DataDir      := '%SourceDataDir%/RSopen';                  //OVSRV08
+		parameter<String> Redev_DataDir      := '%SourceDataDir%/RuimteScanner/SD/RSOpen'; //OVSRV08
+		// parameter<String> Redev_DataDir      := '%SourceDataDir%/RSOpen';                     //OVSRV06 (D:/SourceData/RSOpen)
 		// parameter<String> Redev_DataDir      := 'D:/SourceData/RSopen'; //OVSRV09=c OVSRV06=D
 		// parameter<String> Alt_DataDir        := '%SourceDataDir%';
 		// parameter<string> AHNDrive           := 'E:/SourceData/AHN';

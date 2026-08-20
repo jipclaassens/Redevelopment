@@ -25,7 +25,7 @@ cfg <- list()
 # logic as the first submission but a newer BAG source file, so the counts are about 5%
 # higher (net additions 972,611 against 923,895) while the composition is unchanged
 # (55.1% within the existing urban fabric in both).
-cfg$filedate <- "20260813"
+cfg$filedate <- "20260820"
 
 # Replication baseline: the vintage the first submission was estimated on. 04_validate.R
 # pins to this and must keep passing, so that any change in results is traceable to a
@@ -50,6 +50,14 @@ cfg$dir_project <- local({
 })
 cfg$file_perwijk <- function(fd = cfg$filedate)
   file.path(cfg$dir_project, "Data", sprintf("Analyse_PerWijk_%s.csv", fd))
+# Monthly series: totals per process, and the same totals restricted to objects inside the 2012
+# built-up contour. The pair gives the measured share of each process realised inside the contour,
+# which the neighbourhood export cannot provide.
+cfg$file_monthly <- function(fd = cfg$filedate)
+  file.path(cfg$dir_project, "Data", sprintf("Count_PerRedevType_PerVerslagMaand_%s.csv", fd))
+cfg$file_monthly_inside <- function(fd = cfg$filedate)
+  file.path(cfg$dir_project, "Data", sprintf("Count_BinnenBBG2012_PerVerslagMaand_%s.csv", fd))
+
 # Neighbourhood x year panel; the only source of the 2007 residual land value.
 cfg$file_perwijk_jaar <- file.path(cfg$dir_project, "Data", "Analyse_PerWijk_x_Jaar_20250318.csv")
 

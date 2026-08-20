@@ -5,11 +5,14 @@
 # GeoDMS now splits it on whether the object lay inside the built-up area at the start of the
 # observation period. Three delineations are exported so the choice can be defended:
 #
-#   augm      population centres 2011 UNION built-up area 2000   <- the one the paper uses
+#   bbg2012   built-up area contour 2012, Odijk et al. method   <- the one the paper uses
+#   augm      population centres 2011 UNION built-up area 2000    (the earlier stopgap)
 #   kern2011  CBS population centres 2011 only                    (right vintage, residential only)
 #   bbg2000   built-up area contour 2000 only                     (covers non-residential, too early)
 #
-# Neither single delineation works: bbg2000 predates the study start by twelve years, so land
+# The 2012 contour supersedes the union. It has the right vintage and covers both residential and
+# non-residential built-up land, so it needs no combination of sources. The three earlier variants
+# are retained as a sensitivity check: bbg2000 predates the study start by twelve years, so land
 # urbanised during the Vinex period counts as expansion; kern2011 has the right vintage but is
 # defined on population and excludes business parks and port areas, where much infill happens.
 
@@ -34,9 +37,11 @@ rhs <- "p_huurcorp + uai + p_beschermd + p_onbebouwd + construction_period"
 sensitivity <- function(wijk) {
   tot <- wijk[, sum(count_nieuwbouw)]
   variants <- list(
-    augm     = "count_nieuwbouw_infill",
+    bbg2012  = "count_nieuwbouw_infill",
+    augm     = "count_nieuwbouw_infill_augm2011",
     kern2011 = "count_nieuwbouw_infill_kern2011",
     bbg2000  = "count_nieuwbouw_infill_bbg2000")
+  variants <- variants[vapply(variants, function(v) v %chin% names(wijk), logical(1))]
   rbindlist(lapply(names(variants), function(v) {
     col <- variants[[v]]
     if (!col %in% names(wijk)) return(NULL)
@@ -46,19 +51,37 @@ sensitivity <- function(wijk) {
   }))
 }
 
-# Share of ALL net additions realised inside the existing urban fabric, under each contour.
-# Replacement, within-building and transformation are inside by construction; of new build,
-# only the infill part counts.
-fabric_share <- function(wijk, infill_col) {
-  s <- function(v) wijk[, sum(get(v))]
-  repl <- s("count_sn_nieuwbouw") - s("count_sn_sloop")
-  wib  <- s("count_toevoeging")   - s("count_onttrekking")
-  trf  <- s("count_transformatie_plus") - s("count_transformatie_min")
-  nb   <- s("count_nieuwbouw")
-  inf  <- s(infill_col)
-  total <- repl + wib + trf + nb
-  list(total = total, inside = repl + wib + trf + inf,
-       share = (repl + wib + trf + inf) / total)
+# Share of ALL net additions realised inside the built-up contour, MEASURED rather than assumed.
+#
+# The neighbourhood export splits only new construction, so a figure derived from it has to treat
+# replacement, within-building changes and transformation as inside the contour by construction.
+# That is an assumption, and Eric rightly questioned it: replacement can and does occur outside the
+# contour. The monthly export now carries every process counted inside the contour as well, so the
+# share can be measured. Both are reported, because the difference between them is itself the
+# answer to the question.
+read_monthly <- function(f) {
+  d <- fread(f)
+  cols <- setdiff(names(d), "Label")
+  as.list(colSums(d[, ..cols]))
+}
+net_of <- function(t) {
+  (t$SN_Nieuwbouw - t$SN_Sloop) + t$Nieuwbouw +
+    (t$toevoeging - t$Onttrekking) + (t$Transformatie_Plus - t$Transformatie_Min)
+}
+inside_measured <- function() {
+  fa <- cfg$file_monthly(); fb <- cfg$file_monthly_inside()
+  if (!file.exists(fa) || !file.exists(fb)) return(NULL)
+  a <- read_monthly(fa); b <- read_monthly(fb)
+  procs <- c(SN_Nieuwbouw = "Replacement: construction", SN_Sloop = "Replacement: demolition",
+             Nieuwbouw = "New build", toevoeging = "Within-building: additions",
+             Onttrekking = "Within-building: removals",
+             Transformatie_Plus = "Transformation: to residential",
+             Transformatie_Min = "Transformation: from residential")
+  per <- rbindlist(lapply(names(procs), function(k) data.table(
+    process = procs[[k]], total = a[[k]], inside = b[[k]], share = b[[k]] / a[[k]])))
+  net_all <- net_of(a); net_in <- net_of(b)
+  assumed <- net_all - (a$Nieuwbouw - b$Nieuwbouw)
+  list(per = per, net_all = net_all, net_in = net_in, assumed = assumed)
 }
 
 ## ---------------------------------------------------------------------------
@@ -70,10 +93,8 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
   rd_log("Infill share by delineation: %s",
          paste(sprintf("%s %.1f%%", sens$delineation, 100 * sens$infill_share), collapse = ", "))
 
-  fab <- rbindlist(lapply(
-    c(augm = "count_nieuwbouw_infill", kern2011 = "count_nieuwbouw_infill_kern2011",
-      bbg2000 = "count_nieuwbouw_infill_bbg2000"),
-    function(col) as.data.table(fabric_share(wijk, col))), idcol = "delineation")
+  ins <- inside_measured()
+  if (is.null(ins)) stop("Monthly series missing; cannot measure the inside share.")
 
   # Does splitting improve the fit, as reviewer 1 suggests? Compare the pooled new-build model
   # with the two separate ones, on the same specification.
@@ -100,18 +121,26 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
     "Reviewer 1, comments 1 and 4. The split is on whether the object lay inside the built-up",
     "area at the start of the observation period.", "",
     "## Sensitivity to the delineation", "",
-    "| Delineation | Infill | Expansion | Infill share of new build | Share of ALL net additions inside the existing fabric |",
-    "|---|---|---|---|---|",
-    sapply(seq_len(nrow(sens)), function(i) sprintf("| %s | %s | %s | %.1f%% | %.1f%% |",
-      c(augm = "Population centres 2011 + built-up area 2000 (used in the paper)",
+    "| Delineation | Infill | Expansion | Infill share of new build |",
+    "|---|---|---|---|",
+    sapply(seq_len(nrow(sens)), function(i) sprintf("| %s | %s | %s | %.1f%% |",
+      c(bbg2012  = "Built-up area contour 2012 (used in the paper)",
+        augm     = "Population centres 2011 + built-up area 2000",
         kern2011 = "Population centres 2011 only",
         bbg2000  = "Built-up area 2000 only")[sens$delineation[i]],
       format(sens$infill[i], big.mark = ","), format(sens$expansion[i], big.mark = ","),
-      100 * sens$infill_share[i],
-      100 * fab$share[match(sens$delineation[i], fab$delineation)])), "",
-    sprintf("Total net additions: %s.", format(fab$total[1], big.mark = ",")),
-    "Without the split, the share realised inside the existing fabric was reported as the sum of",
-    "replacement, within-building changes and transformation alone.", "",
+      100 * sens$infill_share[i])), "",
+    "## Share of each process realised inside the 2012 contour", "",
+    "| Process | Total | Inside the contour | Share |", "|---|---|---|---|",
+    ins$per[, sprintf("| %s | %s | %s | %.1f%% |", process, format(total, big.mark = ","),
+                      format(inside, big.mark = ","), 100 * share)], "",
+    sprintf("Measured across all processes, %s of %s net additions fall inside the contour, or %.1f%%.",
+            format(ins$net_in, big.mark = ","), format(ins$net_all, big.mark = ","),
+            100 * ins$net_in / ins$net_all),
+    sprintf(paste("Treating every process other than new build as inside the contour, as an analysis",
+                  "that splits only new construction must, would give %.1f%%. The difference of %s",
+                  "dwellings is redevelopment that takes place outside the built-up contour."),
+            100 * ins$assumed / ins$net_all, format(ins$assumed - ins$net_in, big.mark = ",")), "",
     "## Does the split improve the fit? (PPML, municipal fixed effects)", "",
     "| | New build (pooled) | Infill | Expansion |", "|---|---|---|---|",
     wide[, paste0("| ", term, " | ", do.call(paste, c(.SD, sep = " | ")), " |"), .SDcols = names(fits)],
@@ -125,6 +154,12 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
   rd_md_to_docx(f)
 
   cat("\n---- sensitivity ----\n"); print(sens)
-  cat("\n---- share inside the existing fabric ----\n"); print(fab)
+  cat("
+---- measured share inside the contour ----
+"); print(ins$per)
+  cat(sprintf("net inside %s of %s = %.1f%% (assumption-based: %.1f%%)
+",
+      format(ins$net_in, big.mark = ","), format(ins$net_all, big.mark = ","),
+      100 * ins$net_in / ins$net_all, 100 * ins$assumed / ins$net_all))
   cat("\n---- pseudo-R2 ----\n"); print(round(pr2, 3))
 }

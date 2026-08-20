@@ -38,6 +38,28 @@ identification, so it reaches both `p_onbebouwd` and `land_area` (the PPML expos
 | `e1eb6b5` | `geos_buffer_multi_polygon(..., 16b)` → `4b`, all five calls in `AdditionalOperations.dms` | Ported on Jip's instruction: he tested it and the output barely moves. Note for the methods section that the 10 m buffer is approximated with 4 segments per quarter circle |
 | — | `regios.dms`: `x_BeschermdeStadDorpgezichten` from `bp_overlay_polygon(geometry[rdc_cm], ...)` to `geos_overlay_polygon(geometry, ...)`, dropping the now-redundant `geometry_rd` | **Not from EconLogic** — both configurations still had the old form. Applied on Jip's instruction, for consistency with the BRT migration: the wijk and townscape boundaries were rounded to centimetres before the overlay. Feeds `opp_BeschermdeStadDorpgezichten` and therefore `p_beschermd`. Only `area` and `first_rel` are used outside the unit, so removing `geometry_rd` is safe |
 
+## Ported in the third pass (BAG selection, 19 August 2026)
+
+| Commit | What | Why it is a fix |
+|---|---|---|
+| `432808e` | `VolledigeBAG/panden/pand`: added `&& IsStudyArea` to `pand_selection_condition`, with the flag itself declared next to the other `src` attributes | The pand selection only tested the bounding box, so it kept 1,721 buildings whose centroid falls outside the Netherlands. RSopen applies `IsStudyArea` on the same source table, so the two configurations produced different pand domains: 24,442,587 here against 24,440,866 there. That is what made the shared, positional WP5 files unusable between the projects, and GeoDMS accepts such a file without any error as long as it is longer than the domain (ObjectVision/GeoDMS#1187) |
+
+One translation was needed, in the same spirit as the path translations above. This branch uses
+`BAG_Selection_Area := 'NL'`, main uses `'Nederland'`, and the flags in the VolledigeTabel are
+named `IsNederland`, `IsFriesland`, `IsUtrecht` and `IsNoord_Holland`. A literal port would have
+resolved to `IsNL` and broken the configuration, so the expression maps `'NL'` to `IsNederland`
+explicitly and keeps the generic `'Is'+<area>` branch for the other names. The `'AMS'` branch
+still uses the ad hoc municipal boundary, because no flag exists for it.
+
+Verified on this machine: `/SourceData/BAG/VolledigeBAG/panden/pand` now holds 24,440,866
+records, exactly the 1,721 fewer that the flag removes, and identical to what RSopen selects
+from the same table.
+
+Note that the vbo side still differs from RSopen, which filters vbo's on the bounding box and on
+`IsStudyArea` while this branch applies no filter for a nationwide run. That is 6,279 records on
+25,948,762. Not ported: it would drop objects from the analysis, which is a choice for the paper
+rather than a correction, and no shared cache depends on it today.
+
 ## Judgement calls — NOT ported, decide explicitly
 
 | Source | What | Assessment |
@@ -90,6 +112,12 @@ Note for the methods section: the window ends **October 2025**, not December. "B
    or bump `BRT_file_date`. Otherwise the GEOS migration has no effect and you silently keep the
    old boost geometry. EconLogic sidesteps this by writing `.mmd`, which renames the file; that
    change was not ported because it cannot be verified here.
+0b. **The pand domain shrank by 1,721 records**, so every cached file that runs positionally over
+   the pand selection is now one element too long. GeoDMS reads such a file without complaining
+   and silently ignores the surplus, which shifts every value after the first divergence. Delete
+   the WP5 files under `Vastgoed/VolledigeTabel_<BAG_file_date>/WP5/` if this branch ever reads
+   them, and rebuild the caches in point 1 below rather than reusing them.
+
 1. `Parameters/Use_Ontkoppelde_FinalMutations` is `TRUE`, so the chain **reads** a cached
    `FinalMutationTable_NL_<BAG_file_date>.mmd`. With the new date that file does not exist yet,
    and the typing rules changed, so the cache must be rebuilt:

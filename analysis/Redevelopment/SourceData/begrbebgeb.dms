@@ -30,6 +30,16 @@ container begenzing_bebouwd_gebied
 		attribute<shapes> grid   (NL_grid/domain) := poly2grid(shapes/geometry, NL_grid/domain);
 		attribute<bool>   is_bbg (NL_grid/domain) := isDefined(grid);
 	}
+
+	container BBG_2012 
+	:	StorageName     = "%Redev_DataDir%/RegioIndelingen/BegrenzingBebouwdGebied_2012.gpkg"
+	,	StorageType     = "gdal.vect"
+	,	StorageReadOnly = "True"
+	, 	Dialogdata      = "rdc"
+	{
+		attribute<Export_gpkg> grid   (NL_grid/domain) := poly2grid(Export_gpkg/geometry, NL_grid/domain);
+		attribute<bool>        is_bbg (NL_grid/domain) := isDefined(grid);
+	}
 	
 	container Bevolkingskern_2011
 	{

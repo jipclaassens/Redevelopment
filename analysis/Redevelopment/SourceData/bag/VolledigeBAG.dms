@@ -153,6 +153,7 @@ container VolledigeBAG : using = "classifications/BAG"
 			attribute<bool>                         IsMogelijkWoningCorporatiePand       := Read_IsMogelijkWoningCorporatiePand;
 			attribute<bool>                         Write_IsMogelijkWoningCorporatiePand := IsDefined(rlookup(id(.), Identify_StudentenPanden/second_rel)), StorageName = "=Result_FSS_dir + '/IsMogelijkWoningCorporatiePand.mmd'";
 			attribute<bool>                         Read_IsMogelijkWoningCorporatiePand  : StorageName = "=Result_FSS_dir + '/IsMogelijkWoningCorporatiePand.mmd'", StorageReadOnly = "true";
+			attribute<bool>                         IsStudyArea                          := =parameters/BAG_Selection_Area == 'AMS' ? 'IsDefined(impl/AMS_rel)' : parameters/BAG_Selection_Area == 'NL' ? 'IsNederland' : 'Is'+parameters/BAG_Selection_Area, Descr = "Ligt het pand in het geselecteerde gebied. NL gebruikt de vlag IsNederland uit de VolledigeTabel, AMS de ad-hoc gemeentegrens. Deze term houdt de pandenset gelijk aan die van RSopen en van de main-branch, zodat de gedeelde ontkoppelde bestanden uitwisselbaar blijven.";
 			
 			unit<uint32> Identify_StudentenPanden := point_in_all_polygons(/SourceData/EigendomStaat/Corporatiebezit_data/geometry, geometry);
 			unit<uint32> Select_StudentenPanden   := select_with_org_rel(IsDefined(rlookup(id(.), Identify_StudentenPanden/second_rel)))
@@ -183,7 +184,8 @@ container VolledigeBAG : using = "classifications/BAG"
 																						'&& lower_x < 300000.0 && lower_x > 0.0'
 																						'&& upper_x < 300000.0 && upper_x > 0.0'
 																						'&& lower_y < 620000.0 && lower_y > 300000.0'
-																						'&& upper_y < 620000.0 && upper_y > 300000.0'; //binnen NL
+																						'&& upper_y < 620000.0 && upper_y > 300000.0' //binnen NL
+																						'&& IsStudyArea';
 			}
 		}  
 			

@@ -201,6 +201,17 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 
 		//Zelfde reeks, maar alleen de objecten binnen de contour van 2012. Aandeel binnenstedelijk per
 		//proces = deze reeks gedeeld door Count_PerRedevType_PerVerslagMaand.
+		//IJkpunt voor de contour. De maandreeks telt Onveranderd niet mee (die heeft geen mutatiemaand),
+		maar juist die voorraad is nodig om te weten of ontwikkeling buiten de contour veel of weinig is:
+		//als x% van de staande voorraad buiten de contour ligt, is ontwikkeling buiten de contour bij
+		//ongeveer datzelfde percentage niets bijzonders, en pas daarboven een verschuiving naar buiten.
+		container Voorraad_x_BBG2012
+		{
+			parameter<uint32> Onveranderd_totaal := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd);
+			parameter<uint32> Onveranderd_binnen := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd && MakeDefined(Read_PerObject_Export/IsBinnenBBG2012, FALSE));
+			parameter<float64> Aandeel_binnen     := Onveranderd_binnen[float64] / Onveranderd_totaal[float64];
+		}
+
 		container Count_BinnenBBG2012_PerVerslagMaand :=
 			for_each_nedv(
 				Redev_ObjectTypes/name

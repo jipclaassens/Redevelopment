@@ -91,6 +91,17 @@ cfg$extra_vars <- c(
   avg_tt_100k_inw = "Travel time to 100k inhabitants (min)",
   avg_tt_500k_inw = "Travel time to 500k inhabitants (min)")
 
+## -- benchmark for the built-up contour -------------------------------------------
+# Share of the standing residential stock (type Onveranderd) that lies INSIDE the 2012 contour.
+# Read from GeoDMS, Analyse/Redev_obv_hele_bag/Voorraad_x_BBG2012/Aandeel_binnen, because the
+# monthly series cannot carry it: unchanged units have no mutation month. Refresh alongside the
+# export. Vintage 20260820: 6,542,427 of 7,126,659.
+#
+# It matters because a process being "outside the contour" is only meaningful against how much of
+# the stock is out there to begin with. Without it, 13% outside reads as small when it is in fact
+# well above the stock share.
+cfg$stock_inside_contour <- 0.9180216143356936
+
 ## -- estimation settings -------------------------------------------------------
 # Stata `reg ..., r` is HC1 (White with the n/(n-k) small-sample adjustment).
 # fixest's vcov = "hetero" applies the same adjustment by default, so the two match.

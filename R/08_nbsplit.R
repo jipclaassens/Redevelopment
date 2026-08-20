@@ -79,9 +79,14 @@ inside_measured <- function() {
              Transformatie_Min = "Transformation: from residential")
   per <- rbindlist(lapply(names(procs), function(k) data.table(
     process = procs[[k]], total = a[[k]], inside = b[[k]], share = b[[k]] / a[[k]])))
+  # Location quotient: how over- or under-represented a process is outside the contour, relative
+  # to where the standing stock sits. 1.0 means the process is distributed like the stock.
+  stock_out <- 1 - cfg$stock_inside_contour
+  per[, outside := 1 - share]
+  per[, lq := outside / stock_out]
   net_all <- net_of(a); net_in <- net_of(b)
   assumed <- net_all - (a$Nieuwbouw - b$Nieuwbouw)
-  list(per = per, net_all = net_all, net_in = net_in, assumed = assumed)
+  list(per = per, net_all = net_all, net_in = net_in, assumed = assumed, stock_out = stock_out)
 }
 
 ## ---------------------------------------------------------------------------
@@ -130,10 +135,16 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
         bbg2000  = "Built-up area 2000 only")[sens$delineation[i]],
       format(sens$infill[i], big.mark = ","), format(sens$expansion[i], big.mark = ","),
       100 * sens$infill_share[i])), "",
-    "## Share of each process realised inside the 2012 contour", "",
-    "| Process | Total | Inside the contour | Share |", "|---|---|---|---|",
-    ins$per[, sprintf("| %s | %s | %s | %.1f%% |", process, format(total, big.mark = ","),
-                      format(inside, big.mark = ","), 100 * share)], "",
+    "## Where each process sits relative to the 2012 contour", "",
+    sprintf(paste("The last column compares each process with the standing residential stock, of which",
+                  "%.1f%% lies outside the contour. A value above 1 means the process occurs outside",
+                  "the contour more often than the distribution of existing dwellings would imply."),
+            100 * ins$stock_out), "",
+    "| Process | Total | Inside | Inside (%) | Outside (%) | Relative to stock |",
+    "|---|---|---|---|---|---|",
+    ins$per[, sprintf("| %s | %s | %s | %.1f%% | %.1f%% | %.2f |", process,
+                      format(total, big.mark = ","), format(inside, big.mark = ","),
+                      100 * share, 100 * outside, lq)], "",
     sprintf("Measured across all processes, %s of %s net additions fall inside the contour, or %.1f%%.",
             format(ins$net_in, big.mark = ","), format(ins$net_all, big.mark = ","),
             100 * ins$net_in / ins$net_all),

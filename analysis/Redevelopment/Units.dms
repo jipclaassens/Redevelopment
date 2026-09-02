@@ -22,9 +22,9 @@ container units
 	unit<float64>   km2             := km * km;
 	// unit<float32>   mm              := 0.001f * m;
 	// unit<float32>   mm2             := mm * mm;
-	unit<float32>  	ha              := 10000.0 * m2;
+	unit<float64>  	ha              := 10000.0 * m2;
 	unit<float32>   woning_ha       := woning / ha;
-	unit<float32>   nrwonha         := nrwoningen / ha;
+	unit<float64>   nrwonha         := nrwoningen / ha;
 	unit<float32>   m2_woning       := m2 / Woning;
 	unit<float32>   m2_vbo          := m2 / verblijfsobject;
 	unit<float32>   m2_ha          := m2 / ha;

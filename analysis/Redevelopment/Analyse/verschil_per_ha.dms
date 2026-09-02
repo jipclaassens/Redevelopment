@@ -2,6 +2,13 @@ container DensificationPaper: using = "units;classifications/tijd"
 { 
 	unit<uint32> RegioUnit_NL := SourceData/RegioIndelingen/nederland;
 	
+	//Welke zonering onder de procesindeling ligt: de contour bebouwd gebied 2000 gecombineerd met de
+	//bodemgebruikskaart 2000. _ruw gebruikt die kaart zoals CBS hem levert en reproduceert daarmee de
+	//gepubliceerde tabel; gg_zones_bbg2000_begr2000 (zonder achtervoegsel) is de augmented variant, die
+	//bouwterrein 2000 terugzet op de klasse van 1996 en bbg2000_augm_100m_modus.tif nodig heeft. Een
+	//regel omzetten wisselt de hele reeks, zodat alle vier de periodes op dezelfde kaart blijven staan.
+	container gg_zones := SourceData/zones/gg_zones_bbg2000_begr2000_ruw;
+	
 	container totaal_per_jaar_to12 := 
 		for_each_nedv(
 			jaren00_12/name
@@ -61,41 +68,41 @@ container DensificationPaper: using = "units;classifications/tijd"
 		parameter<string>  year_string := string(year);
 		
 		attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := ='sum('+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+' , RegioUnit_NL/per_domain)';
-		attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_domain)';
-		attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_domain)';
-		attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green     ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_domain)';
-		attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens  ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_domain)';
-		attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey  ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_domain)';
-		attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := ='sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float32], RegioUnit_NL/per_domain)';
+		attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := ='sum(gg_zones/gg_3K_in_bbg/dens      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float64], RegioUnit_NL/per_domain)';
+		attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := ='sum(gg_zones/gg_3K_in_bbg/grey      ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float64], RegioUnit_NL/per_domain)';
+		attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := ='sum(gg_zones/gg_3K_in_bbg/green     ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float64], RegioUnit_NL/per_domain)';
+		attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := ='sum(gg_zones/gg_3K_buiten_bbg/dens  ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float64], RegioUnit_NL/per_domain)';
+		attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := ='sum(gg_zones/gg_3K_buiten_bbg/grey  ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float64], RegioUnit_NL/per_domain)';
+		attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := ='sum(gg_zones/gg_3K_buiten_bbg/green ? '+path+'/y'+string(year + 1)+' - '+path+'/y'+string(year)+'  : (0/0)[float64], RegioUnit_NL/per_domain)';
 		
-		attribute<float32>  Urban_Residential_Densification    (RegioUnit_NL) := (B_dens_nl) / totaal_nl;
-		attribute<float32>  Urban_Greyfield_development        (RegioUnit_NL) := (B_grey_nl) / totaal_nl;
-		attribute<float32>  Urban_Residential_Construction     (RegioUnit_NL) := (B_dens_nl + B_grey_nl + B_green_nl) / totaal_nl;
-		attribute<float32>  Non_Urban_Residential_Construction (RegioUnit_NL) := (N_dens_nl + N_grey_nl + N_green_nl) / totaal_nl;
+		attribute<float64>  Urban_Residential_Densification    (RegioUnit_NL) := (B_dens_nl) / totaal_nl;
+		attribute<float64>  Urban_Greyfield_development        (RegioUnit_NL) := (B_grey_nl) / totaal_nl;
+		attribute<float64>  Urban_Residential_Construction     (RegioUnit_NL) := (B_dens_nl + B_grey_nl + B_green_nl) / totaal_nl;
+		attribute<float64>  Non_Urban_Residential_Construction (RegioUnit_NL) := (N_dens_nl + N_grey_nl + N_green_nl) / totaal_nl;
 	}
 
 	unit<uint32> Results_per_year_to12 := jaren00_11
 	{
-		attribute<float32> totaal_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/totaal_nl')+')';
+		attribute<float64> totaal_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/totaal_nl')+')';
 		
-		attribute<float32> B_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_dens_nl')+')';
-		attribute<float32> B_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_grey_nl')+')';
-		attribute<float32> B_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_green_nl')+')';
-		attribute<float32> N_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_dens_nl')+')';
-		attribute<float32> N_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_grey_nl')+')';
-		attribute<float32> N_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_green_nl')+')';
+		attribute<float64> B_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_dens_nl')+')';
+		attribute<float64> B_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_grey_nl')+')';
+		attribute<float64> B_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/B_green_nl')+')';
+		attribute<float64> N_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_dens_nl')+')';
+		attribute<float64> N_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_grey_nl')+')';
+		attribute<float64> N_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_to2011/'+jaren00_11/name+'/N_green_nl')+')';
 	}
 	
 	unit<uint32> Results_per_year_from12  := JarenMin1
 	{
-		attribute<float32> totaal_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/totaal_nl')+')';
+		attribute<float64> totaal_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/totaal_nl')+')';
 		
-		attribute<float32> B_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_dens_nl')+')';
-		attribute<float32> B_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_grey_nl')+')';
-		attribute<float32> B_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_green_nl')+')';
-		attribute<float32> N_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_dens_nl')+')';
-		attribute<float32> N_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_grey_nl')+')';
-		attribute<float32> N_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_green_nl')+')';
+		attribute<float64> B_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_dens_nl')+')';
+		attribute<float64> B_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_grey_nl')+')';
+		attribute<float64> B_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/B_green_nl')+')';
+		attribute<float64> N_dens_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_dens_nl')+')';
+		attribute<float64> N_grey_nl                              := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_grey_nl')+')';
+		attribute<float64> N_green_nl                             := ='union_data(.,'+AsItemList('processes_per_year_from2012/'+JarenMin1/name+'/N_green_nl')+')';
 	}
 
 	attribute<nrwonha>  totaal_20002006   (NL_grid/domain)           := totaal_per_jaar_to12/Y2006 - totaal_per_jaar_to12/Y2000;
@@ -108,42 +115,170 @@ container DensificationPaper: using = "units;classifications/tijd"
 		container p2000_2006
 		{
 			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20002006, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens  ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey  ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens  ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey  ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20002006 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/dens  ? totaal_20002006 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/grey  ? totaal_20002006 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/green ? totaal_20002006 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/dens  ? totaal_20002006 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/grey  ? totaal_20002006 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/green ? totaal_20002006 : 0d, RegioUnit_NL/per_domain);
 		}
 		container p2006_2012
 		{
 			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20062012, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20062012 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/dens ? totaal_20062012 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/grey ? totaal_20062012 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/green ? totaal_20062012 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/dens ? totaal_20062012 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/grey ? totaal_20062012 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/green ? totaal_20062012 : 0d, RegioUnit_NL/per_domain);
 		}
 		container p2012_2018
 		{
 			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20122018, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20122018 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/dens ? totaal_20122018 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/grey ? totaal_20122018 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/green ? totaal_20122018 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/dens ? totaal_20122018 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/grey ? totaal_20122018 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/green ? totaal_20122018 : 0d, RegioUnit_NL/per_domain);
 		}
 		container p2018_2024
 		{
 			attribute<nrwonha>  totaal_nl   (RegioUnit_NL)  := sum(totaal_20182024, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/dens ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/grey ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_in_bbg/green ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/dens ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/grey ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
-			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(SourceData/zones/gg_zones_bbg2000_begr2000/gg_3K_buiten_bbg/green ? totaal_20182024 : 0f, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_dens_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/dens ? totaal_20182024 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_grey_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/grey ? totaal_20182024 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  B_green_nl  (RegioUnit_NL)  := sum(gg_zones/gg_3K_in_bbg/green ? totaal_20182024 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_dens_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/dens ? totaal_20182024 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_grey_nl   (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/grey ? totaal_20182024 : 0d, RegioUnit_NL/per_domain);
+			attribute<nrwonha>  N_green_nl  (RegioUnit_NL)  := sum(gg_zones/gg_3K_buiten_bbg/green ? totaal_20182024 : 0d, RegioUnit_NL/per_domain);
 		}
 	}
+
+	//Tabel 4-1: woningbouw per periode, uitgesplitst naar locatie (binnen/buiten de bebouwde kom) en proces
+	//(verdichting van bestaand woongebied, transformatie van voormalige werklocaties, bouwen in stedelijk of
+	//landelijk groen). De periodes lopen van stand tot stand, dus p2018_2024 is de toevoeging in de jaren
+	//2018 t/m 2023. De contour is in alle periodes die van 2000, zodat de reeks vergelijkbaar blijft en er
+	//geen onbekenden bijkomen; alleen de woningtelling wisselt bij 2012 van bron, van CBS-vierkanten naar BAG.
+	//
+	//Standaard staan alleen de twee BAG-periodes aan. De twee periodes daarvoor lezen
+	//cbs_vk100_<jaar>_vol.gpkg onder %SourceDataDir%/CBS/CBSVierkanten; staat die reeks op je machine, zet
+	//dan nrofrows op 4 en haal het commentaar weg bij de p2000_2006- en p2006_2012-regels in Perioden,
+	//Perioden_totalen en Tabel_kolommen/Wooneenheden. De volgorde van die regels bepaalt de rijvolgorde.
+	parameter<string> Export_Date := '20260901';
+
+	unit<uint8> Perioden : nrofrows = 2 //4 met de twee CBS-periodes erbij
+	{
+		attribute<string>  name    : [/*'p2000_2006','p2006_2012',*/'p2012_2018','p2018_2024'];
+		attribute<string>  label   : [/*'2000 t/m 2005','2006 t/m 2011',*/'2012 t/m 2017','2018 t/m 2023'];
+		attribute<string>  bron    : [/*'CBS vierkanten','CBS vierkanten',*/'BAG','BAG'];
+	}
+
+	unit<uint8> Cellen : nrofrows = 6
+	{
+		attribute<string>  attr      : ['B_dens_nl','B_grey_nl','B_green_nl','N_dens_nl','N_grey_nl','N_green_nl'];
+		attribute<string>  locatie   : ['Bebouwde kom','Bebouwde kom','Bebouwde kom','Buiten bebouwde kom','Buiten bebouwde kom','Buiten bebouwde kom'];
+		attribute<string>  proces    : ['Verdichting','Transformatie','Bouwen in stedelijk groen','Verdichting','Transformatie','Bouwen in landelijk groen'];
+		attribute<bool>    is_binnen : [TRUE,TRUE,TRUE,FALSE,FALSE,FALSE];
+	}
+
+	//De totalen staan bewust naast Perioden en niet erin. Perioden is het domein van de exporttabel;
+	//zware attributen daarin worden meegevalideerd op het moment dat de CSV wordt weggeschreven, en een
+	//BAG-berekening tijdens die commit loopt vast op "Cannot start ValidationAndCommit while doing
+	//ValidationAndCommit". Zo blijft Perioden een kale lijst labels.
+	container Perioden_totalen
+	{
+		attribute<float64> totaal (Perioden) := union_data(Perioden
+			// , TotalPerProcess/p2000_2006/totaal_nl[float64]
+			// , TotalPerProcess/p2006_2012/totaal_nl[float64]
+			, TotalPerProcess/p2012_2018/totaal_nl[float64]
+			, TotalPerProcess/p2018_2024/totaal_nl[float64]);
+		attribute<float64> binnen (Perioden) := union_data(Perioden
+			// , (TotalPerProcess/p2000_2006/B_dens_nl + TotalPerProcess/p2000_2006/B_grey_nl + TotalPerProcess/p2000_2006/B_green_nl)[float64]
+			// , (TotalPerProcess/p2006_2012/B_dens_nl + TotalPerProcess/p2006_2012/B_grey_nl + TotalPerProcess/p2006_2012/B_green_nl)[float64]
+			, (TotalPerProcess/p2012_2018/B_dens_nl + TotalPerProcess/p2012_2018/B_grey_nl + TotalPerProcess/p2012_2018/B_green_nl)[float64]
+			, (TotalPerProcess/p2018_2024/B_dens_nl + TotalPerProcess/p2018_2024/B_grey_nl + TotalPerProcess/p2018_2024/B_green_nl)[float64]);
+		attribute<float64> buiten (Perioden) := totaal - binnen;
+	}
+
+	//first_rel loopt het traagst: eerst de zes cellen van de eerste periode, dan die van de tweede.
+	unit<uint32> Tabel_rows := combine(Perioden, Cellen);
+
+	//Alle kolommen worden eerst hier berekend, buiten de opslagcontainer. GeoDMS begint de commit zodra het
+	//eerste item van die container wordt bijgewerkt, en alles wat op dat moment nog berekend moet worden
+	//loopt vast op "Cannot start ValidationAndCommit while doing ValidationAndCommit" en blijft leeg in de
+	//CSV. ExplicitSuppliers dwingt deze container af voordat de tabel wordt weggeschreven. De waarden staan
+	//zonder = uitgeschreven, zodat ook zichtbaar blijft welke cel bij welke rij hoort.
+	container Tabel_kolommen
+	{
+		attribute<uint32>  Volgnr          (Tabel_rows) := id(Tabel_rows);
+		attribute<string>  Periode         (Tabel_rows) := Perioden/label[Tabel_rows/first_rel];
+		attribute<string>  Locatie         (Tabel_rows) := Cellen/locatie[Tabel_rows/second_rel];
+		attribute<string>  Proces          (Tabel_rows) := Cellen/proces[Tabel_rows/second_rel];
+		attribute<float64> Wooneenheden    (Tabel_rows) := union_data(Tabel_rows
+			// //2000 t/m 2005
+			// , TotalPerProcess/p2000_2006/B_dens_nl[float64], TotalPerProcess/p2000_2006/B_grey_nl[float64], TotalPerProcess/p2000_2006/B_green_nl[float64], TotalPerProcess/p2000_2006/N_dens_nl[float64], TotalPerProcess/p2000_2006/N_grey_nl[float64], TotalPerProcess/p2000_2006/N_green_nl[float64]
+			// //2006 t/m 2011
+			// , TotalPerProcess/p2006_2012/B_dens_nl[float64], TotalPerProcess/p2006_2012/B_grey_nl[float64], TotalPerProcess/p2006_2012/B_green_nl[float64], TotalPerProcess/p2006_2012/N_dens_nl[float64], TotalPerProcess/p2006_2012/N_grey_nl[float64], TotalPerProcess/p2006_2012/N_green_nl[float64]
+			//2012 t/m 2017
+			, TotalPerProcess/p2012_2018/B_dens_nl[float64], TotalPerProcess/p2012_2018/B_grey_nl[float64], TotalPerProcess/p2012_2018/B_green_nl[float64], TotalPerProcess/p2012_2018/N_dens_nl[float64], TotalPerProcess/p2012_2018/N_grey_nl[float64], TotalPerProcess/p2012_2018/N_green_nl[float64]
+			//2018 t/m 2023
+			, TotalPerProcess/p2018_2024/B_dens_nl[float64], TotalPerProcess/p2018_2024/B_grey_nl[float64], TotalPerProcess/p2018_2024/B_green_nl[float64], TotalPerProcess/p2018_2024/N_dens_nl[float64], TotalPerProcess/p2018_2024/N_grey_nl[float64], TotalPerProcess/p2018_2024/N_green_nl[float64]);
+		attribute<float64> Totaal_periode  (Tabel_rows) := Perioden_totalen/totaal[Tabel_rows/first_rel];
+		attribute<float64> Aandeel_locatie (Tabel_rows) := (Cellen/is_binnen[Tabel_rows/second_rel] ? Perioden_totalen/binnen[Tabel_rows/first_rel] : Perioden_totalen/buiten[Tabel_rows/first_rel]) / Totaal_periode;
+		attribute<float64> Aandeel_proces  (Tabel_rows) := Wooneenheden / Totaal_periode;
+		attribute<string>  Bron            (Tabel_rows) := Perioden/bron[Tabel_rows/first_rel];
+	}
+
+	container Tabel_4_1
+	: StorageName = "='%LocalDataProjDir%/Output/DensificationPaper_Tabel_4_1_'+Export_Date+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	, ExplicitSuppliers = "Tabel_kolommen"
+	{
+		attribute<uint32>  Volgnr          (Tabel_rows) := Tabel_kolommen/Volgnr;
+		attribute<string>  Periode         (Tabel_rows) := Tabel_kolommen/Periode;
+		attribute<string>  Locatie         (Tabel_rows) := Tabel_kolommen/Locatie;
+		attribute<string>  Proces          (Tabel_rows) := Tabel_kolommen/Proces;
+		attribute<float64> Wooneenheden    (Tabel_rows) := Tabel_kolommen/Wooneenheden;
+		attribute<float64> Totaal_periode  (Tabel_rows) := Tabel_kolommen/Totaal_periode;
+		attribute<float64> Aandeel_locatie (Tabel_rows) := Tabel_kolommen/Aandeel_locatie;
+		attribute<float64> Aandeel_proces  (Tabel_rows) := Tabel_kolommen/Aandeel_proces;
+		attribute<string>  Bron            (Tabel_rows) := Tabel_kolommen/Bron;
+	}
+
+	//Woningvoorraad per 1 januari uit onze eigen BAG-keten, als ijking tegen de CBS-reeks (StatLine
+	//'Voorraad woningen'). CBS leidt die voorraad sinds 2012 zelf uit de BAG af, dus dit hoort vrijwel
+	//gelijk te lopen; nu ligt onze telling stelselmatig 400 a 630 woningen lager, ofwel 0,006%. Wijkt dat
+	//opeens af, dan is er iets in de voorraadselectie veranderd en kloppen de periodetotalen ook niet meer.
+	unit<uint8> Voorraadjaren : nrofrows = 14
+	{
+		attribute<string> jaar : ['2012','2013','2014','2015','2016','2017','2018','2019','2020','2021','2022','2023','2024','2025'];
+	}
+	container Voorraad_kolommen
+	{
+		attribute<string>  Jaar     (Voorraadjaren) := Voorraadjaren/jaar;
+		attribute<float64> Voorraad (Voorraadjaren) := union_data(Voorraadjaren
+			, sum_per_jaar_from12/Y2012[float64]
+			, sum_per_jaar_from12/Y2013[float64]
+			, sum_per_jaar_from12/Y2014[float64]
+			, sum_per_jaar_from12/Y2015[float64]
+			, sum_per_jaar_from12/Y2016[float64]
+			, sum_per_jaar_from12/Y2017[float64]
+			, sum_per_jaar_from12/Y2018[float64]
+			, sum_per_jaar_from12/Y2019[float64]
+			, sum_per_jaar_from12/Y2020[float64]
+			, sum_per_jaar_from12/Y2021[float64]
+			, sum_per_jaar_from12/Y2022[float64]
+			, sum_per_jaar_from12/Y2023[float64]
+			, sum_per_jaar_from12/Y2024[float64]
+			, sum_per_jaar_from12/Y2025[float64]);
+	}
+	container Voorraad_per_jaar
+	: StorageName = "='%LocalDataProjDir%/Output/DensificationPaper_Voorraad_per_jaar_'+Export_Date+'.csv'"
+	, StorageType = "gdalwrite.vect"
+	, ExplicitSuppliers = "Voorraad_kolommen"
+	{
+		attribute<string>  Jaar     (Voorraadjaren) := Voorraad_kolommen/Jaar;
+		attribute<float64> Voorraad (Voorraadjaren) := Voorraad_kolommen/Voorraad;
+	}
+
 }

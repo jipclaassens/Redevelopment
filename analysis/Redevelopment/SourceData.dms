@@ -155,6 +155,29 @@ container SourceData :  using = "units;geography;classifications"
  
  	container Zones : using = "/classifications/BBG"
 	{
+		//Zelfde contour als gg_zones_bbg2000_begr2000, maar met de bodemgebruikskaart 2000 zoals CBS hem
+		//levert, dus zonder de augmentatie die bouwterrein 2000 terugzet op de klasse van 1996. Twee redenen
+		//om die variant te bewaren: de gepubliceerde Tabel 4-1 is ermee gemaakt (de augmentatie kwam pas met
+		//145749a), en de augmented 100m-modus tif wordt afgeleid uit de 5m-reeks, die niet op elke machine
+		//staat. Bouwterrein valt in gg_3K onder grey, dus de augmentatie haalt bouwplaatsen uit
+		//'transformatie' en zet ze terug op wat er in 1996 lag, meestal groen.
+		container gg_zones_bbg2000_begr2000_ruw
+		{
+			container gg_3K_in_bbg := 
+				for_each_nedv( 
+					gg_3K/name
+					,'begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_100m_3k == gg_3K/V/' + gg_3K/name
+					,NL_grid/domain
+					,bool
+				);
+			container gg_3K_buiten_bbg := 
+				for_each_nedv(
+					gg_3K/name
+					,'!begenzing_bebouwd_gebied/BBG_2000/is_bbg && /SourceData/bestand_bodem_gebruik/bbg/dominant/bbg2000_100m_3k == gg_3K/V/' + gg_3K/name
+					,NL_grid/domain
+					,bool
+				);
+		}
 		container gg_zones_bbg2000_begr2000
 		{
 			container gg_3K_in_bbg := 

@@ -109,9 +109,11 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
 
   tot <- wijk[, sum(count_nieuwbouw)]
   del <- sprintf(
-    paste("Infill share of new build under the three delineations: %.1f%% for the union used here,",
+    paste("Infill share of new build under four delineations: %.1f%% for the built-up contour of 2012",
+          "used here, %.1f%% for the union of population centres 2011 and the built-up area of 2000,",
           "%.1f%% for population centres 2011 alone, %.1f%% for the built-up area boundary of 2000 alone."),
     100 * wijk[, sum(count_nieuwbouw_infill)] / tot,
+    100 * wijk[, sum(count_nieuwbouw_infill_augm2011)] / tot,
     100 * wijk[, sum(count_nieuwbouw_infill_kern2011)] / tot,
     100 * wijk[, sum(count_nieuwbouw_infill_bbg2000)] / tot)
 

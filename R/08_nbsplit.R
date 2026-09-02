@@ -78,7 +78,8 @@ inside_measured <- function() {
              Transformatie_Plus = "Transformation: to residential",
              Transformatie_Min = "Transformation: from residential")
   per <- rbindlist(lapply(names(procs), function(k) data.table(
-    process = procs[[k]], total = a[[k]], inside = b[[k]], share = b[[k]] / a[[k]])))
+    process = procs[[k]], total = a[[k]], inside = b[[k]],
+    outside_n = a[[k]] - b[[k]], share = b[[k]] / a[[k]])))
   # Location quotient: how over- or under-represented a process is outside the contour, relative
   # to where the standing stock sits. 1.0 means the process is distributed like the stock.
   stock_out <- 1 - cfg$stock_inside_contour
@@ -140,11 +141,23 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
                   "%.1f%% lies outside the contour. A value above 1 means the process occurs outside",
                   "the contour more often than the distribution of existing dwellings would imply."),
             100 * ins$stock_out), "",
-    "| Process | Total | Inside | Inside (%) | Outside (%) | Relative to stock |",
-    "|---|---|---|---|---|---|",
-    ins$per[, sprintf("| %s | %s | %s | %.1f%% | %.1f%% | %.2f |", process,
+    "| Process | Total | Inside | Outside | Inside (%) | Outside (%) | Relative to stock |",
+    "|---|---|---|---|---|---|---|",
+    ins$per[, sprintf("| %s | %s | %s | %s | %.1f%% | %.1f%% | %.2f |", process,
                       format(total, big.mark = ","), format(inside, big.mark = ","),
-                      100 * share, 100 * outside, lq)], "",
+                      format(outside_n, big.mark = ","), 100 * share, 100 * outside, lq)],
+    sprintf("| **All processes, net** | **%s** | **%s** | **%s** | **%.1f%%** | **%.1f%%** | |",
+            format(ins$net_all, big.mark = ","), format(ins$net_in, big.mark = ","),
+            format(ins$net_all - ins$net_in, big.mark = ","),
+            100 * ins$net_in / ins$net_all, 100 * (1 - ins$net_in / ins$net_all)), "",
+    "The relative column is informative about where a process concentrates, but not about how much",
+    "it contributes. Transformation is the clearest case: units converted out of residential use lie",
+    sprintf("outside the contour %.1f times as often as the standing stock, yet that concerns %s units,",
+            ins$per[process == "Transformation: from residential", lq],
+            format(ins$per[process == "Transformation: from residential", outside_n], big.mark = ",")),
+    sprintf("against %s for replacement construction at a ratio of only %.1f.",
+            format(ins$per[process == "Replacement: construction", outside_n], big.mark = ","),
+            ins$per[process == "Replacement: construction", lq]), "",
     sprintf("Measured across all processes, %s of %s net additions fall inside the contour, or %.1f%%.",
             format(ins$net_in, big.mark = ","), format(ins$net_all, big.mark = ","),
             100 * ins$net_in / ins$net_all),
@@ -158,6 +171,12 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
     paste0("| Observations | ", paste(format(ns, big.mark = ","), collapse = " | "), " |"),
     paste0("| Pseudo-R2 | ", paste(sprintf("%.3f", pr2), collapse = " | "), " |"), "",
     "Standard errors clustered on municipality. *** p<0.01, ** p<0.05, * p<0.1.")
+
+  fcsv <- file.path(cfg$dir_work, sprintf("nbsplit_bycontour_%s.csv", cfg$filedate))
+  fwrite(ins$per[, .(process, total, inside, outside_n,
+                     share_inside = share, share_outside = outside, lq,
+                     share_of_all_activity = total / sum(total))], fcsv)
+  rd_log("Written: %s", fcsv)
 
   f <- file.path(cfg$dir_work, sprintf("nbsplit_tables_%s.md", cfg$filedate))
   writeLines(md, f)

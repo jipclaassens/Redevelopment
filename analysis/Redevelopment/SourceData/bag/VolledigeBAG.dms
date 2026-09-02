@@ -126,23 +126,29 @@ container VolledigeBAG : using = "classifications/BAG"
 	{
 		unit<uint32> vbo_domein := vbos/vbo;
 		
-		unit<uint32> import
+		unit<uint32> ImportRaw
 		:	StorageName = "= Result_FSS_dir + '/pand.mmd'"
-		,	StorageReadOnly = "True"
+		,	StorageReadOnly = "True";
+		
+		unit<uint32> Import := ImportRaw
 		{
+			//De ruwe meta-kolommen komen uit de dictionary van de mmd en zijn hier via ImportRaw al
+			//zichtbaar; alleen de vertaling naar de statusklasse ontbreekt. Die kan niet in ImportRaw
+			//staan: een read-only mmd-holder mag geen eigen sub-items declareren. rlookup vergelijkt hoofdletter-
+			//gevoelig, anders dan ==, dus beide kanten gaan door lowercase.
+			attribute<pand_status> status_rel := rlookup(lowercase(meta/Status), lowercase(pand_status/label));
+			
 			// attribute<rdc_mm>                       geometry_mm (poly);
 			attribute<rdc>                          geometry (poly) := geometry_mm[rdc];
 			// attribute<string>                       identificatie;
 			// attribute<jaar>                         bouwjaar;
-
-			container meta := meta_src_template(., pand_status);
 		}
 		
 		unit<uint32> src := import
 		{
 			attribute<rdc>                          geometry (poly)              := import/geometry;
 			attribute<uint64>                       pand_bag_nr                  := uint64(identificatie);
-			attribute<classifications/bag/pand_status>   status_rel                   := import/meta/status_rel;
+			attribute<classifications/bag/pand_status>   status_rel                   := import/status_rel;
 			
 			attribute<m2>                           footprint                    := area(geometry, m2);
 			attribute<int32>                        begindatum                   := impl/begindatum0 < 19600101i ? impl/TIJDSTIPREGISTRATIE : impl/begindatum0;
@@ -232,30 +238,35 @@ container VolledigeBAG : using = "classifications/BAG"
 	container VBOs
 	{
 		//import the source BAG files
-		unit<uint32> import
+		unit<uint32> ImportRaw
 		:	StorageName = "= Result_FSS_dir + '/vbo.mmd'"
-		,	StorageReadOnly = "True"
+		,	StorageReadOnly = "True";
+		unit<uint32> import := ImportRaw
 		{
-			attribute<rdc_mm>                     geometry_mm;
+			//De ruwe meta-kolommen komen uit de dictionary van de mmd en zijn hier via ImportRaw al
+			//zichtbaar; alleen de vertaling naar de statusklasse ontbreekt. Die kan niet in ImportRaw
+			//staan: een read-only mmd-holder mag geen eigen sub-items declareren. rlookup vergelijkt hoofdletter-
+			//gevoelig, anders dan ==, dus beide kanten gaan door lowercase.
+			attribute<vbo_status> status_rel := rlookup(lowercase(meta/Status), lowercase(vbo_status/label));
+			
+			// attribute<rdc_mm>                     geometry_mm;
 			attribute<rdc>                        geometry  := geometry_mm[rdc];
-			attribute<string>                     identificatie;
-			attribute<int32>                      oppervlakte;
-			attribute<string>                     nummeraanduiding_id;
+			// attribute<string>                     identificatie;
+			// attribute<int32>                      oppervlakte;
+			// attribute<string>                     nummeraanduiding_id;
 			
-			unit<uint32> gerelateerdPand
-			{
-				attribute<string> identificatie;
-				attribute<string> pand_id;
-			}
+			// unit<uint32> gerelateerdPand
+			// {
+				// attribute<string> identificatie;
+				// attribute<string> pand_id;
+			// }
 			
-			container gebruiksdoelen :=
-				for_each_ndv(
-					vbo_gebruiksdoel/name
-					, import
-					, bool
-				);
-			
-			container meta := meta_src_template(., vbo_status);
+			// container gebruiksdoelen :=
+				// for_each_ndv(
+					// vbo_gebruiksdoel/name
+					// , import
+					// , bool
+				// );
 		}
 		
 		//enrich the source attributes, and prepare selection criteria.
@@ -279,7 +290,7 @@ container VolledigeBAG : using = "classifications/BAG"
 			
 			
 			
-			attribute<vbo_status>                 status_rel                := import/meta/status_rel;
+			attribute<vbo_status>                 status_rel                := import/status_rel;
 			attribute<panden/pand>                pand_rel                  := rlookup(pand_bag_nr, panden/pand/pand_bag_nr);
 			attribute<int32>                      begindatum                := import/meta/BEGINDATUM == 0i ? MaxDatum : import/meta/BEGINDATUM;
 			attribute<int32>                      einddatum                 := import/meta/EINDDATUM == 0i ? MaxDatum : import/meta/EINDDATUM;
@@ -431,24 +442,29 @@ container VolledigeBAG : using = "classifications/BAG"
 	container Standplaatsen
 	{
 		//import the source BAG files
-		unit<uint32> import
+		unit<uint32> ImportRaw
 		:	StorageName = "= Result_FSS_dir + '/standplaats.mmd'"
-		,	StorageReadOnly = "True"
+		,	StorageReadOnly = "True";
+		unit<uint32> import := ImportRaw
 		{
-			attribute<rdc_mm>                     geometry_mm (poly);
-			attribute<rdc>                        geometry    (poly) := geometry_mm[rdc];
-			attribute<string>                     identificatie;
-			attribute<string>                     nevenadres;
-			attribute<int32>                      nummeraanduiding_id;
+			//De ruwe meta-kolommen komen uit de dictionary van de mmd en zijn hier via ImportRaw al
+			//zichtbaar; alleen de vertaling naar de statusklasse ontbreekt. Die kan niet in ImportRaw
+			//staan: een read-only mmd-holder mag geen eigen sub-items declareren. rlookup vergelijkt hoofdletter-
+			//gevoelig, anders dan ==, dus beide kanten gaan door lowercase.
+			attribute<standplaats_status> status_rel := rlookup(lowercase(meta/Status), lowercase(standplaats_status/label));
 			
-			container meta := meta_src_template(., standplaats_status);
+			// attribute<rdc_mm>                     geometry_mm (poly);
+			attribute<rdc>                        geometry    (poly) := geometry_mm[rdc];
+			// attribute<string>                     identificatie;
+			// attribute<string>                     nevenadres;
+			// attribute<int32>                      nummeraanduiding_id;
 		}
 		
 		//enrich the source attributes, and prepare selection criteria.
 		unit<uint32> src := import
 		{
 			attribute<rdc>                        geometry (poly) := import/geometry;
-			attribute<standplaats_status>         status_rel      := import/meta/status_rel;
+			attribute<standplaats_status>         status_rel      := import/status_rel;
 			attribute<uint64>                     bag_nr          := uint64(identificatie);
 			attribute<int32>                      begindataum     := meta/begindatum;
 			
@@ -488,24 +504,29 @@ container VolledigeBAG : using = "classifications/BAG"
 	container Ligplaatsen
 	{
 		//import the source BAG files
-		unit<uint32> import
+		unit<uint32> ImportRaw
 		:	StorageName = "= Result_FSS_dir + '/ligplaats.mmd'"
-		,	StorageReadOnly = "True"
+		,	StorageReadOnly = "True";
+		unit<uint32> import := ImportRaw
 		{
-			attribute<rdc_mm>                     geometry_mm (poly);
-			attribute<rdc>                        geometry    (poly) := geometry_mm[rdc];
-			attribute<string>                     identificatie;
-			attribute<string>                     nevenadres;
-			attribute<int32>                      nummeraanduiding_id;
+			//De ruwe meta-kolommen komen uit de dictionary van de mmd en zijn hier via ImportRaw al
+			//zichtbaar; alleen de vertaling naar de statusklasse ontbreekt. Die kan niet in ImportRaw
+			//staan: een read-only mmd-holder mag geen eigen sub-items declareren. rlookup vergelijkt hoofdletter-
+			//gevoelig, anders dan ==, dus beide kanten gaan door lowercase.
+			attribute<ligplaats_status> status_rel := rlookup(lowercase(meta/Status), lowercase(ligplaats_status/label));
 			
-			container meta := meta_src_template(., ligplaats_status);
+			// attribute<rdc_mm>                     geometry_mm (poly);
+			attribute<rdc>                        geometry    (poly) := geometry_mm[rdc];
+			// attribute<string>                     identificatie;
+			// attribute<string>                     nevenadres;
+			// attribute<int32>                      nummeraanduiding_id;
 		}
 		
 		//enrich the source attributes, and prepare selection criteria.
 		unit<uint32> src := import
 		{
 			attribute<rdc>                        geometry (poly) := import/geometry;
-			attribute<ligplaats_status>         status_rel      := import/meta/status_rel;
+			attribute<ligplaats_status>         status_rel      := import/status_rel;
 			attribute<uint64>                     bag_nr          := uint64(identificatie);
 		}
 
@@ -515,26 +536,32 @@ container VolledigeBAG : using = "classifications/BAG"
 	container Nummeraanduiding
 	{
 		//import the source BAG files
-		unit<uint32> import
+		unit<uint32> ImportRaw
 		:	StorageName = "= Result_FSS_dir + '/Nummeraanduiding.mmd'"
-		,	StorageReadOnly = "True"
+		,	StorageReadOnly = "True";
+		unit<uint32> import := ImportRaw
 		{
-			attribute<string> identificatie;
-			attribute<int32>  huisnummer;
-			attribute<string> huisletter;
-			attribute<string> toevoeging;
-			attribute<string> postcode;
-			attribute<string> typeAdresseerbaarObject;
-			attribute<string> openbareruimte_id;
-			attribute<string> woonplaats_id;
-			container meta := meta_src_template(., nummeraanduiding_status);
+			//De ruwe meta-kolommen komen uit de dictionary van de mmd en zijn hier via ImportRaw al
+			//zichtbaar; alleen de vertaling naar de statusklasse ontbreekt. Die kan niet in ImportRaw
+			//staan: een read-only mmd-holder mag geen eigen sub-items declareren. rlookup vergelijkt hoofdletter-
+			//gevoelig, anders dan ==, dus beide kanten gaan door lowercase.
+			attribute<nummeraanduiding_status> status_rel := rlookup(lowercase(meta/Status), lowercase(nummeraanduiding_status/label));
+			
+			// attribute<string> identificatie;
+			// attribute<int32>  huisnummer;
+			// attribute<string> huisletter;
+			// attribute<string> toevoeging;
+			// attribute<string> postcode;
+			// attribute<string> typeAdresseerbaarObject;
+			// attribute<string> openbareruimte_id;
+			// attribute<string> woonplaats_id;
 		}
 		
 		unit<uint32> src := import
 		{
 			attribute<rdc>                             geometry                := rjoin(identificatie, VBOs/src/nummeraanduiding_id, VBOs/src/geometry);
 			attribute<string>                          postcode4               := substr(postcode, 0, 4);
-			attribute<nummeraanduiding_status>         status_rel              := import/meta/status_rel;
+			attribute<nummeraanduiding_status>         status_rel              := import/status_rel;
 		}
 		
 		unit<uint32> Nummeraanduiding := select_with_attr_by_org_rel(src, src/status_rel == nummeraanduiding_status/v/naamgeving_uitgegeven)

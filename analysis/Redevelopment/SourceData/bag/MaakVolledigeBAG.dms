@@ -525,7 +525,9 @@ container MaakVolledigeBAG : using = "classifications/BAG"
 		// end case parameters
 
 		attribute<string>     STATUS                 (domain);
-		attribute<statustype> status_rel             (domain) := rlookup(lowercase(STATUS), statustype/label);
+		//rlookup vergelijkt hoofdlettergevoelig, anders dan ==; de statuslabels beginnen met een hoofdletter,
+		//dus zonder lowercase aan beide kanten levert deze lookup voor elk record null.
+		attribute<statustype> status_rel             (domain) := rlookup(lowercase(STATUS), lowercase(statustype/label));
 
 		attribute<int32>      BEGINDATUM             (domain);
 		attribute<int32>      EINDDATUM              (domain);

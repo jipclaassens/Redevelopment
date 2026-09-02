@@ -1187,7 +1187,6 @@ container PrepBAG : using = "AdditionalClassifications"
 	
 	unit<uint32> Write_FinalMutationTable := ='union_unit('+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie')+')'
 	, StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.mmd'"
-	// , StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.fss'"
 	{
 		attribute<rdc>                      geometry              := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/geometry')+')';
 		attribute<rdc>                      pand_geometry (poly)  := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/pand_geometry')+')';
@@ -1203,12 +1202,14 @@ container PrepBAG : using = "AdditionalClassifications"
 		attribute<MutatieTypen_Uitgesloten> MutatieTypen_Uitgesloten_rel := ='union_data(.,'+AsItemList('Mutaties_Per_VerslagMaand/'+Verslagmaanden/label+'/SelectieMoment/IsMutatie/MutatieTypen_Uitgesloten_rel')+')';
 	}
 	
-	unit<uint32> Read_FinalMutationTable
+	unit<uint32> Read_FinalMutationTable_raw
 	: StorageName = "='%LocalDataProjDir%/Temp/FinalMutationTable_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.mmd'"
-	, StorageReadOnly = "true"
+	, StorageReadOnly = "true";
+	
+	unit<uint32> Read_FinalMutationTable := Read_FinalMutationTable_raw
 	{
-		attribute<uint64>                   vbo_bag_nr; // expliciet gedeclareerd: FinalMutationTable_ZonderCorrecties verwijst ernaar
-		attribute<WP4>                      pand_type; //kolom bestaat pas na regeneratie van de mmd (PandTypering_Mutaties)
+		// attribute<uint64>                   vbo_bag_nr; // expliciet gedeclareerd: FinalMutationTable_ZonderCorrecties verwijst ernaar
+		// attribute<WP4>                      pand_type; //kolom bestaat pas na regeneratie van de mmd (PandTypering_Mutaties)
 		attribute<MutatieTypen>             MutatieTypen_rel      := MutatieTypen_rel_src; //issue #22: C+/C- niet meer blind naar T/O gemapt; echte DirectInVoorraad-toevoegingen/-nieuwbouw worden nu aan de bron getypeerd (IDEN_T_1b, IDEN_N_3), de rest is administratief
 
 		attribute<MutatieTypen_All>         MutatieTypen_All_rel := switch(

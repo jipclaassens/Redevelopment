@@ -80,7 +80,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		unit<uint32> Onveranderd_Objecten           := PrepDomains/Onveranderd/domain;
 	}
 	
- 	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
+ 	unit<uint32> Write_PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
 	, StorageName = "='%LocalDataProjDir%/Temp/PerObject_Export_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.mmd'"
 	, using = "AdditionalClassifications"
 	{
@@ -96,7 +96,9 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
  
 	unit<uint32> Read_PerObject_Export
 	: StorageName = "='%LocalDataProjDir%/Temp/PerObject_Export_'+/Parameters/BAG_Selection_Area+'_'+Parameters/BAG_file_date+'.mmd'"
-	, StorageReadOnly = "true"
+	, StorageReadOnly = "true";
+	
+	unit<uint32> PerObject_Export := Read_PerObject_Export
 	, using = "AdditionalClassifications;classifications/tijd"
 	{
 		attribute<NL_grid/domain_25m> per_25m_rel := geometry[NL_grid/domain_25m];
@@ -207,8 +209,8 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		//ongeveer datzelfde percentage niets bijzonders, en pas daarboven een verschuiving naar buiten.
 		container Voorraad_x_BBG2012
 		{
-			parameter<uint32> Onveranderd_totaal := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd);
-			parameter<uint32> Onveranderd_binnen := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd && MakeDefined(Read_PerObject_Export/IsBinnenBBG2012, FALSE));
+			parameter<uint32> Onveranderd_totaal := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd);
+			parameter<uint32> Onveranderd_binnen := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Onveranderd && MakeDefined(PerObject_Export/IsBinnenBBG2012, FALSE));
 			parameter<float64> Aandeel_binnen     := Onveranderd_binnen[float64] / Onveranderd_totaal[float64];
 		}
 
@@ -271,7 +273,9 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 				, uint32   
 			)
 		{
-			attribute<string> Label (UrbanisationK) := UrbanisationK/label;
+			attribute<string> Label               (UrbanisationK) := UrbanisationK/label;
+			attribute<uint32> Nieuwbouw_infill    (UrbanisationK) := ='union_data(UrbanisationK, '+AsList('sum_uint32(type_class == Redev_ObjectTypes/v/Nieuwbouw && IsBinnenBBG2012 && UrbanisationK_rel == UrbanisationK/v/'+UrbanisationK/label+')', ',')+')';
+			attribute<uint32> Nieuwbouw_expansion (UrbanisationK) := ='union_data(UrbanisationK, '+AsList('sum_uint32(type_class == Redev_ObjectTypes/v/Nieuwbouw && not(IsBinnenBBG2012) && UrbanisationK_rel == UrbanisationK/v/'+UrbanisationK/label+')', ',')+')';
 		}
 		
 		container Count_OnGreyBrown_PerRedevType :=
@@ -361,6 +365,11 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	parameter<string> Export_Date := '20260820'; //today?
 	parameter<string> Export_Wijk := Export_Date, ExplicitSuppliers = "Analyse_PerWijk";
 	
+	//Drempels voor het dominante proces per wijk. Hier gezet zodat ze buiten de CSV-export blijven en in een
+	//gevoeligheidsanalyse in een keer aangepast kunnen worden.
+	parameter<uint32>  dom_min_events := 25;   //minder mutaties dan dit: te weinig om over te oordelen
+	parameter<float32> dom_min_margin := 0.1f; //voorsprong op het op een na grootste proces, in aandeel
+
 	unit<uint32> Analyse_PerWijk := RegioUnit_Wijk12
 	, using = "AdditionalClassifications"
 	, StorageName = "='%LocalDataProjDir%/Output/Analyse_PerWijk_'+Export_Date+'.csv'"
@@ -391,22 +400,71 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<float32>               avg_tt_100k_inw                := mean(/SourceData/Spatial_data/Jip/Reistijd_100k_inw_edit, per_NL_grid_domain);
 		attribute<float32>               avg_tt_500k_inw                := mean(/SourceData/Spatial_data/Jip/Reistijd_500k_inw_edit, per_NL_grid_domain);
 		     
-		attribute<uint32>                count_SN_Sloop                 := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_SN_Nieuwbouw             := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Nieuwbouw, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Nieuwbouw                := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw, Read_PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_SN_Sloop                 := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Sloop, PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_SN_Nieuwbouw             := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/SN_Nieuwbouw, PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Nieuwbouw                := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw, PerObject_Export/wijk12_rel);
 		
 		//Splitsing van nieuwbouw in infill en uitleg (reviewer 1, punt 1). Som van beide == count_Nieuwbouw. Hoofdvariant is de Begrenzing Bebouwd Gebied 2012 (methodiek Odijk et al.): een contour met de
 		//juiste peildatum, die zowel woongebied als bedrijventerrein omvat. Vervangt de eerdere unie van bevolkingskern 2011 en BBG 2000, die een noodgreep was omdat geen van beide alleen voldeed. MakeDefined vangt punten buiten het grid, anders telt zo'n object in geen van beide categorieen.
-		attribute<uint32>                count_Nieuwbouw_infill         := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw &&      MakeDefined(Read_PerObject_Export/IsBinnenBBG2012, FALSE) , Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Nieuwbouw_expansion      := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && not(MakeDefined(Read_PerObject_Export/IsBinnenBBG2012, FALSE)), Read_PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Nieuwbouw_infill         := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw &&      MakeDefined(PerObject_Export/IsBinnenBBG2012, FALSE) , PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Nieuwbouw_expansion      := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && not(MakeDefined(PerObject_Export/IsBinnenBBG2012, FALSE)), PerObject_Export/wijk12_rel);
 		//Gevoeligheid: dezelfde splitsing onder de drie eerdere contouren, zodat de keuze onderbouwd kan worden. Uitleg volgt telkens als count_Nieuwbouw minus de infill-kolom.
-		attribute<uint32>                count_Nieuwbouw_infill_bbg2000 := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && MakeDefined(Read_PerObject_Export/IsBinnenBBG2000, FALSE), Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Nieuwbouw_infill_kern2011:= sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && MakeDefined(Read_PerObject_Export/IsBinnenBBG2011, FALSE), Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Nieuwbouw_infill_augm2011:= sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && MakeDefined(Read_PerObject_Export/IsBinnenBBG2011_augm, FALSE), Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Toevoeging               := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Toevoeging, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Onttrekking              := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Transformatie_Plus       := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/transformatie_plus, Read_PerObject_Export/wijk12_rel);
-		attribute<uint32>                count_Transformatie_Min        := sum_uint32(Read_PerObject_Export/type_class == Redev_ObjectTypes/V/Transformatie_Min, Read_PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Nieuwbouw_infill_bbg2000 := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && MakeDefined(PerObject_Export/IsBinnenBBG2000, FALSE), PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Nieuwbouw_infill_kern2011:= sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && MakeDefined(PerObject_Export/IsBinnenBBG2011, FALSE), PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Nieuwbouw_infill_augm2011:= sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Nieuwbouw && MakeDefined(PerObject_Export/IsBinnenBBG2011_augm, FALSE), PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Toevoeging               := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Toevoeging, PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Onttrekking              := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Onttrekking, PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Transformatie_Plus       := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/transformatie_plus, PerObject_Export/wijk12_rel);
+		attribute<uint32>                count_Transformatie_Min        := sum_uint32(PerObject_Export/type_class == Redev_ObjectTypes/V/Transformatie_Min, PerObject_Export/wijk12_rel);
+		
+		attribute<uint32>                count_Replacement              := count_SN_Nieuwbouw, DisableStorage = "true";
+		attribute<uint32>                count_Infill                   := count_Nieuwbouw_infill, DisableStorage = "true";
+		attribute<uint32>                count_Expansion                := count_Nieuwbouw_expansion, DisableStorage = "true";
+		attribute<uint32>                count_Addition                 := count_Toevoeging, DisableStorage = "true";
+		attribute<uint32>                count_Transformation           := count_Transformatie_Plus, DisableStorage = "true";
+		
+		//Dominant ontwikkelingsproces per wijk (reviewer 1, punt 3; kaart naast de dichtheidsklassen in de
+		//supplementary material). Een wijk krijgt het proces met het grootste aandeel in de bruto toevoegingen,
+		//maar alleen als dat proces ten minste dom_min_margin voorligt op het op een na grootste. Zonder die
+		//drempel zou een verschil van een half procentpunt al een kleur bepalen. Wijken met minder dan
+		//dom_min_events mutaties krijgen TooFew, anders bepaalt de ruis in het landelijk gebied het kaartbeeld.
+		//Vergeleken worden de vijf toevoegende processen, dezelfde als de kolommen van Table 3.
+		attribute<uint32>                dom_total  := count_Replacement + count_Infill + count_Expansion + count_Addition + count_Transformation;
+
+		container Share_per_ObjectTypes_Saldi :=
+			for_each_nedv(
+				ObjectTypes_Saldi/name_engl
+				, 'dom_total == 0 ? 0f : float32(count_'+ObjectTypes_Saldi/name_engl+') / float32(dom_total)'
+				, .
+				, float32
+			)
+		{
+			//max_share heet bewust niet max_elem: dat is de naam van de functie die hier wordt aangeroepen,
+			//en een item met dezelfde naam in dezelfde scope maakt de naamresolutie afhankelijk van de volgorde.
+			attribute<float32>           max_share (..) := ='max_elem('+AsItemList(ObjectTypes_Saldi/name_engl)+')';
+			attribute<ObjectTypes_Saldi> Arg_Max  (..) := ='argmax_uint8('+AsItemList(ObjectTypes_Saldi/name_engl)+')'; 
+		}
+		
+		
+		attribute<float32> dom_second := max_elem(
+			  Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Replacement ? 0f : Share_per_ObjectTypes_Saldi/Replacement
+			, Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Infill ? 0f : Share_per_ObjectTypes_Saldi/Infill
+			, Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Expansion ? 0f : Share_per_ObjectTypes_Saldi/Expansion
+			, Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Addition ? 0f : Share_per_ObjectTypes_Saldi/Addition
+			, Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Transformation ? 0f : Share_per_ObjectTypes_Saldi/Transformation);
+
+		attribute<float32> dom_margin := Share_per_ObjectTypes_Saldi/max_share - dom_second;
+
+		attribute<DominantProcess> DominantProcess_rel :=
+			  dom_total  <  dom_min_events ? DominantProcess/V/TooFew
+			: dom_margin <  dom_min_margin ? DominantProcess/V/Mixed
+			: Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Replacement          ? DominantProcess/V/Replacement
+			: Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Infill               ? DominantProcess/V/Infill
+			: Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Expansion            ? DominantProcess/V/Expansion
+			: Share_per_ObjectTypes_Saldi/Arg_Max == ObjectTypes_Saldi/v/Addition             ? DominantProcess/V/WithinBuilding
+			                               : DominantProcess/V/Transformation;
+
+		attribute<string>  DominantProcess_name := DominantProcess/name[DominantProcess_rel];
 	}
 
 	#include<AdditionalClassifications.dms>

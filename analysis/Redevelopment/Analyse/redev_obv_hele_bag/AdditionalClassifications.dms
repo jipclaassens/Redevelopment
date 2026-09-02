@@ -23,16 +23,19 @@ container AdditionalClassifications : using = "classifications/tijd"
 	{
 		attribute<string> name         : ['High','Medium','Low'];
 	}
-	unit<uint8> ObjectTypes_Saldi : nrofrows = 4
+	unit<uint8> ObjectTypes_Saldi : nrofrows = 5
 	{
-		attribute<string> name         : ['SN','Nieuwbouw','Toevoeging','Transformatie'];
-		attribute<string> name_engl    : ['Replacement','NewBuilt','Addition','Transformation'];
+		attribute<string> name         : ['SN','Infill','Expansion','Toevoeging','Transformatie'];
+		attribute<string> name_engl    : ['Replacement','Infill','Expansion','Addition','Transformation'];
 		attribute<string> label        := name;
 		attribute<uint32> PenColor     := Brushcolor, DialogType = "PenColor";
-		attribute<uint32> BrushColor   : [rgb(112,48,160),rgb(237,125,49), rgb(112,173,71), rgb(118,113,113)] , DialogType = "BrushColor";
-		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+		//Infill en expansion krijgen twee tinten van dezelfde nieuwbouwkleur, donker voor infill en licht voor
+		//expansion, zodat de splitsing leesbaar blijft als onderverdeling van nieuwbouw. Gelijk aan DominantProcess.
+		attribute<uint32> BrushColor   : [rgb(112,48,160), rgb(169,77,14), rgb(245,184,142), rgb(112,173,71), rgb(118,113,113)] , DialogType = "BrushColor";
+		container V := for_each_nedv(name_engl, String(ID(.))+'[..]', void, .);
 	}
-	unit<uint32> ObjectTypes_Saldi_HML := combine(ObjectTypes_Saldi, HighMedLow)
+	
+/* 	unit<uint32> ObjectTypes_Saldi_HML := combine(ObjectTypes_Saldi, HighMedLow)
 	{
 		attribute<string> label        := name_engl;
 		attribute<string> ObjectTypes  := ObjectTypes_Saldi/name[first_rel];
@@ -69,7 +72,7 @@ container AdditionalClassifications : using = "classifications/tijd"
 		//NB  11, 63, 216
 		
 	}
-	
+ */	
 	
 	
 	
@@ -243,6 +246,27 @@ container AdditionalClassifications : using = "classifications/tijd"
 		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 	}
 	
+	//Dominant ontwikkelingsproces per wijk (reviewer 1, punt 3). De kleuren volgen Figure 2: replacement paars,
+	//nieuwbouw oranje, within-building groen, transformatie grijs. Nieuwbouw is gesplitst in twee tinten van
+	//dezelfde oranje, donker voor infill en licht voor expansion, zodat de splitsing herkenbaar blijft als een
+	//onderverdeling en niet als een los proces. Mixed en TooFew zijn neutraal grijs zodat ze niet meelezen.
+	unit<uint8> DominantProcess : nrofrows = 7
+	{
+		attribute<string> name  : ['Replacement','Infill','Expansion','WithinBuilding','Transformation','Mixed','TooFew'];
+		attribute<string> label : ['Replacement','New build: infill','New build: expansion','Within-building','Transformation','Mixed','Too few events'];
+		attribute<uint32> BrushColor : [
+			rgb(112, 48,160), //Replacement
+			rgb(169, 77, 14), //New build: infill
+			rgb(245,184,142), //New build: expansion
+			rgb(112,173, 71), //Within-building
+			rgb(118,113,113), //Transformation
+			rgb(217,217,217), //Mixed
+			rgb(245,245,245)  //Too few events
+		], DialogType = "BrushColor";
+
+		container V := for_each_nedv(name, String(ID(.))+'[..]', void, .);
+	}
+
 	// unit<uint32> Jaren := range(uint32, 2012,2023)
 	// {
 		// attribute<string> name := 'Y'+string(id(.));

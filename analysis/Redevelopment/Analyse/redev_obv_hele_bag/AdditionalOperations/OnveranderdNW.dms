@@ -1,0 +1,172 @@
+// Potentiele-site-vorming voor de ONVERANDERDE NIET-WOONVOORRAAD (2026-09-25).
+//
+// Doel: vergelijkingsgroep voor een apart stage-2-model 'herontwikkeling van niet-woonsites naar wonen'. Circa 29%
+// van de stedelijke SN-sites had vooraf alleen niet-woonpanden (alleen SN_Sloop_nw-rijen); die horen niet vergeleken
+// te worden met de woonvoorraad (Onv_), maar met onveranderde niet-woonpanden, geclusterd met dezelfde logica.
+//
+// Algoritme en parameters zijn EXACT die van AdditionalOperations/Onveranderd (v2d, 2026-07-18; zie de kop daar voor
+// onderbouwing, validatie en de gemeten valkuilen): 10m-buffer (parameters/big_inflate_m), knip op weg/spoor
+// (TiledNonWegSpoor), multiparts exploderen, eigen deel = deel met >= 50% van het eigen pandoppervlak, pand-graaf
+// rechtstreeks uit de deel x pand-overlay, connected_parts, gepartitioneerde site-union. De units OnveranderdPanden
+// t/m Union_with_original_geometry zijn tekstueel gelijk aan Onveranderd.dms; een diff toont alleen de invoer (Src),
+// de prefix OnvNW_ en het exportdomein Objecten. Een template (1 definitie, 2 instanties) is op termijn schoner:
+// dan lopen beide sets gegarandeerd gelijk, ook bij een parameter- of adjacency-variant. Niet nu gedaan omdat
+// Onveranderd.dms elders in bewerking is.
+//
+// GEMENGDE PANDEN (woon- en niet-woon-VBO's in 1 pand): woon gaat voor, op pandniveau. Een pand met >= 1 onveranderde
+// woon-VBO zit al in de woonset (Onveranderd/OnveranderdPanden) en doet hier NIET mee; geen pand kan dus in zowel een
+// Onv_- als een OnvNW_-site vallen. De onveranderde niet-woon-VBO's van zo'n pand volgen het pand naar zijn Onv_-site
+// en worden als Onveranderd_NW getypeerd (VBO-functie), analoog aan SN, waar de S_nw-VBO's van een gemengd gesloopt pand
+// de SN-site delen met de S-VBO's. Gevolg: een OnvNW_-site is per constructie zuiver niet-woon (tegenhanger van een
+// SN-site met alleen SN_Sloop_nw-incumbents); een Onv_-site met Onveranderd_NW-rijen is de tegenhanger van een gemengde
+// SN-site. Met GemengdPand_NaarOnvSite = FALSE blijven die VBO's buiten de export (Onv_-sites dan ongewijzigd).
+// Afhankelijkheid van Onveranderd.dms: alleen OnveranderdPanden/values en Result/{part_rel, Site_ID, site_size,
+// site_sum_footprint, geometry}.
+//
+// Controle 2026-09-25 (GeoDMS 20.8.0.m, nog niet in een landelijke run): meta-check in een kopie van de volledige
+// configuratie (incl. Onveranderd_NW in FinalDomains/PerObject_Export); synthetische testset (spoorknip, 10m-adjacency,
+// gemengd pand, woonpand tussen niet-woonpanden, pand op spoorvlak); echte data in een box rond Utrecht: 2.230 zuivere
+// niet-woonpanden -> 1.090 sites (mediaan 1.919 m2) in ~4 s, tegen ~101 s voor de 49.871 woonpanden daar.
+// Omvang NL (BAG 20260710): 485.738 onveranderde niet-woon-VBO's in 369.163 panden, waarvan 71.288 gemengd
+// (109.553 VBO's) en 297.875 zuiver niet-woon (5,9% van de 5.079.585 woonpanden; gem. 992 vs 102 m2 voetafdruk).
+container OnveranderdNW
+{
+	parameter<bool> GemengdPand_NaarOnvSite := TRUE
+	, Descr = "TRUE: onveranderde niet-woon-VBO's in een gemengd pand komen in Objecten mee met de Onv_-site van dat pand (analoog aan S_nw in SN). FALSE: alleen VBO's in zuivere niet-woonpanden (OnvNW_-sites).";
+
+	// 1 rij per onveranderde niet-woon-VBO (excl. overige gebruiksfunctie, zie PrepBAG), aangevuld met de pandvelden
+	// die Onveranderd_NietWoon/uq mist; afgeleid zoals Onveranderd_Woon/uq dat doet (last per VBO)
+	unit<uint32> AlleNW := PrepBAG/BAG_Tabel/Onveranderd_NietWoon/uq
+	{
+		attribute<uint64> pand_bag_nr     := last(PrepBAG/BAG_Tabel/pand_bag_nr[PrepBAG/BAG_Tabel/Onveranderd_NietWoon/org_rel], PrepBAG/BAG_Tabel/Onveranderd_NietWoon/uq_rel);
+		attribute<string> pand_docnum     := last(PrepBAG/BAG_Tabel/pand_docnum[PrepBAG/BAG_Tabel/Onveranderd_NietWoon/org_rel], PrepBAG/BAG_Tabel/Onveranderd_NietWoon/uq_rel);
+		attribute<string> vbo_docnum      := last(PrepBAG/BAG_Tabel/vbo_docnum[PrepBAG/BAG_Tabel/Onveranderd_NietWoon/org_rel], PrepBAG/BAG_Tabel/Onveranderd_NietWoon/uq_rel);
+		// zelfde SD-lookup op de filedatum-stand als Onveranderd_Woon/uq/wp4_rel (voor zuivere niet-woonpanden meestal null)
+		attribute<WP4>    wp4_rel         := /SourceData/Vastgoed/BAG/OpFileDatum/pand/WP4_rel[rlookup(pand_bag_nr, /SourceData/Vastgoed/BAG/OpFileDatum/pand/pand_bag_nr)];
+		// gemengd pand = pand met ook >= 1 onveranderde woon-VBO, d.w.z. een pand uit de woonset
+		attribute<bool>   in_gemengd_pand := IsDefined(rlookup(pand_bag_nr, AdditionalOperations/Onveranderd/OnveranderdPanden/values));
+	}
+
+	// invoer van de site-vorming: 1 rij per onveranderde niet-woon-VBO in een ZUIVER niet-woonpand
+	unit<uint32> Src := select_with_org_rel(not(AlleNW/in_gemengd_pand))
+	{
+		attribute<uint64>            pand_bag_nr          := AlleNW/pand_bag_nr[org_rel];
+		attribute<rdc>               pand_geometry (poly) := AlleNW/pand_geometry[org_rel];
+		attribute<OnveranderdPanden> pand_rel             := rlookup(pand_bag_nr, OnveranderdPanden/values);
+		attribute<Result>            Site_rel             := Result/part_rel[pand_rel];
+	}
+
+	// ---- vanaf hier tekstueel gelijk aan Onveranderd.dms (behalve de Site_ID-prefix) ----
+	unit<uint32> OnveranderdPanden := unique(Src/pand_bag_nr)
+	{
+		attribute<uint64> pand_bag_nr      := values;
+		attribute<Src>    Src_rel          := rlookup(pand_bag_nr, Src/pand_bag_nr);
+		attribute<rdc>    geometry  (poly) := Src/pand_geometry[Src_rel];
+		attribute<m2>     area_pand        := area(geometry, m2);
+
+		//buffer om de panden heen zodat aangrenzende voorraadpanden samenclusteren (zelfde parameter als SN)
+		attribute<rdc>    inflate   (poly) := geos_buffer_multi_polygon(geometry, parameters/big_inflate_m[float64], 4b);
+
+		//buffers geknipt op weg/spoor (exact de SN-expressie; TiledNonWegSpoor = niet-weg-multipolygon per tile)
+		unit<uint32> PandenBuffer_x_WegSpoor := geos_overlay_polygon(inflate, SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+	}
+
+	//multiparts exploderen: losse aaneengesloten delen van de geknipte buffers (vgl. SN, daar via split_union).
+	//LET OP: polygon_rel van geos_split_polygon is TILE-LOKAAL (max 65535) en dus NIET bruikbaar als
+	//bronrij-relatie; de deel->pand-relatie wordt daarom hieronder geometrisch gelegd.
+	unit<uint32> PandenBuffer_x_WegSpoor_Split := geos_split_polygon(OnveranderdPanden/PandenBuffer_x_WegSpoor/geometry);
+
+	//welke bufferdelen raken welk pand (first_rel -> Split, second_rel -> OnveranderdPanden, geometry = intersectie)
+	unit<uint32> PandenBuffer_Minus_WegSpoor_x_Panden := geos_overlay_polygon(PandenBuffer_x_WegSpoor_Split/geometry, OnveranderdPanden/geometry);
+
+	//de opgeschoonde bufferdelen (vgl. SN/Cleaned): een (deel, pand)-paar telt als het deel het pand
+	//vrijwel geheel bevat (intersectie >= 50% van het pandoppervlak); overkant-van-de-weg-reepjes vallen af
+	unit<uint32> Cleaned := select_with_org_rel(
+		area(PandenBuffer_Minus_WegSpoor_x_Panden/geometry, m2) >= 0.5d * OnveranderdPanden/area_pand[PandenBuffer_Minus_WegSpoor_x_Panden/second_rel])
+	{
+		attribute<PandenBuffer_x_WegSpoor_Split> deel_rel        := PandenBuffer_Minus_WegSpoor_x_Panden/first_rel[org_rel];
+		attribute<OnveranderdPanden>             pand_rel        := PandenBuffer_Minus_WegSpoor_x_Panden/second_rel[org_rel];
+		attribute<rdc>                           geometry (poly) := PandenBuffer_x_WegSpoor_Split/geometry[deel_rel];
+	}
+
+	//per bufferdeel het Cleaned-record van zijn eigenaar (delen zonder eigenaar — overkant-reepjes — blijven
+	//null en doen niet mee); bij meerdere eigenaren pakt invert er een: voor de graaf volstaat dat, de
+	//overige eigenaren zitten via hun eigen (deel, pand)-records toch in dezelfde component
+	attribute<Cleaned> Cleaned_rel (PandenBuffer_x_WegSpoor_Split) := invert(Cleaned/deel_rel);
+
+	//de pand-graaf: pand p (eigenaar van deel d) - pand q dat d raakt; rechtstreeks uit de overlay hierboven
+	unit<uint32> BuurPandParen := select_with_org_rel(IsDefined(Cleaned_rel[PandenBuffer_Minus_WegSpoor_x_Panden/first_rel]))
+	{
+		attribute<OnveranderdPanden> pand_F1 := Cleaned/pand_rel[Cleaned_rel[PandenBuffer_Minus_WegSpoor_x_Panden/first_rel[org_rel]]];
+		attribute<OnveranderdPanden> pand_F2 := PandenBuffer_Minus_WegSpoor_x_Panden/second_rel[org_rel];
+	}
+
+	//EINDRESULTAAT (vgl. SN/Result en Onveranderd/Result): elke samenhangende groep niet-woonpanden is een
+	//potentiele site. Subitem part_rel (OnveranderdPanden) relateert elk pand aan zijn site; per VBO loopt de
+	//koppeling via Src/Site_rel (zuivere niet-woonpanden) of Objecten hieronder (exportdomein).
+	unit<uint32> Result := connected_parts(BuurPandParen/pand_F1, BuurPandParen/pand_F2)
+	{
+		attribute<string> Site_ID            := 'OnvNW_'+string(id(.));
+
+		attribute<rdc>    geometry    (poly) := geos_union_polygon(Union_with_original_geometry/geometry, Union_with_original_geometry/site_rel);
+		attribute<m2>     site_size          := area(geometry, m2);
+		attribute<m2>     site_sum_footprint := sum(OnveranderdPanden/area_pand, part_rel);
+		attribute<uint32> n_panden           := pcount(part_rel);
+		attribute<uint32> n_vbos             := pcount(Src/Site_rel);
+	}
+
+	//invoer voor de gepartitioneerde site-union: de opgeschoonde bufferdelen plus de originele
+	//pandgeometrieen (vgl. SN/Union_with_original_geometry)
+	unit<uint32> Union_with_original_geometry := union_unit(Cleaned, OnveranderdPanden)
+	{
+		attribute<rdc>    geometry (poly) := union_data(., Cleaned/geometry, OnveranderdPanden/geometry);
+		attribute<Result> site_rel        := union_data(., Result/part_rel[Cleaned/pand_rel], Result/part_rel);
+	}
+	// ---- einde gelijk aan Onveranderd.dms ----
+
+	//EXPORTDOMEIN (vgl. PrepDomains/Onveranderd/domain): 1 rij per onveranderde niet-woon-VBO met precies de attributen
+	//die PerObject_Export van elke FinalDomains/<type>_Objecten leest. Zuiver niet-woonpand -> OnvNW_-site; gemengd pand
+	//-> de Onv_-site van dat pand. Fallback = eigen pand (zoals bij Onveranderd), met een prefix die de pandsoort volgt.
+	unit<uint32> Objecten := select_with_org_rel(not(AlleNW/in_gemengd_pand) || GemengdPand_NaarOnvSite)
+	, DialogData = "vbo_geometry"
+	, DialogType = "map"
+	{
+		attribute<rdc>    vbo_geometry           := AlleNW/vbo_geometry[org_rel];
+		attribute<rdc>    pand_geometry   (poly) := AlleNW/pand_geometry[org_rel];
+		attribute<uint64> vbo_bag_nr             := AlleNW/vbo_bag_nr[org_rel];
+		attribute<uint64> pand_bag_nr            := AlleNW/pand_bag_nr[org_rel];
+		attribute<string> pand_docnum            := AlleNW/pand_docnum[org_rel];
+		attribute<string> vbo_docnum             := AlleNW/vbo_docnum[org_rel];
+		attribute<int32>  MutatieMaand           := AlleNW/MutatieMaand[org_rel];
+		attribute<int32>  vbo_oppervlakte        := AlleNW/vbo_oppervlakte[org_rel];
+		attribute<Yr>     pand_bouwjaar          := AlleNW/pand_bouwjaar[org_rel];
+		attribute<WP4>    wp4_rel                := AlleNW/wp4_rel[org_rel];
+		attribute<bool>   in_gemengd_pand        := AlleNW/in_gemengd_pand[org_rel];
+
+		//site-relaties: per rij is hooguit een van beide gedefinieerd
+		attribute<Result>                                  OnvNW_Site_rel := Result/part_rel[rlookup(pand_bag_nr, OnveranderdPanden/values)];
+		attribute<AdditionalOperations/Onveranderd/Result> Onv_Site_rel   := AdditionalOperations/Onveranderd/Result/part_rel[rlookup(pand_bag_nr, AdditionalOperations/Onveranderd/OnveranderdPanden/values)];
+
+		attribute<string> Site_ID                := MakeDefined(Result/Site_ID[OnvNW_Site_rel], MakeDefined(AdditionalOperations/Onveranderd/Result/Site_ID[Onv_Site_rel], (in_gemengd_pand ? 'Onv_pand_nw_' : 'OnvNW_pand_')+string(id(.))));
+		attribute<m2>     site_size              := MakeDefined(Result/site_size[OnvNW_Site_rel], MakeDefined(AdditionalOperations/Onveranderd/Result/site_size[Onv_Site_rel], area(pand_geometry, m2)));
+		attribute<m2>     site_sum_footprint     := MakeDefined(Result/site_sum_footprint[OnvNW_Site_rel], MakeDefined(AdditionalOperations/Onveranderd/Result/site_sum_footprint[Onv_Site_rel], area(pand_geometry, m2)));
+		attribute<rdc>    site_geometry   (poly) := recollect_by_cond(in_gemengd_pand, Gemengd/site_geometry, Result/geometry[OnvNW_Site_rel]);
+
+		unit<uint32> Gemengd := select_with_org_rel(in_gemengd_pand)
+		{
+			attribute<rdc> site_geometry (poly) := AdditionalOperations/Onveranderd/Result/geometry[../Onv_Site_rel[org_rel]];
+		}
+	}
+
+	//diagnosetellingen (reactiveren bij een landelijke run; vgl. Onveranderd/DiagnoseTellingen)
+	// parameter<string> DiagnoseTellingen := 'nw_vbos;'+string(#AlleNW)
+	// 	+';nw_vbos_gemengd_pand;'+string(sum_uint32(AlleNW/in_gemengd_pand))
+	// 	+';panden;'+string(#OnveranderdPanden)
+	// 	+';delen;'+string(#PandenBuffer_x_WegSpoor_Split)
+	// 	+';delen_x_panden;'+string(#PandenBuffer_Minus_WegSpoor_x_Panden)
+	// 	+';cleaned;'+string(#Cleaned)
+	// 	+';paren;'+string(#BuurPandParen)
+	// 	+';sites;'+string(#Result)
+	// , StorageName = "%LocalDataProjDir%/Temp/OnveranderdNWSites_DiagnoseTellingen.csv"
+	// , StorageType = "str";
+}

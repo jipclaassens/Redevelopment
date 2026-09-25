@@ -1,0 +1,335 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Niet-woonwaardering, opschoning vloeroppervlak en pandkenmerken per object, voor PerObject_Export.
+//
+// Port van de RuimteScanner-aanpak (RSopen_NL2120, #674 verwerving niet-woningen, #700 vloeroppervlak, #701 sloopkosten)
+// van gridcel naar object. RS rekent per 25m-cel met een gemiddelde woning en verdeelt het niet-woonvloeroppervlak
+// van een cel met vaste fracties per gebruiksdoel over hal en overige utiliteit. Die fracties zijn in RS zelf gemeten
+// met een fysiek criterium per verblijfsobject (groter dan 1.000 m2 en vloer onder 1,5 x de voetafdruk van het pand);
+// per object passen we dat criterium dus rechtstreeks toe in plaats van het gemiddelde per gebruiksdoel.
+//
+// Onderdelen:
+// - Pand: voetafdruk (laatste voorraadversie), AHN-hoogte (PHN) en aantal woningen per peildatum, over de hele BAG-historie.
+// - Vbo: gebruiksdoel (CBS-enkelvoudig) van de laatste voorraadversie van elk verblijfsobject.
+// - Schoon_T: RS-regels voor het vloeroppervlak (BAG.dms #700) + hal/overig/woon-klasse.
+// - Kalibratie_T: verhouding niet-woonprijs / woning-WOZ per klasse, zo gekozen dat het vloer-gewogen landelijke
+//   gemiddelde van de niet-woonvoorraad op 1-1-2023 uitkomt op de RS-prijsniveaus (hal 600, overig 1.400 euro/m2, 2023).
+// - PerObject_T: alles per object; productie-instantie PerObject op PerObject_Export.
+//
+// Opname: #include<NietWoonWaardering.dms> in redev_obv_hele_bag.dms, naast #include<AdditionalOperations.dms>.
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container NietWoonWaardering : using = "units;geography;classifications/bag"
+{
+	container Instellingen
+	: Descr = "RS-waarden, per object toegepast. Bron per regel in de Descr; RS = RSopen_NL2120, branch NL2120."
+	{
+		parameter<float64> MaxVoetafdrukFactorWoon := 5d
+		, Descr = "Woon-vbo groter dan dit veelvoud van de voetafdruk van zijn pand krijgt geen oppervlak (NA). RS SourceData/Vastgoed/BAG.dms oppervlakte_trunc_TooBigWoon1 (#700: alleen woonfuncties).";
+		parameter<float64> MaxOppervlakWoon        := 500d
+		, Descr = "Woon-vbo boven deze m2 wordt hierop afgekapt. RS ModelParameters/Wonen/VBO_opp_truncation_upper; ook /Parameters/VBO_opp_truncation van deze config.";
+		parameter<float64> BouwlaagHoogteNietWoon  := 300d
+		, Descr = "cm per bouwlaag bij het omrekenen van pandhoogte naar bouwlagen voor niet-woon. RS ModelParameters/Advanced/VBO_opp_LaaghoogteNietWoon.";
+		parameter<float64> TolerantieNietWoon      := 2d
+		, Descr = "Een niet-woon-vbo mag tot dit veelvoud van wat fysiek in het pand past (voetafdruk x bouwlagen uit hoogte). RS ModelParameters/Advanced/VBO_opp_TolerantieNietWoon.";
+		parameter<float64> MaxBouwlagenNietWoon    := 45d
+		, Descr = "Absolute bovengrens niet-woon: voetafdruk x 45. In RS een grens per cel (NietWoningen_MaxBouwlagenPerCel, de Maastoren heeft 44 bruikbare lagen); hier per object, en de enige grens voor panden zonder hoogte (vrijwel alle gesloopte panden).";
+		parameter<float64> HalMinOppervlak         := 1000d
+		, Descr = "Hal = niet-woon-vbo groter dan dit (m2) ... RS #674 (commit dd20c1ab), het criterium achter ModelParameters/Werken/HalFractie.";
+		parameter<float64> HalMaxVoetafdrukFactor  := 1.5d
+		, Descr = "... en met vloer onder dit veelvoud van de voetafdruk van zijn pand (in feite eenlaags).";
+		parameter<float64> Doel_Hal_2023           := 600d
+		, Descr = "euro/m2, prijspeil 2023: landelijk vloer-gewogen niveau voor hallen. RS #674: een cel met alleen hallen komt op circa 600 uit (0,186 x 3.223). Marktkennis zonder bron in de RS-repo; zie Kalibratie.";
+		parameter<float64> Doel_Overig_2023        := 1400d
+		, Descr = "euro/m2, prijspeil 2023: idem voor overige utiliteit (kantoor, winkel, zorg, onderwijs, logies, overige gebruiksfunctie, ...). RS: 0,423 x 3.311.";
+		parameter<int32>   KalibratieDatum         := 20230101i
+		, Descr = "Peildatum van de niet-woonvoorraad waarop de verhoudingen worden geijkt; 2023 = prijspeil van de hedonische waardering.";
+		parameter<string>  PHN_Jaar                := '2026'
+		, Descr = "Jaargang van Pand Hoogte Nederland (mmd-formaat vanaf 2026). Alleen gebruikt voor de bovengrens op niet-woonoppervlak; panden zonder hoogte (o.a. voor 2026 gesloopt) houden alleen de 45-lagengrens.";
+	}
+
+	unit<uint8> ObjectKlasse : nrofrows = 3
+	, Descr = "woon = object met woonfunctie (obj_is_woonfunctie); hal = niet-woon > 1.000 m2 en vloer < 1,5 x voetafdruk; overig = rest van niet-woon."
+	{
+		attribute<string> name  : ['woon', 'hal', 'overig'];
+		attribute<string> label := name, DialogType = "LabelText";
+		container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+	}
+
+	unit<uint8> OppervlakteVlag : nrofrows = 6
+	, Descr = "Wat Schoon_T met het vloeroppervlak deed."
+	{
+		attribute<string> name :
+		[
+			'ongewijzigd',
+			'geen_oppervlak',
+			'woon_groter_dan_5x_voetafdruk',
+			'woon_afgekapt_op_500',
+			'nietwoon_afgekapt_op_pandhoogte',
+			'nietwoon_afgekapt_op_45_lagen'
+		];
+		attribute<string> label := name, DialogType = "LabelText";
+		container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+	}
+
+	unit<uint32> PeildatumFile : nrofrows = 1
+	{
+		attribute<string> name  : ['FileDatum'];
+		attribute<int32>  datum := const(int32(/Parameters/BAG_file_date), .);
+	}
+
+	unit<uint32> Peildata := union_unit(/Classifications/Tijd/Jaren, PeildatumFile)
+	, Descr = "1 januari van elk BAG-jaar plus de BAG-filedatum: de momenten waarop het aantal woningen per pand wordt geteld."
+	{
+		attribute<string> name        := union_data(., /Classifications/Tijd/Jaren/name, PeildatumFile/name);
+		attribute<int32>  datum       := union_data(., int32(/Classifications/Tijd/Jaren/value) * 10000i + 101i, PeildatumFile/datum);
+		parameter<int32>  EersteJaar  := int32(min(/Classifications/Tijd/Jaren/value));
+		parameter<int32>  LaatsteJaar := int32(max(/Classifications/Tijd/Jaren/value));
+		parameter<uint32> FileIdx     := #Peildata - 1;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Pandkenmerken: een rij per pand_bag_nr over de volledige BAG-historie
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	unit<uint32> PandVersie := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/pand
+	{
+		attribute<uint64> pand_bag_nr       := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/pand/pand_bag_nr;
+		attribute<bool>   IsVoorraad        := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/pand/IsVoorraad;
+		attribute<int32>  einddatum         := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/pand/einddatum;
+		attribute<m2>     footprint         := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/pand/footprint;
+		attribute<Pand>   Pand_rel          := rlookup(pand_bag_nr, Pand/values);
+		attribute<bool>   IsLaatsteVoorraad := IsVoorraad && einddatum == Pand/LaatsteVoorraadEind[Pand_rel];
+		attribute<bool>   IsLaatste         := einddatum == Pand/LaatsteEind[Pand_rel];
+	}
+
+	unit<uint32> PHN
+	: StorageName     = "='%Redev_DataDir%/Vastgoed/PHN_'+Instellingen/PHN_Jaar+'0101.mmd'"
+	, StorageReadOnly = "True"
+	, Descr           = "Pand Hoogte Nederland (Object Vision, AHN op BAG-panden); dezelfde levering als RS SourceData/Vastgoed/BAG.dms pand_hoogte_mmd. hoogte in cm."
+	{
+		attribute<uint64> pand_bag_nr;
+		attribute<int32>  hoogte;
+	}
+
+	unit<uint32> VboVersie := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo
+	{
+		attribute<uint64> vbo_bag_nr        := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/vbo_bag_nr;
+		attribute<uint64> pand_bag_nr       := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/pand_bag_nr, Descr = "Eerste gerelateerde pand; hetzelfde pand dat PerObject_Export draagt (Historische_Join koppelt via VBOs/src/pand_bag_nr).";
+		attribute<rdc>    geometry          := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/geometry;
+		attribute<int32>  oppervlakte       := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/oppervlakte_trunc[int32], Descr = "Zelfde bron als obj_floor_area_res_m2: dummywaarden weg, woon < 10 m2 -> voetafdruk, rest < 10 -> 10.";
+		attribute<int32>  begindatum        := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/begindatum;
+		attribute<int32>  einddatum         := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/einddatum;
+		attribute<bool>   IsVoorraad        := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/IsVoorraad;
+		attribute<bool>   IsWoon            := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/gebruiksdoelen/woon;
+		attribute<bool>   IsWoonVoorraad    := IsWoon && IsVoorraad;
+		attribute<Pand>   Pand_rel          := rlookup(pand_bag_nr, Pand/values);
+		attribute<Vbo>    Vbo_rel           := rlookup(vbo_bag_nr, Vbo/values);
+
+		attribute<vbo_gebruiksdoel_ext> gebruiksdoel := ='switch('+AsList('case(/SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/vbo/gebruiksdoelen_cbs/'+vbo_gebruiksdoel_ext/name+', vbo_gebruiksdoel_ext/V/'+vbo_gebruiksdoel_ext/name+')', ',')+', (0b/0b)[vbo_gebruiksdoel_ext])'
+		, Descr = "CBS-indeling: woon als het vbo een woonfunctie heeft, anders de enige utiliteitsfunctie, anders utiliteit_combi (zelfde regels als VolledigeBAG/VBOs/vbo/gebruiksdoelen_cbs).";
+
+		attribute<bool>   IsLaatsteVoorraad := IsVoorraad && einddatum == Vbo/LaatsteVoorraadEind[Vbo_rel];
+		attribute<bool>   IsLaatste         := einddatum == Vbo/LaatsteEind[Vbo_rel];
+	}
+
+	unit<uint32> Pand := unique(PandVersie/pand_bag_nr)
+	, Descr = "Een rij per pand_bag_nr uit de volledige BAG-historie."
+	{
+		attribute<uint64> pand_bag_nr         := values;
+		attribute<int32>  LaatsteVoorraadEind := max(PandVersie/IsVoorraad ? PandVersie/einddatum : null_i, PandVersie/Pand_rel);
+		attribute<int32>  LaatsteEind         := max(PandVersie/einddatum, PandVersie/Pand_rel);
+		attribute<m2>     footprint_voorraad  := max(PandVersie/IsLaatsteVoorraad ? PandVersie/footprint : (0/0)[m2], PandVersie/Pand_rel);
+		attribute<m2>     footprint_laatst    := max(PandVersie/IsLaatste ? PandVersie/footprint : (0/0)[m2], PandVersie/Pand_rel);
+		attribute<m2>     footprint           := MakeDefined(footprint_voorraad, footprint_laatst)
+		, Descr = "Voetafdruk (oppervlak van de ongesimplificeerde pandgeometrie) van de laatste versie met voorraadstatus: voor een gesloopt pand de stand voor de sloop, voor een staand pand de huidige. Zonder voorraadversie: de laatste versie.";
+
+		attribute<float64> hoogte_cm              := float64(rjoin(pand_bag_nr, PHN/pand_bag_nr, PHN/hoogte));
+		attribute<float64> LagenUitHoogte         := float64(int32(hoogte_cm / Instellingen/BouwlaagHoogteNietWoon));
+		attribute<float64> RuimteLagenUitHoogte   := max_elem(LagenUitHoogte, 1d) * Instellingen/TolerantieNietWoon
+		, Descr = "RS: max(bouwlagen uit hoogte, 1) x tolerantie.";
+		attribute<bool>    HoogteBepaaltGrens     := IsDefined(hoogte_cm) && RuimteLagenUitHoogte < Instellingen/MaxBouwlagenNietWoon;
+		attribute<float64> MaxBouwlagenNietWoon   := HoogteBepaaltGrens ? RuimteLagenUitHoogte : Instellingen/MaxBouwlagenNietWoon
+		, Descr = "Vloer / voetafdruk die een niet-woon-vbo maximaal mag hebben: uit de hoogte als die bekend is, altijd hoogstens 45.";
+
+		container n_woningen :=
+			for_each_nedv(
+				Peildata/name
+				, 'sum_uint32(VboVersie/IsWoonVoorraad && VboVersie/begindatum < '+string(Peildata/datum)+'i && VboVersie/einddatum >= '+string(Peildata/datum)+'i, VboVersie/Pand_rel)'
+				, Pand
+				, uint32
+			), Descr = "Aantal verblijfsobjecten met woonfunctie en voorraadstatus in het pand op de peildatum, ongeacht de status van het pand zelf (een pand met sloopvergunning is hier geen voorraad, zijn woningen wel). Elk vbo telt bij precies een pand, zijn eerste gerelateerde; dat is de unieke toekenning van RS woon_VBOs_uniek.";
+
+		attribute<uint32> n_woningen_max := ='max_elem('+AsItemList('n_woningen/'+Peildata/name)+')'
+		, Descr = "Grootste aantal gelijktijdig geregistreerde woningen over alle peildata; terugval voor objecten die op hun eigen peildatum niet voorkomen.";
+	}
+
+	unit<uint32> Vbo := unique(VboVersie/vbo_bag_nr)
+	, Descr = "Een rij per vbo_bag_nr uit de volledige BAG-historie."
+	{
+		attribute<int32>  LaatsteVoorraadEind := max(VboVersie/IsVoorraad ? VboVersie/einddatum : null_i, VboVersie/Vbo_rel);
+		attribute<int32>  LaatsteEind         := max(VboVersie/einddatum, VboVersie/Vbo_rel);
+		attribute<uint32> VersieVoorraad      := max(VboVersie/IsLaatsteVoorraad ? uint32(id(VboVersie)) : null_u, VboVersie/Vbo_rel);
+		attribute<uint32> VersieLaatst        := max(VboVersie/IsLaatste ? uint32(id(VboVersie)) : null_u, VboVersie/Vbo_rel);
+		attribute<VboVersie> Versie           := value(MakeDefined(VersieVoorraad, VersieLaatst), VboVersie);
+		attribute<vbo_gebruiksdoel_ext> gebruiksdoel := VboVersie/gebruiksdoel[Versie]
+		, Descr = "Gebruiksdoel van de laatste versie met voorraadstatus (voor sloop/onttrekking de stand ervoor), anders van de laatste versie.";
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Opschoning vloeroppervlak en klasse (RS SourceData/Vastgoed/BAG.dms r. 985-1013, #700; hal uit #674)
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	Template Schoon_T
+	{
+		unit<uint32>       Dom;
+		attribute<int32>   opp_bron (Dom);
+		attribute<bool>    is_woon  (Dom);
+		attribute<Pand>    Pand_rel (Dom);
+		///
+		attribute<float64> voetafdruk      (Dom) := float64(Pand/footprint[Pand_rel]);
+		attribute<float64> max_lagen       (Dom) := Pand/MaxBouwlagenNietWoon[Pand_rel];
+		attribute<bool>    hoogte_bepaalt  (Dom) := Pand/HoogteBepaaltGrens[Pand_rel];
+
+		attribute<float64> opp0            (Dom) := float64(opp_bron);
+		attribute<bool>    TeGrootWoon     (Dom) := is_woon && opp0 > Instellingen/MaxVoetafdrukFactorWoon * voetafdruk, Descr = "RS TooBigWoon1: woon groter dan 5 x voetafdruk -> NA. Onbekende voetafdruk: geen toets.";
+		attribute<float64> opp1            (Dom) := TeGrootWoon ? (0d / 0d) : opp0;
+		attribute<bool>    BovenMaxWoon    (Dom) := is_woon && opp1 > Instellingen/MaxOppervlakWoon, Descr = "RS TooBigWoon2: woon boven 500 m2 -> 500.";
+		attribute<float64> opp2            (Dom) := BovenMaxWoon ? Instellingen/MaxOppervlakWoon : opp1;
+		attribute<float64> RuimteNietWoon  (Dom) := voetafdruk * max_lagen;
+		attribute<bool>    TeGrootNietWoon (Dom) := !is_woon && opp2 > RuimteNietWoon, Descr = "RS TooBigNietWoon + 45-lagengrens: klemmen, niet weggooien.";
+		attribute<float64> opp_schoon      (Dom) := TeGrootNietWoon ? RuimteNietWoon : opp2;
+
+		attribute<OppervlakteVlag> vlag    (Dom) :=
+			switch(
+				  case(IsNull(opp_bron),                    OppervlakteVlag/V/geen_oppervlak)
+				, case(TeGrootWoon,                         OppervlakteVlag/V/woon_groter_dan_5x_voetafdruk)
+				, case(BovenMaxWoon,                        OppervlakteVlag/V/woon_afgekapt_op_500)
+				, case(TeGrootNietWoon && hoogte_bepaalt,   OppervlakteVlag/V/nietwoon_afgekapt_op_pandhoogte)
+				, case(TeGrootNietWoon,                     OppervlakteVlag/V/nietwoon_afgekapt_op_45_lagen)
+				, OppervlakteVlag/V/ongewijzigd
+			);
+
+		attribute<bool>    IsHal           (Dom) := !is_woon && opp_schoon > Instellingen/HalMinOppervlak && opp_schoon < Instellingen/HalMaxVoetafdrukFactor * voetafdruk;
+		attribute<ObjectKlasse> klasse     (Dom) := is_woon ? ObjectKlasse/V/woon : IsHal ? ObjectKlasse/V/hal : ObjectKlasse/V/overig;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Kalibratie van de verhoudingen niet-woonprijs / woning-WOZ
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	Template Kalibratie_T
+	: Descr = "RS vermenigvuldigt een woning-WOZ per m2 (mean + sd, drie van de vier groepen met een groeifactor commercieel vastgoed 2017-2023) met 0,186 voor hal en 0,423 voor overig; die twee getallen zijn geijkt zodat hallen landelijk op circa 600 en overige utiliteit op circa 1.400 euro/m2 (2023) uitkomen. RS noemt mean + sd zelf een bovenschatting. Hier is de basis de plain mean zonder groeifactor (woz.dms, peildatum 1-1-2016), en de verhouding per klasse volgt uit dezelfde twee niveaus: Doel / (vloer-gewogen gemiddelde basis van die klasse over de niet-woonvoorraad op de kalibratiedatum). De verhouding draagt zo ook de prijsontwikkeling van niet-woonvastgoed van begin 2016 naar 2023; een aparte index is niet nodig en zou alleen via deze ijking terugkomen."
+	{
+		attribute<eur_m2>  woz_woon_25m (rdc_25m);
+		///
+		unit<uint32> Voorraad := select_with_org_rel(
+			  VboVersie/IsVoorraad && !VboVersie/IsWoon
+			&& VboVersie/begindatum < Instellingen/KalibratieDatum
+			&& VboVersie/einddatum >= Instellingen/KalibratieDatum)
+		, Descr = "Niet-woon-verblijfsobjecten met voorraadstatus op de kalibratiedatum (zelfde selectie als PerJaar_T/vbo, zonder woonfunctie)."
+		{
+			attribute<int32>   opp_bron := VboVersie/oppervlakte[org_rel];
+			attribute<Pand>    Pand_rel := VboVersie/Pand_rel[org_rel];
+			attribute<rdc_25m> cel      := VboVersie/geometry[org_rel][rdc_25m];
+			attribute<vbo_gebruiksdoel_ext> gebruiksdoel := VboVersie/gebruiksdoel[org_rel];
+
+			container Schoon := Schoon_T(., opp_bron, const(FALSE, .), Pand_rel);
+
+			attribute<float64> A    := Schoon/opp_schoon;
+			attribute<float64> woz  := float64(woz_woon_25m[cel] / 1[eur_m2]);
+			attribute<bool>    Hal  := Schoon/klasse == ObjectKlasse/V/hal;
+			attribute<bool>    Telt := IsDefined(A) && IsDefined(woz);
+		}
+
+		parameter<uint32>  n_vbo             := #Voorraad;
+		parameter<uint32>  n_hal             := sum(uint32(Voorraad/Hal));
+		parameter<uint32>  n_zonder_woz      := sum(uint32(IsDefined(Voorraad/A) && !IsDefined(Voorraad/woz)));
+		parameter<uint32>  n_afgekapt_hoogte := sum(uint32(Voorraad/Schoon/vlag == OppervlakteVlag/V/nietwoon_afgekapt_op_pandhoogte));
+		parameter<uint32>  n_afgekapt_45     := sum(uint32(Voorraad/Schoon/vlag == OppervlakteVlag/V/nietwoon_afgekapt_op_45_lagen));
+		parameter<float64> Opp_bron_totaal   := sum(float64(Voorraad/opp_bron));
+		parameter<float64> Opp_Hal           := sum(Voorraad/Hal  && Voorraad/Telt ? Voorraad/A : 0d);
+		parameter<float64> Opp_Overig        := sum(!Voorraad/Hal && Voorraad/Telt ? Voorraad/A : 0d);
+		parameter<float64> W_Hal             := sum(Voorraad/Hal  && Voorraad/Telt ? Voorraad/A * Voorraad/woz : 0d) / Opp_Hal
+		, Descr = "Vloer-gewogen gemiddelde woning-WOZ (euro/m2, 1-1-2016) op de locatie van hallen.";
+		parameter<float64> W_Overig          := sum(!Voorraad/Hal && Voorraad/Telt ? Voorraad/A * Voorraad/woz : 0d) / Opp_Overig
+		, Descr = "Idem op de locatie van overige utiliteit.";
+
+		parameter<float64> Verhouding_Hal    := Instellingen/Doel_Hal_2023 / W_Hal
+		, Descr = "euro/m2 hal (2023) per euro/m2 woning-WOZ (1-1-2016) ter plaatse.";
+		parameter<float64> Verhouding_Overig := Instellingen/Doel_Overig_2023 / W_Overig
+		, Descr = "euro/m2 overige utiliteit (2023) per euro/m2 woning-WOZ (1-1-2016) ter plaatse.";
+
+		parameter<float64> Aandeel_Hal_Opp   := Opp_Hal / (Opp_Hal + Opp_Overig), Descr = "Aandeel hal in het (geschoonde) niet-woonvloeroppervlak; RS komt met de gebruiksdoelfracties op 0,43 a 0,44 (meting #667).";
+		parameter<float64> Totaal_mld_2023   := (Instellingen/Doel_Hal_2023 * Opp_Hal + Instellingen/Doel_Overig_2023 * Opp_Overig) / 1e9, Descr = "Landelijke waarde niet-woonvoorraad (miljard euro, 2023) die deze ijking impliceert; RS komt op 566.";
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Per object (productie: PerObject op PerObject_Export)
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	Template PerObject_T
+	{
+		unit<uint32>       Obj;
+		attribute<uint64>  vbo_bag_nr      (Obj);
+		attribute<uint64>  pand_bag_nr     (Obj);
+		attribute</Analyse/Redev_obv_hele_bag/AdditionalClassifications/Redev_ObjectTypes> redev_type (Obj);
+		attribute<int32>   redev_yearmonth (Obj);
+		attribute<int32>   oppervlakte     (Obj);
+		attribute<bool>    is_woon         (Obj);
+		attribute<rdc_25m> per_rdc_25m     (Obj);
+		attribute<eur_m2>  woz_woon_25m    (rdc_25m);
+		parameter<float64> Verhouding_Hal;
+		parameter<float64> Verhouding_Overig;
+		///
+		attribute<Pand>    Pand_rel           (Obj) := rlookup(pand_bag_nr, Pand/values);
+		attribute<m2>      pand_footprint     (Obj) := Pand/footprint[Pand_rel];
+
+		container Schoon := Schoon_T(Obj, oppervlakte, is_woon, Pand_rel);
+
+		attribute<int32>           oppervlakte_schoon (Obj) := int32(Schoon/opp_schoon);
+		attribute<OppervlakteVlag> oppervlakte_vlag   (Obj) := Schoon/vlag;
+		attribute<ObjectKlasse>    klasse             (Obj) := Schoon/klasse;
+		attribute<vbo_gebruiksdoel_ext> gebruiksdoel  (Obj) := Vbo/gebruiksdoel[rlookup(vbo_bag_nr, Vbo/values)];
+
+		attribute<float32> woz_woon_2016      (Obj) := float32(woz_woon_25m[per_rdc_25m] / 1[eur_m2]), Descr = "Woning-WOZ per m2 op de locatie (1-1-2016); de oude kolom loc_woz_nonres_eur_m2.";
+		attribute<float32> eur_m2_2023        (Obj) :=
+			klasse == ObjectKlasse/V/hal
+				? MakeDefined(float32(Verhouding_Hal) * woz_woon_2016, float32(Instellingen/Doel_Hal_2023))
+				: klasse == ObjectKlasse/V/overig
+					? MakeDefined(float32(Verhouding_Overig) * woz_woon_2016, float32(Instellingen/Doel_Overig_2023))
+					: null_f
+		, Descr = "Niet-woonwaarde per m2 vloeroppervlak, prijspeil 2023, voor de klasse van het object op zijn locatie; waar de WOZ-bron niets geeft het landelijke klasseniveau. Leeg voor woonobjecten.";
+
+		// aantal woningen in het pand op de peildatum die bij het object hoort (zelfde logica als PrepBAG/PandTypering_Mutaties):
+		// onveranderd -> filedatum; min-typen -> 1 januari van het mutatiejaar (stand ervoor); plus-typen -> 1 januari erna,
+		// of de filedatum als dat voorbij de reeks valt. Nul op die datum -> grootste gelijktijdige aantal over alle peildata.
+		attribute<bool>    IsOnveranderd      (Obj) := redev_type == /Analyse/Redev_obv_hele_bag/AdditionalClassifications/Redev_ObjectTypes/V/Onveranderd;
+		attribute<bool>    IsPlus             (Obj) := IsDefined(rlookup(/Analyse/Redev_obv_hele_bag/AdditionalClassifications/Redev_ObjectTypes/name[redev_type], /Analyse/Redev_obv_hele_bag/AdditionalClassifications/Redev_ObjectTypes/Plus/name));
+		attribute<int32>   MutatieJaar        (Obj) := redev_yearmonth / 100i;
+		attribute<int32>   RefJaar            (Obj) := IsPlus ? MutatieJaar + 1i : MutatieJaar;
+		attribute<uint16>  RefIdx             (Obj) := uint16(IsOnveranderd || IsNull(RefJaar) || RefJaar > Peildata/LaatsteJaar
+													? Peildata/FileIdx
+													: uint32(max_elem(RefJaar, Peildata/EersteJaar) - Peildata/EersteJaar)), Descr = "Index in Peildata; merge wil een uint16-selector.";
+		attribute<uint32>  n_woningen_ref     (Obj) := ='merge(RefIdx, uint32, '+AsItemList('Pand/n_woningen/'+Peildata/name+'[Pand_rel]')+')';
+		attribute<uint32>  n_woningen         (Obj) := n_woningen_ref > 0u ? n_woningen_ref : Pand/n_woningen_max[Pand_rel]
+		, Descr = "Woningen (vbo's met woonfunctie en voorraadstatus) in het pand van het object; voor de RS-regel bij ontbrekend WP4: meer dan 1 -> appartement, anders vrijstaand (RS SourceData/Vastgoed/EigendomStaat.dms WP4_rel_woningtelling).";
+	}
+
+	container Kalibratie := Kalibratie_T(/SourceData/WOZ/Y2017/per_25m);
+
+	container PerObject := PerObject_T(
+		  /Analyse/Redev_obv_hele_bag/PerObject_Export
+		, /Analyse/Redev_obv_hele_bag/PerObject_Export/vbo_bag_nr
+		, /Analyse/Redev_obv_hele_bag/PerObject_Export/pand_bag_nr
+		, /Analyse/Redev_obv_hele_bag/PerObject_Export/redev_type
+		, /Analyse/Redev_obv_hele_bag/PerObject_Export/redev_yearmonth
+		, /Analyse/Redev_obv_hele_bag/PerObject_Export/obj_floor_area_res_m2
+		, /Analyse/Redev_obv_hele_bag/PerObject_Export/obj_is_woonfunctie
+		, /Analyse/Redev_obv_hele_bag/PerObject_Export/per_rdc_25m
+		, /SourceData/WOZ/Y2017/per_25m
+		, Kalibratie/Verhouding_Hal
+		, Kalibratie/Verhouding_Overig
+	);
+}

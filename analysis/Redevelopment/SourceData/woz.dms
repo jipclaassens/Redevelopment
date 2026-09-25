@@ -1,21 +1,38 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// WOZ-waarde per m2 voor NIET-woningen, tbv verwervingskosten in de R-pijplijn van het densification-paper (issue #13):
-// loc_woz_nonres_eur_m2 in PerObject_Export; R rekent verwervingskosten niet-woon = Eur/m2 x obj_floor_area_res_m2.
+// WOZ-waarde per m2 van WONINGEN op de locatie van een object: de locatiecomponent van de niet-woonwaardering
+// (Analyse/Redev_obv_hele_bag/NietWoonWaardering.dms), naar het voorbeeld van RuimteScanner #674.
 //
-// Bron: PBL-notitie 190215 (pbl-woz-per-m2.xls + 190215_{buurt,wijk,gem}_woz.csv): gemiddelde WOZ Eur/m2 per
-// regio (CBS-indeling 2017) x bodemgebruiksgroep (BBG 2015): 1=woongebied, 2=voorzieningen (detailhandel/horeca,
-// openbare en sociaal-culturele voorzieningen), 3=bedrijfsterreinen, 4=overigen. Peiljaar 2017.
+// Bron: PBL-notitie 190215 (190215_{buurt,wijk,gem}_woz.csv): gemiddelde WOZ-waarde per m2 per regio x
+// bodemgebruiksgroep (BBG 2015): 1=woongebied, 2=voorzieningen, 3=bedrijfsterreinen, 4=overigen.
+// LET OP, twee dingen die de bestandsnaam niet zegt (zelf nagemeten, 2026-09-25):
+// - Het is WONING-WOZ: de drie bestanden tellen landelijk 7,84 mln objecten, gelijk aan de woningvoorraad. De groep
+//   zegt WAAR een woning staat, niet wat voor object het is. Deze reeks is dus nooit zelf een niet-woonprijs; er gaat
+//   een verhouding per objectklasse overheen (NietWoonWaardering/Kalibratie).
+// - WOZ-jaar 2017 = waardepeildatum 1-1-2016 (prijspeil begin 2016), geen 2017-prijzen. Regiocodes zijn de
+//   CBS-indeling 2017 (r2017; o.a. Meierijstad GM1948 zit erin, de drie opgeheven voorgangers niet).
 //
-// Grid-route (25m): waarde van de cel = regiowaarde van de groep van de dominante BBG-klasse (2017) van die cel,
-// met fallback buurt -> wijk -> gemeente waar een regio x groep geen waarneming heeft. Doordat de waarde op de
-// LOCATIE ligt (niet aan het VBO hangt), werkt dit ook voor gesloopte objecten en is er geen vintage-koppeling
-// met de BAG nodig. Kanttekening (bewust): de groep volgt het bodemgebruik van de locatie, niet de functie van
-// het object zelf.
+// Grid-route (25m): de waarde van een cel is de regiowaarde van de groep waarin de cel valt, met fallback
+// buurt -> wijk -> gemeente als een regio x groep geen (of te weinig) waarnemingen heeft. De waarde ligt op de LOCATIE,
+// dus werkt ook voor gesloopte objecten en vraagt geen vintage-koppeling met de BAG.
 //
-// NB: plain mean gebruikt; de dormante voorganger telde ook 1 sd op (mean + sd), dat is hier bewust geschrapt.
+// Wijzigingen 2026-09-25 t.o.v. de juli-versie:
+// - plain mean (was al zo) en expliciet als woning-WOZ gedocumenteerd; de exportkolom heette ten onrechte loc_woz_nonres_eur_m2.
+// - de groep per cel komt nu uit de BBG-2017-polygonen zelf (celmiddelpunt, poly2grid op 25m) i.p.v. uit
+//   %LocalDataProjDir%/UnlinkedData/BBG/bbg2017_25m_modus.tif: die tif is een lokaal gegenereerd tussenbestand dat op
+//   OVSRV06 niet bestaat, waardoor een verse export daar op deze kolom zou stranden. Het verschil met de 5m-modus is
+//   voor de keuze van een WOZ-groep verwaarloosbaar.
+// - regio x groep-gemiddelden op minder dan MinObjecten woningen tellen niet mee (buurt- en wijkniveau): 8.201 van de
+//   29.704 buurtrijen rusten op minder dan 10 woningen, en een gemiddelde van twee boerderijen op een bedrijfsterrein is
+//   geen locatiesignaal. Op 1 zetten geeft het oude gedrag.
+// - laatste terugval: het woninggewogen gemiddelde over alle groepen van de gemeente, voor cellen waarvan de gemeente
+//   de groep van de cel niet kent (was: leeg).
+// - geheugen: waarden per regio x groep blijven op regioniveau; per niveau gaat alleen een sleutel- en een float32-grid
+//   over de 25m (was 12 float64-grids van elk 1,2 GB).
+// - de regio-indeling is een templateparameter (Regio_T), zodat een andere vintage naast de productie-instantie kan
+//   draaien. Productie leest de indeling 2017 uit de CBS wijk- en buurtkaart 2017 (WBK2017 hieronder).
 //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 container WOZ : using = "classifications/bbg"
 {
@@ -37,72 +54,128 @@ container WOZ : using = "classifications/bbg"
 						: 3[WOZBbg];
 	}
 
-	container Y2017 // CBS-gebiedsindeling 2017; peiljaar WOZ 2017
+	parameter<uint32> MinObjecten := 10
+	, Descr = "Minimaal aantal woningen onder een regio x groep-gemiddelde op buurt- en wijkniveau; daaronder valt de cel terug op het volgende niveau. Het gemeenteniveau heeft geen drempel, anders blijven er gaten.";
+
+	unit<uint32> BBG := /SourceData/Grondgebruik/bestand_bodem_gebruik/BBG/BBG_Reeks_1996_2017;
+
+	attribute<BBG>    BBG_rel_25m (rdc_25m) := poly2grid(BBG/Geometry, rdc_25m)
+	, Descr = "BBG-polygoon onder het middelpunt van de 25m-cel.";
+	attribute<WOZBbg> Groep_25m   (rdc_25m) := CBSKlasse/WOZBbg_rel[BBG/CBSKlasse_rel_2017[BBG_rel_25m]]
+	, Descr = "WOZ-groep van de cel volgens het bodemgebruik 2017 (het jaar het dichtst bij de WOZ-peildatum 1-1-2016 in de reeks).";
+
+	// Regio-indeling 2017 uit de CBS wijk- en buurtkaart 2017 (shapefiles in de OneDrive-bibliotheek), omdat
+	// cbsgebiedsindelingen2017.gpkg op OVSRV06 alleen online staat. Zelfde codes als de CSV's: alle 1.529 gemeente-,
+	// 9.935 wijk- en 29.704 buurtrijen vinden hun regio (gecontroleerd 25-09-2026; met de indeling 2016 vallen er 4, 382
+	// en 1.383 weg). Watervlakken (WATER = 'JA') vallen af: in gem_2017 delen ze de code met het landdeel van de gemeente,
+	// en een dubbele code zou de koppeling CSV-rij -> regio laten wijzen naar het verkeerde vlak.
+	container WBK2017
 	{
-		container Gemeente := T('gem'  , 'GM', /SourceData/RegioIndelingen/impl/CBS/Y2017/Gemeente);
-		container Wijk     := T('wijk' , 'WK', /SourceData/RegioIndelingen/impl/CBS/Y2017/Wijk);
-		container Buurt    := T('buurt', 'BU', /SourceData/RegioIndelingen/impl/CBS/Y2017/Buurt);
-
-		// per groep: buurtwaarde, waar leeg wijkwaarde, waar leeg gemeentewaarde
-		container per_WOZBbg :=
-			for_each_nedv(
-				WOZBbg/name,
-				'MakeDefined(MakeDefined(Buurt/Nul2Undefined/'+WOZBbg/name+', Wijk/Nul2Undefined/'+WOZBbg/name+'), Gemeente/Nul2Undefined/'+WOZBbg/name+')',
-				rdc_25m, eur_m2
-			);
-
-		// groep van de cel via dominante BBG-klasse 2017 (25m) -> Eur/m2 van de cel
-		attribute<eur_m2> per_25m (rdc_25m) := =
-			'merge('
-				'value(CBSKlasse/WOZBbg_rel[/SourceData/Grondgebruik/bestand_bodem_gebruik/BBG/Dominant/per_25m_modus/J2017], uint16),'
-				'eur_m2,'+
-				AsItemList('per_WOZBbg/'+WOZBbg/name)+
-			')';
-
-		Template T
+		unit<uint32> gem_src
+		:	StorageName     = "%Alt_DataDir%/CBS/2017/gem_2017.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
 		{
-			//
-			parameter<string> SrcRef;
-			parameter<string> CodeRef;
-			unit<uint32> RegionK;
-			//
-
-			unit<uint32> Domain
-			:  StorageName = "= '%Redev_DataDir%/Vastgoed/WOZ/190215_'+ SrcRef +'_woz.csv'"
-			,  StorageType = "gdal.vect"
-			,  StorageReadOnly = "True"
-			{
-				attribute<string> r2017;
-				attribute<string> bg2015_groep;
-				attribute<string> wozm2_mean;
-				attribute<string> wozm2_sd;
-				attribute<string> aantalobjecten;
-
-				attribute<string>  R_CODE     := CodeRef + r2017;
-				attribute<RegionK> Region_rel := rjoin(R_CODE, RegionK/code, id(RegionK));
-				attribute<WOZBbg>  WOZBbg_rel := rjoin(uint8(bg2015_groep), WOZBbg/EK_rel, id(WOZBbg));
-
-				attribute<eur_m2>  mean       := wozm2_mean[eur_m2];
-				attribute<int32>   n          := aantalobjecten[int32];
-			}
-
-			attribute<RegionK> per_grid_rel (rdc_25m) := poly2grid(RegionK/geometry, rdc_25m);
-
-			// pivot: een rij per regio x groep -> waarde per regio per groep (regio's zonder rij krijgen sum = 0)
-			container per_WOZBbg_regio :=
-				for_each_nedv(
-					WOZBbg/name,
-					'sum(Domain/mean * float64(Domain/WOZBbg_rel == '+string(id(WOZBbg))+'[WOZBbg]), Domain/Region_rel)',
-					RegionK, eur_m2
-				);
-
-			// naar het grid; 0 (= geen waarneming voor deze regio x groep) wordt undefined zodat de fallback pakt
-			container Nul2Undefined :=
-				for_each_nedv(
-					WOZBbg/name,
-					'per_WOZBbg_regio/'+WOZBbg/name+'[per_grid_rel] == 0[eur_m2] ? (0/0)[eur_m2] : per_WOZBbg_regio/'+WOZBbg/name+'[per_grid_rel]',
-					rdc_25m, eur_m2
-				);
+			attribute<rdc>    geometry (poly);
+			attribute<string> GM_CODE;
+			attribute<string> WATER;
 		}
+		unit<uint32> wijk_src
+		:	StorageName     = "%Alt_DataDir%/CBS/2017/wijk_2017.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<rdc>    geometry (poly);
+			attribute<string> WK_CODE;
+			attribute<string> WATER;
+		}
+		unit<uint32> buurt_src
+		:	StorageName     = "%Alt_DataDir%/CBS/2017/buurt_2017.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<rdc>    geometry (poly);
+			attribute<string> BU_CODE;
+			attribute<string> WATER;
+		}
+
+		unit<uint32> Gemeente := select_with_org_rel(gem_src/WATER != 'JA')
+		{
+			attribute<rdc>    geometry (poly) := gem_src/geometry[org_rel];
+			attribute<string> code            := gem_src/GM_CODE[org_rel];
+		}
+		unit<uint32> Wijk := select_with_org_rel(wijk_src/WATER != 'JA')
+		{
+			attribute<rdc>    geometry (poly) := wijk_src/geometry[org_rel];
+			attribute<string> code            := wijk_src/WK_CODE[org_rel];
+		}
+		unit<uint32> Buurt := select_with_org_rel(buurt_src/WATER != 'JA')
+		{
+			attribute<rdc>    geometry (poly) := buurt_src/geometry[org_rel];
+			attribute<string> code            := buurt_src/BU_CODE[org_rel];
+		}
+	}
+
+	// Productie: de regiocodes in de CSV's zijn CBS 2017.
+	container Y2017 := Regio_T('/SourceData/WOZ/WBK2017');
+
+	// Alleen diagnose/test: dezelfde CSV's op de indeling 2016 (RS leest ze zo). n_rijen_zonder_regio laat zien hoeveel
+	// codes dan wegvallen.
+	container Y2016_diagnose := Regio_T('/SourceData/RegioIndelingen/impl/CBS/Y2016');
+
+	Template Regio_T
+	{
+		parameter<string> RegioPad; // container met units Gemeente, Wijk en Buurt, elk met code en geometry
+		///
+		container Gemeente := Niveau_T('gem'  , 'GM', RegioPad+'/Gemeente', 1);
+		container Wijk     := Niveau_T('wijk' , 'WK', RegioPad+'/Wijk'    , MinObjecten);
+		container Buurt    := Niveau_T('buurt', 'BU', RegioPad+'/Buurt'   , MinObjecten);
+
+		attribute<eur_m2>  per_25m (rdc_25m) := (MakeDefined(MakeDefined(MakeDefined(Buurt/per_25m, Wijk/per_25m), Gemeente/per_25m), Gemeente/per_25m_alle))[eur_m2]
+		, Descr = "WOZ-waarde per m2 van WONINGEN (euro/m2, waardepeildatum 1-1-2016, plain mean) in de groep en regio van de cel; buurt, anders wijk, anders gemeente, anders het gemeentegemiddelde over alle groepen. Geen niet-woonprijs: zie NietWoonWaardering. Naam en type (eur_m2) ongewijzigd t.o.v. juli, zodat de bestaande exportregel loc_woz_nonres_eur_m2 blijft werken tot hij vervangen is.";
+
+		attribute<uint8>   niveau_25m (rdc_25m) := IsDefined(Buurt/per_25m) ? 0b : IsDefined(Wijk/per_25m) ? 1b : IsDefined(Gemeente/per_25m) ? 2b : IsDefined(Gemeente/per_25m_alle) ? 3b : 4b
+		, Descr = "Diagnose: van welk niveau de celwaarde komt (0 buurt, 1 wijk, 2 gemeente, 3 gemeente alle groepen, 4 geen).";
+	}
+
+	Template Niveau_T
+	{
+		parameter<string> SrcRef;
+		parameter<string> CodeRef;
+		parameter<string> RegioRef;
+		parameter<uint32> MinN;
+		///
+		unit<uint32> RegionK := =RegioRef;
+
+		unit<uint32> Domain
+		:  StorageName = "= '%Redev_DataDir%/Vastgoed/WOZ/190215_'+ SrcRef +'_woz.csv'"
+		,  StorageType = "gdal.vect"
+		,  StorageReadOnly = "True"
+		{
+			attribute<string>     r2017;
+			attribute<string>     bg2015_groep;
+			attribute<string>     wozm2_mean;
+			attribute<string>     aantalobjecten;
+
+			attribute<RegionK>    Region_rel     := rlookup(CodeRef + r2017, RegionK/code);
+			attribute<WOZBbg>     WOZBbg_rel     := rlookup(uint8(bg2015_groep), WOZBbg/EK_rel);
+			attribute<float32>    mean           := float32(wozm2_mean);
+			attribute<uint32>     n              := uint32(aantalobjecten);
+			attribute<RegioGroep> RegioGroep_rel := value(uint32(Region_rel) * #WOZBbg + uint32(WOZBbg_rel), RegioGroep);
+		}
+
+		unit<uint32> RegioGroep := range(uint32, 0, #RegionK * #WOZBbg)
+		{
+			attribute<float32> mean := mean(Domain/n >= MinN ? Domain/mean : null_f, Domain/RegioGroep_rel), Descr = "Leeg waar de regio x groep niet in de CSV staat of op minder dan MinN woningen rust.";
+		}
+
+		parameter<uint32>  n_rijen_zonder_regio := sum(uint32(IsNull(Domain/Region_rel))), Descr = "Diagnose: CSV-rijen waarvan de regiocode niet in de gekozen indeling voorkomt.";
+
+		attribute<float32> mean_alle (RegionK) := float32(sum(float64(Domain/mean) * float64(Domain/n), Domain/Region_rel) / float64(sum(Domain/n, Domain/Region_rel)))
+		, Descr = "Woninggewogen gemiddelde over alle groepen van de regio; laatste terugval waar de regio een groep niet kent.";
+
+		attribute<RegionK> per_25m_rel  (rdc_25m) := poly2grid(RegionK/geometry, rdc_25m);
+		attribute<float32> per_25m      (rdc_25m) := RegioGroep/mean[value(uint32(per_25m_rel) * #WOZBbg + uint32(Groep_25m), RegioGroep)];
+		attribute<float32> per_25m_alle (rdc_25m) := mean_alle[per_25m_rel];
 	}
 }

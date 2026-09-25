@@ -1,40 +1,73 @@
-// NASLAG-SNIPPET (geen actieve configuratie) — bewaard in het Redevelopment-repo als provenance.
-// Dit export-item stond op 2026-07-16 tijdelijk in C:/ProjDir/RSopen_NL2120 (cfg/main/ExportRedevKosten.dms
-// + include in main.dms) en is na het genereren van de tifs weer teruggedraaid om dat project niet te
-// vervuilen. De output staat in %Redev_DataDir%/Vastgoed/Grondproductiekosten_2023/. Voor regeneratie
-// (bv. ander prijspeil via Model_StartYear): dit bestand tijdelijk terugzetten in NL2120 en
-// GeoDmsRun.exe main.dms /ExportRedevKosten/Generate draaien.
+// NASLAG-SNIPPET (geen actieve configuratie), bewaard in het Redevelopment-repo als provenance.
+//
+// Versie 2026-09-25. Output: %Redev_DataDir%/Vastgoed/Grondproductiekosten_2023_v2/ (Nominaal_, Low_ en
+// High_Faktondatabase, plus ter referentie Nominaal_, Low_ en High_Exploitatieplannen; per grid .tif, .tfw en
+// een GeoDMS-.xml). Vervangt de export van 2026-07-16 in Grondproductiekosten_2023/ (Nominaal_High, Low_Low,
+// High_High, RS d602b35a), die van voor de RS-fixes e967f730 en d373e0a1 (#809) was.
+//
+// Gedraaid op RSopen_NL2120, branch NL2120, commit 463ebb400fecdee8d2c91872ca4c8b843a2b43b7, met GeoDms20.17.0.m
+// (de engine van de RS-batchscripts en van de opleveringen sinds 2026-09-08), op OVSRV06. Niet in de werkkopie
+// C:/ProjDir/RSopen_NL2120 maar in een losse kopie van cfg/, data/ en git.txt in een scratchmap (werkwijze van de
+// RS-skill rs-draaien), zodat de werkkopie onaangeroerd bleef. In die kopie drie tijdelijke wijzigingen:
+//   1. cfg/main.dms: #include <ExportRedevKosten.dms> na #include <WriteVariantData.dms>, en dit bestand als
+//      cfg/main/ExportRedevKosten.dms.
+//   2. cfg/main/VariantParameters/VariantK.dms: BodemdalingkostenInSaldo voor BAU op FALSE (BAU2 en de twee
+//      NbS-varianten houden de RS-default TRUE). Daarmee doet de dummy AndersBouwen (draagkracht/kwel) mee, zoals
+//      in de Fakton-schatting zelf; RS zet hem standaard uit omdat RS de bodemdaling als eigen saldopost rekent.
+//      De grondproductiekosten hangen verder van geen enkele variantinstelling af.
+//   3. cfg/main/SourceData/Bodem.dms, DraagkrachtKwel/SrcRef: de vier draagkracht/kwel-tifs gelezen uit
+//      'D:/Objectvision/Object Vision - SourceData/RSopen/Omgeving/Bodem/risico_draagkracht_openformat' in plaats
+//      van %RSo_DataDir%, omdat de Nextcloud-client van %RSo_DataDir% (pbl.data.surf.nl) niet draaide en die tifs
+//      daar alleen als placeholder stonden. Beide kopieen zijn byte voor byte even groot; een reconstructie van de
+//      juli-export via deze kopie (RS d602b35a, GeoDms20.8.0.m) gaf tifs van exact dezelfde grootte als de originelen.
+// Aanroep: GeoDmsRun.exe /S1 /S2 /S3 <kopie>/cfg/main.dms /ExportRedevKosten/Generate (circa 30 s rekentijd).
+// Controle: teruggelezen tif gelijk aan de live modeluitkomst (maximaal absoluut verschil 0), 0 NoData-cellen.
+//
+// Regeneratie (bv. ander prijspeil via Model_StartYear): hetzelfde recept op een verse kopie van RSopen_NL2120.
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// Export van de grondproductiekosten-grids tbv het Redevelopment densification-paper
-// (github.com/jipclaassens/Redevelopment, issue #16 stap 2: residual value per site x ontwikkeloptie).
+// TIJDELIJK EXPORTITEM, niet committen. Grondproductiekosten-grids voor het EconLogic-paper
+// (Claassens, Koomen & Rouwendal, The economic rationale of residential densification;
+// github.com/jipclaassens/Redevelopment, issue #16 stap 2).
 //
-// Prijspeil: Results = 2017-schatting x PrijsIndex_Bouwkosten_2017_naar_<Model_StartYear>; met
-// Model_StartYear = 2023 staan deze grids dus op 2023-prijspeil, consistent met het prijspeil van
-// de hedonische waardering in dat paper. Drie onzekerheidsvarianten: de RS-default Nominaal_High
-// plus de bandbreedte-uitersten Low_Low en High_High.
+// Bron: /VariantData/BAU/Suitability/src/Wonen/Grondproductiekosten/Results/Totaal/<Onzekerheid>.
+// Voor deze export staat VariantK/BodemdalingkostenInSaldo voor BAU op FALSE, zodat de dummy
+// AndersBouwen (draagkracht en kwel) in de Fakton-schatting meedoet, zoals in de schatting zelf.
+// Prijspeil: 2017-schatting x PrijsIndex_Bouwkosten_2017_naar_<Model_StartYear>, met 2023.
 //
 // Draaien: GeoDmsRun.exe main.dms /ExportRedevKosten/Generate
 //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 container ExportRedevKosten : using = "Geography;Units"
 {
-	parameter<String> dir := '%RSo_DataDir%/Vastgoed/Grondproductiekosten_' + string(ModelParameters/Model_StartYear);
+	parameter<String> Dir := '%RSo_DataDir%/Vastgoed/Grondproductiekosten_' + string(/ModelParameters/Model_StartYear) + '_v2';
 
-	attribute<Eur_Ha> Nominaal_High (AdminDomain) := BaseData/Suitabilities/Wonen/Grondproductiekosten/Results/Totaal/Nominaal_High
-	, StorageName = "=dir+'/Nominaal_High.tif'"
-	, StorageType = "gdalwrite.grid";
+	parameter<Bool> AndersBouwenAan := !/VariantParameters/VariantK/BodemdalingkostenInSaldo[/VariantParameters/VariantK/V/BAU]
+	, Descr = "TRUE als in BAU de dummy AndersBouwen meedoet, dus BodemdalingkostenInSaldo op FALSE.";
 
-	attribute<Eur_Ha> Low_Low (AdminDomain) := BaseData/Suitabilities/Wonen/Grondproductiekosten/Results/Totaal/Low_Low
-	, StorageName = "=dir+'/Low_Low.tif'"
-	, StorageType = "gdalwrite.grid";
+	parameter<Bool> Prijspeil2023 := string(/ModelParameters/Model_StartYear) == '2023';
 
-	attribute<Eur_Ha> High_High (AdminDomain) := BaseData/Suitabilities/Wonen/Grondproductiekosten/Results/Totaal/High_High
-	, StorageName = "=dir+'/High_High.tif'"
-	, StorageType = "gdalwrite.grid";
+	attribute<Eur_Ha> Nominaal_Faktondatabase (AdminDomain) := /VariantData/BAU/Suitability/src/Wonen/Grondproductiekosten/Results/Totaal/Nominaal_Faktondatabase
+	, StorageName = "=Dir+'/Nominaal_Faktondatabase.tif'", StorageType = "gdalwrite.grid", IntegrityCheck = "AndersBouwenAan && Prijspeil2023";
 
-	parameter<String> Generate := 'Ready', ExplicitSuppliers = "Nominaal_High;Low_Low;High_High"
-	, Descr = "Activeer dit item om de drie grondproductiekosten-grids weg te schrijven.";
+	attribute<Eur_Ha> Low_Faktondatabase (AdminDomain) := /VariantData/BAU/Suitability/src/Wonen/Grondproductiekosten/Results/Totaal/Low_Faktondatabase
+	, StorageName = "=Dir+'/Low_Faktondatabase.tif'", StorageType = "gdalwrite.grid", IntegrityCheck = "AndersBouwenAan && Prijspeil2023";
+
+	attribute<Eur_Ha> High_Faktondatabase (AdminDomain) := /VariantData/BAU/Suitability/src/Wonen/Grondproductiekosten/Results/Totaal/High_Faktondatabase
+	, StorageName = "=Dir+'/High_Faktondatabase.tif'", StorageType = "gdalwrite.grid", IntegrityCheck = "AndersBouwenAan && Prijspeil2023";
+
+	attribute<Eur_Ha> Nominaal_Exploitatieplannen (AdminDomain) := /VariantData/BAU/Suitability/src/Wonen/Grondproductiekosten/Results/Totaal/Nominaal_Exploitatieplannen
+	, StorageName = "=Dir+'/Nominaal_Exploitatieplannen.tif'", StorageType = "gdalwrite.grid", IntegrityCheck = "AndersBouwenAan && Prijspeil2023";
+
+	attribute<Eur_Ha> Low_Exploitatieplannen (AdminDomain) := /VariantData/BAU/Suitability/src/Wonen/Grondproductiekosten/Results/Totaal/Low_Exploitatieplannen
+	, StorageName = "=Dir+'/Low_Exploitatieplannen.tif'", StorageType = "gdalwrite.grid", IntegrityCheck = "AndersBouwenAan && Prijspeil2023";
+
+	attribute<Eur_Ha> High_Exploitatieplannen (AdminDomain) := /VariantData/BAU/Suitability/src/Wonen/Grondproductiekosten/Results/Totaal/High_Exploitatieplannen
+	, StorageName = "=Dir+'/High_Exploitatieplannen.tif'", StorageType = "gdalwrite.grid", IntegrityCheck = "AndersBouwenAan && Prijspeil2023";
+
+	parameter<String> Generate := 'Ready'
+	, ExplicitSuppliers = "Nominaal_Faktondatabase;Low_Faktondatabase;High_Faktondatabase;Nominaal_Exploitatieplannen;Low_Exploitatieplannen;High_Exploitatieplannen"
+	, Descr = "Activeer dit item om de zes grondproductiekosten-grids weg te schrijven.";
 }

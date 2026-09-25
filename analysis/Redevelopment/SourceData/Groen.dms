@@ -1,0 +1,166 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Natuur- en waterfracties rond een locatie: de twee groenblauwtermen van de hedoon die het EconLogic-paper
+// gebruikt (analysis/data/Estimates_EconLogic_20260711_<type>.csv = PriceIndices R-pipeline, spec 'rs_groen').
+//  - fr_natuur_tot2500m : aandeel natuur in de schijf 0-2500m, gemeten op het 100m-grid;
+//  - fr_water_500m      : aandeel water in de schijf 0-500m, gemeten op het 25m-grid.
+// Beide zijn fracties 0-1 en komen lineair in de prijsformule (coefficient = log-prijseffect van 0% naar 100%).
+//
+// De meting is 1-op-1 die van de schattingsinput: PriceIndices/main/SourceData/LGN.dms (items natuur_tot2500m en
+// water_500m), met de groencategorieen van PriceIndices/main/Classifications/LGNKlasse.dms en de Flat2-kernels van
+// PriceIndices/main/Geography/Distmatrices.dms. De schatting koppelde elke NVM-transactie aan de 100m-cel (natuur)
+// en de 25m-cel (water) van haar punt. Hier geeft fr_natuur_tot2500m op 25m de waarde van de omvattende 100m-cel,
+// dus een opzoeking op de 25m-cel van een object (per_rdc_25m in de PerObject_Export) levert dezelfde waarde.
+//
+// Bron: LGN<jaar>_m25.tif, de door RSopen met Modus naar 25m geaggregeerde LGN. De celwaarden zijn LGNKlasse-INDICES
+// (0-50), geen LGN-codes; de klassenlijst hieronder moet daarom in volgorde en aantal gelijk blijven aan die van
+// RSopen (cfg/main/Classifications/Grondgebruik.dms) en PriceIndices. Het jaar staat vast op 2024, het jaar van de
+// schatting. RSopen rekent dezelfde fracties (cfg/main/SourceData/Grondgebruik/LGN.dms, container Groenfracties)
+// maar leest sinds 20-08-2026 LGN2025; dit bestand beweegt daar bewust niet in mee.
+//
+// Randcorrectie zoals in de schatting: de noemer telt alleen cellen met LGN-dekking (klasse ongelijk aan 'onbekend'),
+// zodat buitenland en open zee niet als 'geen natuur' of 'geen water' meetellen. Natuur en water zijn deelverzamelingen
+// van die dekking, dus de fractie ligt in 0-1. De ondergrens 0,0001 in de noemer staat er alleen tegen deling door nul.
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+container Groen
+: Descr = "Natuur- en waterfracties (LGN2024) voor de hedonische prijsreconstructie; meting identiek aan de schattingsinput van Estimates_EconLogic_20260711 (PriceIndices, spec rs_groen)."
+{
+	parameter<String> LGN_Year := '2024', Descr = "LGN-vintage van de schatting (PriceIndices main.dms, ModelParameters/LGN_year). Alleen wijzigen samen met een herschatting van de hedoon.";
+
+	// Kopie van PriceIndices/main/Classifications/LGNKlasse.dms (kolommen code, naam, groencat).
+	// Natuur = bos (11, 12), kwelder/duin/zand/heide/veen/moeras/natuurgras (30-46) en struik (321-333); riet (42), moerasbos (43)
+	// en natuurlijk beheerd agrarisch grasland (45) tellen mee. Bos en gras in bebouwd gebied (20, 22, 23, 28) is stadsgroen en
+	// telt NIET als natuur. Water = zoet en zout water (16, 17).
+	unit<UInt8> LGNKlasse : NrOfRows = 51
+	{
+		unit<UInt32> elem := range(uint32, 0, nrAttr * uint32(#.))
+		{
+			attribute<String> values: [
+			// 'code','naam'                                                            ,'groencat'
+				'0'   ,'onbekend'                                                       ,'',
+				'1'   ,'agrarisch gras'                                                 ,'landbouw',
+				'2'   ,'mais'                                                           ,'landbouw',
+				'3'   ,'aardappelen'                                                    ,'landbouw',
+				'4'   ,'bieten'                                                         ,'landbouw',
+				'5'   ,'granen'                                                         ,'landbouw',
+				'6'   ,'overige Landbouwgewassen'                                       ,'landbouw',
+				'8'   ,'Glastuinbouw'                                                   ,'',
+				'9'   ,'Boomgaarden'                                                    ,'landbouw',
+				'10'  ,'bloembollen'                                                    ,'landbouw',
+				'11'  ,'loofbos'                                                        ,'natuur',
+				'12'  ,'naaldbos'                                                       ,'natuur',
+				'16'  ,'zoet water'                                                     ,'water',
+				'17'  ,'zout water'                                                     ,'water',
+				'18'  ,'bebouwing in primair bebouwd gebied'                            ,'',
+				'19'  ,'bebouwing in secundair bebouwd gebied'                          ,'',
+				'20'  ,'bos in primair bebouwd gebied'                                  ,'stadsgroen',
+				'22'  ,'bos in secundair bebouwd gebied'                                ,'stadsgroen',
+				'23'  ,'gras in primair bebouwd gebied'                                 ,'stadsgroen',
+				'26'  ,'bebouwing in buitengebied'                                      ,'',
+				'27'  ,'overig Grondgebruik in buitengebied'                            ,'',
+				'28'  ,'gras in secundair bebouwd gebied'                               ,'stadsgroen',
+				'29'  ,'zonneparken'                                                    ,'',
+				'30'  ,'kwelders'                                                       ,'natuur',
+				'31'  ,'open zand in kustgebied'                                        ,'natuur',
+				'32'  ,'duinen met lage vegetatie'                                      ,'natuur',
+				'33'  ,'duinen met hoge vegetatie'                                      ,'natuur',
+				'34'  ,'duinheide'                                                      ,'natuur',
+				'35'  ,'open stuifzand en/of rivierzand'                                ,'natuur',
+				'36'  ,'heide'                                                          ,'natuur',
+				'37'  ,'matig vergraste heide'                                          ,'natuur',
+				'38'  ,'sterk vergraste heide'                                          ,'natuur',
+				'39'  ,'hoogveen'                                                       ,'natuur',
+				'40'  ,'bos in hoogveengebied'                                          ,'natuur',
+				'41'  ,'overige moeras vegetatie'                                       ,'natuur',
+				'42'  ,'rietvegetatie'                                                  ,'natuur',
+				'43'  ,'bos in moerasgebied'                                            ,'natuur',
+				'45'  ,'natuurlijk beheerde agrarische graslanden'                      ,'natuur',
+				'46'  ,'gras in het kustgebied'                                         ,'natuur',
+				'47'  ,'overig gras'                                                    ,'overiggroen',
+				'61'  ,'boomkwekerijen'                                                 ,'landbouw',
+				'62'  ,'fruitkwekerijen'                                                ,'landbouw',
+				'251' ,'hoofdinfrastructuur en Spoorbaanlichamen'                       ,'',
+				'252' ,'halfverharde wegen, infrastructuur langzaam verkeer en overige' ,'',
+				'253' ,'smalle wegen'                                                   ,'',
+				'321' ,'struikvegetatie in hoogveengebied (laag)'                       ,'natuur',
+				'322' ,'struikvegetatie in moerasgebied (laag)'                         ,'natuur',
+				'323' ,'overige struikvegetatie (laag)'                                 ,'natuur',
+				'331' ,'struikvegetatie in hoogveengebied (hoog)'                       ,'natuur',
+				'332' ,'struikvegetatie in moerasgebied (hoog)'                         ,'natuur',
+				'333' ,'overige struikvegetatie (hoog)'                                 ,'natuur'
+			];
+		}
+		attribute<UInt32> id       := uint32(id(.));
+		attribute<UInt16> code     := UInt16(elem/values[value(id * nrAttr + 0, elem)]);
+		attribute<String> naam     := elem/values[value(id * nrAttr + 1, elem)];
+		attribute<String> groencat := elem/values[value(id * nrAttr + 2, elem)];
+
+		attribute<String> Label    := naam, DialogType = "LabelText";
+		attribute<String> name     := AsItemName(naam);
+
+		attribute<Bool>   IsNatuur := groencat == 'natuur';
+		attribute<Bool>   IsWater  := groencat == 'water';
+
+		container V := for_each_nedv(name, string(id(.))+'[..]', void, .);
+
+		parameter<UInt32> nrAttr := 3;
+	}
+
+	attribute<LGNKlasse> m25 (rdc_25m)
+	:	StorageName     = "='%Redev_DataDir%/Grondgebruik/LGN/LGN'+LGN_Year+'_m25.tif'"
+	,	StorageReadOnly = "True"
+	,	LazyCalculated  = "True"
+	,	URL             = "https://lgn.nl/bestanden"
+	,	Descr           = "LGN op 25m, door RSopen met Modus geaggregeerd (cfg/main/SourceData/Grondgebruik/LGN.dms, Write_m25); celwaarden zijn LGNKlasse-indices. Zelfde bestand en zelfde leesdefinitie als in PriceIndices. Bron: CC BY-SA 4.0 Wageningen Environmental Research.";
+
+	container Kernels
+	: Descr = "Platte schijfkernels, identiek aan Flat2 in PriceIndices/main/Geography/Distmatrices.dms (template PotRange): gewicht 1 voor elke cel waarvan het middelpunt op of binnen de straal ligt, anders 0. De bestaande potrange_T in Geography kent geen Flat2 (zijn 'const' sluit de rand uit) en is daarom niet bruikbaar."
+	{
+		unit<UInt32> Dist2Range;
+
+		Template PotRange_T
+		{
+			parameter<Float32> gridgrootte;
+			parameter<Float32> afkapstraal;
+			//
+			parameter<Float32> straal := afkapstraal / gridgrootte;
+
+			unit<SPoint> tmpRange := range(spoint, point_yx(-int16(straal), -int16(straal)), point_yx(int16(straal) + 1s, int16(straal) + 1s));
+			unit<SPoint> PotRange := tmpRange
+			{
+				attribute<Dist2Range> distMatr    := dist2(point_yx(0s, 0s, tmpRange), Dist2Range);
+				attribute<Float32>    Flat2       := float32(distMatr <= uint32(straal * straal));
+				parameter<Float32>    oppervlakte := sum(Flat2), Descr = "Aantal cellen in de schijf.";
+			}
+		}
+
+		container pot500m_25m   := PotRange_T(25f, 500f),   Descr = "Schijf van 500m op het 25m-grid: 41x41-kernel, 1257 cellen.";
+		container pot2500m_100m := PotRange_T(100f, 2500f), Descr = "Schijf van 2500m op het 100m-grid: 51x51-kernel, 1961 cellen.";
+	}
+
+	container Impl
+	{
+		attribute<float32> IsGedekt               (rdc_25m)  := float32(MakeDefined(m25 != LGNKlasse/V/onbekend, FALSE)), Descr = "1 waar LGN dekking heeft; basis van de noemer (randcorrectie). De tif heeft geen nodata: buitenland en open zee zijn klasse 'onbekend' (index 0).";
+		attribute<float32> natuur                 (rdc_25m)  := MakeDefined(float32(LGNKlasse/IsNatuur[m25]), 0f);
+		attribute<float32> water                  (rdc_25m)  := MakeDefined(float32(LGNKlasse/IsWater[m25]),  0f);
+
+		attribute<float32> n_500m                 (rdc_25m)  := max_elem(potential(IsGedekt, Kernels/pot500m_25m/PotRange/Flat2), 0.0001f), Descr = "Gedekt oppervlak (in 25m-cellen) binnen 500m.";
+
+		// natuurschijf op het 100m-grid: eerst het aandeel per 100m-cel, dan de potential met de kleine 51x51-kernel
+		attribute<float32> natuur_100m            (rdc_100m) := mean(natuur,   rdc_25m/rdc_100m_rel);
+		attribute<float32> IsGedekt_100m          (rdc_100m) := mean(IsGedekt, rdc_25m/rdc_100m_rel);
+		attribute<float32> natuur_binnen2500_100m (rdc_100m) := potential(natuur_100m,   Kernels/pot2500m_100m/PotRange/Flat2);
+		attribute<float32> gedekt_binnen2500_100m (rdc_100m) := potential(IsGedekt_100m, Kernels/pot2500m_100m/PotRange/Flat2);
+	}
+
+	attribute<float32> fr_water_500m           (rdc_25m)  := potential(Impl/water, Kernels/pot500m_25m/PotRange/Flat2) / Impl/n_500m
+	, Descr = "Aandeel water (LGN 16/17) in de schijf 0-500m, fractie 0-1; bron van coefficient fr_water_500m. Gelijk aan PriceIndices LGN/water_500m.";
+
+	attribute<float32> fr_natuur_tot2500m_100m (rdc_100m) := Impl/natuur_binnen2500_100m / max_elem(Impl/gedekt_binnen2500_100m, 0.0001f)
+	, Descr = "Aandeel natuur in de schijf 0-2500m, gemeten op het 100m-grid, fractie 0-1. Gelijk aan PriceIndices LGN/natuur_tot2500m.";
+
+	attribute<float32> fr_natuur_tot2500m      (rdc_25m)  := fr_natuur_tot2500m_100m[rdc_25m/rdc_100m_rel]
+	, Descr = "fr_natuur_tot2500m_100m van de omvattende 100m-cel, op 25m zodat objecten via hun 25m-cel opzoeken; bron van coefficient fr_natuur_tot2500m.";
+}

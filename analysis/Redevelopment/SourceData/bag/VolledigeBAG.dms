@@ -218,7 +218,7 @@ container VolledigeBAG : using = "classifications/BAG"
 																						'&& upper_x < 300000.0 && upper_x > 0.0'
 																						'&& lower_y < 620000.0 && lower_y > 300000.0'
 																						'&& upper_y < 620000.0 && upper_y > 300000.0' //binnen NL
-																						'&& IsStudyArea';
+																						+ (Parameters/PandSelectie_StudyArea ? '&& IsStudyArea' : '');
 			}
 		}  
 			

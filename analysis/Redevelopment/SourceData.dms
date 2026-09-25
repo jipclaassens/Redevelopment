@@ -19,6 +19,7 @@ container SourceData :  using = "units;geography;classifications"
 	#include <spatial_data.dms>
 	#include <woz.dms>
 	#include <vierkanten.dms>
+	#include <Groen.dms>
 	
 	container overig
 	{
@@ -111,27 +112,34 @@ container SourceData :  using = "units;geography;classifications"
 			), Descr = "Reistijd naar 500.000 inwoners in float-minuten, gemaximeerd op 120; schaal identiek aan schattingsinput van coef lntt_500k_2024";
 
 		// Grondproductiekosten (PBL/Fakton-schattingsmodel, RuimteScanner-implementatie): Eur/ha op 25m,
-		// 2017-schatting x bouwkostenindex naar 2023 (= prijspeil van de hedonische waardering). Eenmalig
-		// gegenereerd (2026-07-16) uit RSopen_NL2120, item /BaseData/Suitabilities/Wonen/Grondproductiekosten/
-		// Results/Totaal/<variant> (Model_StartYear 2023); het gebruikte export-snippet staat als naslag in
-		// analysis/data/ExportRedevKosten_NL2120_snippet.dms.txt. Drie onzekerheidsvarianten: RS-default
-		// Nominaal_High + bandbreedte Low_Low / High_High. Issue #16 stap 2.
+		// 2017-schatting x bouwkostenindex naar 2023 (= prijspeil van de hedonische waardering). Opnieuw
+		// gegenereerd (2026-09-25) uit RSopen_NL2120 commit 463ebb40, dus na de modelfixes e967f730 (eenheden
+		// reistijd, plangebied, noemer Bovenwijks) en d373e0a1 (#809: BronFakton als bronkeuze, plangebied 2 ha,
+		// kaveldichtheid afgetopt op 60). Item /VariantData/BAU/Suitability/src/Wonen/Grondproductiekosten/
+		// Results/Totaal/<variant>, Model_StartYear 2023, met VariantK/BodemdalingkostenInSaldo voor BAU op
+		// FALSE: dan doet de dummy AndersBouwen (draagkracht/kwel) mee zoals in de Fakton-schatting (RS zet hem
+		// standaard uit, omdat RS de bodemdaling als eigen post in het saldo rekent). Het export-snippet staat
+		// als naslag in analysis/data/ExportRedevKosten_NL2120_snippet.dms.txt. Hoofdvariant
+		// Nominaal_Faktondatabase (RS-default: nominale coefficienten, bron Faktondatabase), bandbreedte
+		// Low_/High_Faktondatabase (alle coefficienten tegelijk -/+ 1 standaardfout). De map bevat ter referentie
+		// ook de drie Exploitatieplannen-varianten. Vervangt Grondproductiekosten_2023/{Nominaal_High,Low_Low,
+		// High_High} van 2026-07-16 (van voor de fixes). Issue #16 stap 2.
 		container Grondproductiekosten
 		{
-			attribute<float32> Nominaal_High (rdc_25m)
-			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023/Nominaal_High.tif"
+			attribute<float32> Nominaal_Faktondatabase (rdc_25m)
+			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023_v2/Nominaal_Faktondatabase.tif"
 			,	StorageType = "gdal.grid", StorageReadOnly = "True"
-			,	Descr = "Grondproductiekosten Eur/ha, nominale coefficienten + High-keuze controlevariabelen (RS-default)";
+			,	Descr = "Grondproductiekosten Eur/ha (prijspeil 2023), nominale coefficienten, bron Faktondatabase (RS-default), met AndersBouwen";
 
-			attribute<float32> Low_Low (rdc_25m)
-			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023/Low_Low.tif"
+			attribute<float32> Low_Faktondatabase (rdc_25m)
+			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023_v2/Low_Faktondatabase.tif"
 			,	StorageType = "gdal.grid", StorageReadOnly = "True"
-			,	Descr = "Grondproductiekosten Eur/ha, ondergrens bandbreedte";
+			,	Descr = "Grondproductiekosten Eur/ha, ondergrens bandbreedte: alle coefficienten min 1 standaardfout, bron Faktondatabase";
 
-			attribute<float32> High_High (rdc_25m)
-			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023/High_High.tif"
+			attribute<float32> High_Faktondatabase (rdc_25m)
+			:	StorageName = "%Redev_DataDir%/Vastgoed/Grondproductiekosten_2023_v2/High_Faktondatabase.tif"
 			,	StorageType = "gdal.grid", StorageReadOnly = "True"
-			,	Descr = "Grondproductiekosten Eur/ha, bovengrens bandbreedte";
+			,	Descr = "Grondproductiekosten Eur/ha, bovengrens bandbreedte: alle coefficienten plus 1 standaardfout, bron Faktondatabase";
 		}
 		
 		attribute<bool>      BBG_groen_100mbuff       (rdc_25m) : StorageName = "%Alt_DataDir%/Overig/BBG_groen_100mbuff.tif";
@@ -230,10 +238,14 @@ container SourceData :  using = "units;geography;classifications"
 			attribute<rdc>              geometry (poly);
 			attribute<string>           naam : DialogType = "LabelText";
 			attribute<string>           JURSTATUS;
-			
+			attribute<string>           AANGEWEZEN;       // aanwijzingsdatum, 'JJJJ/MM/DD 00:00:00+00'
+			attribute<uint32>           jaar_aangewezen := uint32(substr(AANGEWEZEN, 0, 4));
 		}
-		
-		unit<uint32> StadsDorpsGezichten := select_with_org_rel(StadsDorpsGezichten_src/JURSTATUS == 'rijksmonument')
+
+		// Alleen gezichten die al voor 2012 beschermd waren: de bescherming moet aan het begin van het
+		// venster (2012-2026) bekend zijn. Latere aanwijzingen (35 van 473, o.a. Tuindorp Vreewijk 2012 en
+		// Plan Zuid 2017) volgden soms juist op sloopplannen en zouden de uitkomst in de verklaarder stoppen.
+		unit<uint32> StadsDorpsGezichten := select_with_org_rel(StadsDorpsGezichten_src/JURSTATUS == 'rijksmonument' && StadsDorpsGezichten_src/jaar_aangewezen < 2012)
 		{
 			attribute<rdc>              geometry (poly) := org_rel -> geometry;
 			attribute<string>           label           := org_rel -> naam;

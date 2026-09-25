@@ -80,6 +80,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	}
 		
 	#include<AdditionalOperations.dms>
+	#include<NietWoonWaardering.dms>
 	// #include<ExportMutatieVergelijking.dms>
 	// #include<VergelijkWP4.dms>
 	// #include<VerifieerExportBronnen.dms>
@@ -101,6 +102,9 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// de site-VORMING (1 rij per site) is AdditionalOperations/Onveranderd/Result — daar prikt
 		// PrepDomains/Onveranderd/domain zijn Site_ID/site_size uit
 		unit<uint32> Onveranderd_Objecten           := PrepDomains/Onveranderd/domain;
+		// potentiele sites uit de onveranderde NIET-woonvoorraad (25-09-2026, AdditionalOperations/OnveranderdNW):
+		// vergelijkingsgroep van het aparte model voor sites met vooraf alleen niet-woonpanden
+		unit<uint32> Onveranderd_NW_Objecten        := AdditionalOperations/OnveranderdNW/Objecten;
 	}
 	
  	unit<uint32> PerObject_Export := ='union_unit('+AsItemList('FinalDomains/'+AdditionalClassifications/Redev_ObjectTypes/name+'_Objecten')+')'
@@ -108,7 +112,10 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 	, using = "AdditionalClassifications"
 	{
 		attribute<rdc>               geometry                        := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_geometry')+')';
-		attribute<rdc>               site_geometry            (poly) := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_geometry')+')';
+		// site_geometry (een kopie van de sitepolygoon per VBO) is uit de export gehaald (25-09-2026): R slaat
+		// polygoonkolommen over, de kolom was 32 GB op schijf, en de landelijke export liep er op OVSRV06 (64 GB) op
+		// vast (memory allocation failed in Site_geometry). Voor kaarten: per site uit FinalDomains/<type>_Objecten.
+		// attribute<rdc>               site_geometry            (poly) := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_geometry')+')';
 		
 		// ### Identifiers
 		attribute<string>            site_id                         := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_id')+')';
@@ -121,7 +128,7 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<uint32>            y_coord                         := uint32(Get_Y(geometry));
 		
 		// ### Outcomes
-		attribute<bool>              was_redeveloped                 := redev_type != Redev_ObjectTypes/V/Onveranderd;
+		attribute<bool>              was_redeveloped                 := redev_type != Redev_ObjectTypes/V/Onveranderd && redev_type != Redev_ObjectTypes/V/Onveranderd_NW;
 		attribute<Redev_ObjectTypes> redev_type                      := ='rlookup(union_data(., '+AsList('const('+quote(Redev_ObjectTypes/name)+',FinalDomains/'+Redev_ObjectTypes/name+'_Objecten)',',')+'), Redev_ObjectTypes/name)';
 		attribute<int32>             redev_yearmonth                 := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/MutatieMaand')+')';
 		// SN-site gekwalificeerd via de BBG-2000-woongebied-route (AdditionalOperations/SN, r.261-262): geen
@@ -132,10 +139,26 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// ### Site characteristics (incumbent state)
 		attribute<m2>                site_size                       := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_size')+')';
 		attribute<m2>                site_sum_footprint              := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/site_sum_footprint')+')';
+		// Oppervlak en voetafdruk van de oorspronkelijke bebouwing (stage 2, besluit 25-09-2026; zie
+		// AdditionalOperations/SN/OorspronkelijkeBebouwing): voor SN-sites alleen de gesloopte panden, met de
+		// vormingsregel van de onveranderde voorraad; voor alle andere sites gelijk aan site_size en
+		// site_sum_footprint (onveranderde sites volgen die regel al). Leeg of 0 bij SN-sites zonder sloop.
+		attribute<bool>              is_sn_site                      := IsDefined(rlookup(site_id, AdditionalOperations/SN/Result/Site_ID));
+		attribute<m2>                site_size_oorspr                := is_sn_site ? rjoin(site_id, AdditionalOperations/SN/Result/Site_ID, AdditionalOperations/SN/OorspronkelijkeBebouwing/site_size) : site_size;
+		attribute<m2>                site_sum_footprint_oorspr       := is_sn_site ? rjoin(site_id, AdditionalOperations/SN/Result/Site_ID, AdditionalOperations/SN/OorspronkelijkeBebouwing/sum_footprint) : site_sum_footprint;
 		attribute<yr>                obj_building_year               := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/pand_bouwjaar')+')';
 		attribute<int32>             obj_floor_area_res_m2           := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/vbo_oppervlakte')+')';
 		attribute<WP4>               obj_housetype                   := ='union_data(., '+AsItemList('FinalDomains/'+Redev_ObjectTypes/name+'_Objecten/wp4_rel')+')';
 		attribute<bool>              obj_is_woonfunctie              := Redev_ObjectTypes/IsWoon[redev_type];
+		// Pandkenmerken, opgeschoond vloeroppervlak en niet-woonwaardering per object (NietWoonWaardering.dms, 25-09-2026;
+		// port van RSopen_NL2120 #674/#700/#701). obj_floor_area_res_m2 hierboven blijft de ruwe BAG-waarde.
+		attribute<m2>                obj_pand_footprint_m2           := NietWoonWaardering/PerObject/pand_footprint;
+		attribute<uint32>            obj_pand_n_woningen             := NietWoonWaardering/PerObject/n_woningen;
+		attribute<int32>             obj_floor_area_clean_m2         := NietWoonWaardering/PerObject/oppervlakte_schoon;
+		attribute<NietWoonWaardering/OppervlakteVlag> obj_floor_area_flag := NietWoonWaardering/PerObject/oppervlakte_vlag;
+		attribute<NietWoonWaardering/ObjectKlasse>    obj_nonres_class    := NietWoonWaardering/PerObject/klasse;
+		attribute<vbo_gebruiksdoel_ext>               obj_gebruiksdoel    := NietWoonWaardering/PerObject/gebruiksdoel;
+		attribute<float32>           obj_nonres_eur_m2_2023          := NietWoonWaardering/PerObject/eur_m2_2023;
 
 
 		// ### Prijscomponenten (hedonische inputs; R bouwt prijs = exp(constant + sum(coef*char)) per WP4, coefficienten = Estimates_20260711 spec 'redev')
@@ -145,6 +168,10 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		// tt_ovknoop: OV-knooppunten 2026, ongecapt (schatting zag waarden vanaf 0,1 min) -> coef lntt_ovknoop (issue #18).
 		attribute<float32>          loc_tt_500k_2024_min            := /SourceData/overig/tt_500k_2024_min_f[per_rdc_25m];
 		attribute<float32>          loc_tt_ovknoop_2026_min         := /SourceData/overig/tt_OVknooppunten_2026_min[per_rdc_25m];
+		// fr_natuur_tot2500m / fr_water_500m: fracties 0-1 uit LGN2024 (SourceData/Groen), meting identiek aan de schattingsinput
+		// van Estimates_EconLogic_20260711 (spec rs_groen, 25-09-2026); lineair in de prijsformule (geen log).
+		attribute<float32>          loc_fr_natuur_tot2500m          := /SourceData/Groen/fr_natuur_tot2500m[per_rdc_25m];
+		attribute<float32>          loc_fr_water_500m               := /SourceData/Groen/fr_water_500m[per_rdc_25m];
 
 		// Regio-gemiddelde kenmerken (NVM-regiotifs op grid) voor ALLE vier WP4-types: fase 1 (incumbent) pakt in R de eigen kolom via obj_housetype, fase 2 (alternatieven) heeft alle types nodig.
 		attribute<float32>           reg_vrijstaand_lotsize          := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/vrijstaand_lotsize[per_rdc_25m]);
@@ -170,15 +197,16 @@ container Redev_obv_hele_bag :  using = "units;classifications/bag;geography"
 		attribute<float32>           reg_appartement_size            := float32(/Analyse/PriceComponents/RegionalAvgCharacteristics/perWP4/RegionalAvgCharacteristics/appartement_size[per_rdc_25m]);
 
 		// ### Verwervingskosten -> in R: woning hedonisch uit bovenstaande componenten + coefficienten-CSV (PriceComponents/ExportCoefficients_WP4).
-		// Niet-woning (obj_is_woonfunctie==FALSE): loc_woz_nonres_eur_m2 * obj_floor_area_res_m2.
-		// WOZ Eur/m2 (PBL 190215, peiljaar 2017): grid-route op 25m, groep via dominante BBG-klasse van de cel, fallback buurt->wijk->gemeente; zie SourceData/woz.dms.
-		attribute<float32>           loc_woz_nonres_eur_m2           := float32(/SourceData/WOZ/Y2017/per_25m[per_rdc_25m] / 1[eur_m2]);
+		// Niet-woning (obj_is_woonfunctie==FALSE): obj_nonres_eur_m2_2023 * obj_floor_area_clean_m2 (NietWoonWaardering).
+		// Ter controle de woning-WOZ per m2 op de locatie (PBL 190215, waardepeildatum 1-1-2016) waarop die waardering rust;
+		// vervangt de kolom loc_woz_nonres_eur_m2, die ten onrechte een niet-woonprijs suggereerde (zie SourceData/woz.dms).
+		attribute<float32>           loc_woz_woon_eur_m2_2016        := NietWoonWaardering/PerObject/woz_woon_2016;
 
 		// ### Kostencomponenten (issue #16 stap 2; R: residual value = revenue - grondproductie - bouwkosten)
 		// Grondproductiekosten (PBL/Fakton via RSopen_NL2120): Eur/ha op 2023-prijspeil; R: kosten site = Eur/ha x site_size.
-		attribute<float32>           loc_grondprod_eur_ha            := /SourceData/overig/Grondproductiekosten/Nominaal_High[per_rdc_25m];
-		attribute<float32>           loc_grondprod_eur_ha_low        := /SourceData/overig/Grondproductiekosten/Low_Low[per_rdc_25m];
-		attribute<float32>           loc_grondprod_eur_ha_high       := /SourceData/overig/Grondproductiekosten/High_High[per_rdc_25m];
+		attribute<float32>           loc_grondprod_eur_ha            := /SourceData/overig/Grondproductiekosten/Nominaal_Faktondatabase[per_rdc_25m];
+		attribute<float32>           loc_grondprod_eur_ha_low        := /SourceData/overig/Grondproductiekosten/Low_Faktondatabase[per_rdc_25m];
+		attribute<float32>           loc_grondprod_eur_ha_high       := /SourceData/overig/Grondproductiekosten/High_Faktondatabase[per_rdc_25m];
 		// Landsdeel tbv CBS-bouwkosten-kentallen per landsdeel (83673NED) in R.
 		attribute<string>            landsdeel                       := Landsdelen/statnaam[Landsdeel_rel];
 

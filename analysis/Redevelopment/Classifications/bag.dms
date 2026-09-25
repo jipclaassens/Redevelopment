@@ -289,10 +289,11 @@ container BAG: using = "units"
 		attribute<String> Label := name;
 	}
 
-	// Termen van de redev-hedoon (Estimates_20260711, PriceIndices R-pipeline, spec 'redev'); namen zijn 1-op-1 de CSV-termnamen.
+	// Termen van de hedoon (Estimates_EconLogic_20260711, PriceIndices R-pipeline, spec 'rs_groen' = de redev-termen plus
+	// fr_natuur_tot2500m en fr_water_500m); namen zijn 1-op-1 de CSV-termnamen.
 	// Referentiecategorieen (bouwperiode_va2002, trans_year_2000) staan in de CSV met estimate 0 en zitten hier bewust in.
 	// lnlotsize ontbreekt bij appartement; d_highrise/d_hoogte_onbekend alleen bij appartement -> null-coefficienten bij de andere types.
-	unit<UInt8> HouseCharacteristics_src : NrOfRows = 42
+	unit<UInt8> HouseCharacteristics_src : NrOfRows = 44
 	{
 		attribute<String> name :
 		[
@@ -337,7 +338,9 @@ container BAG: using = "units"
 			'trans_year_2023',
 			'lntt_500k_2024',
 			'lntt_ovknoop',
-			'uai_2012'
+			'uai_2012',
+			'fr_natuur_tot2500m', // aandeel natuur in de schijf 0-2500m (LGN2024), fractie 0-1; zie SourceData/Groen
+			'fr_water_500m'       // aandeel water in de schijf 0-500m (LGN2024), fractie 0-1; zie SourceData/Groen
 		];
 	}
 	unit<UInt32> WP4xHouseChar := combine(WP4, HouseCharacteristics)

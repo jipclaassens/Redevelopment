@@ -370,7 +370,51 @@ container AdditionalOperations
 				attribute<m2>     site_sum_footprint   := ../site_sum_sloop_nb_footprint[../Nieuwbouw_rel][org_rel];
 			}
 		}
+
+		// Oppervlak van de oorspronkelijke bebouwing per SN-site, voor stage 2 (besluit 25-09-2026).
+		// De projectomtrek (Result/geometry_rd) bevat ook de nieuwbouw en verbindt panden tot 20 m, zodat het
+		// site-oppervlak deels door de uitkomst wordt bepaald. Hier dezelfde vormingsregel als voor de onveranderde
+		// voorraad (Onveranderd.dms): pandbuffer 10 m, geknipt op weg/spoor, alleen bufferdelen die >= 50% van een
+		// pand bevatten, plus de pandgeometrie, samengevoegd per site; maar alleen over de GESLOOPTE panden (wonen
+		// en niet-wonen). De projectomtrek blijft voor stage 1 (wat er gebouwd is). Sites via de BBG-route (geen
+		// sloop in het venster) krijgen hier geen oppervlak.
+		container OorspronkelijkeBebouwing
+		{
+			// elk gesloopt pand hoort bij de site waarin een van zijn verblijfsobjecten ligt
+			attribute<Result> pand_site_rel (SloopPanden) := point_in_polygon(Sloop/vbo_geometry[SloopPanden/Sloop_rel], Result/geometry_rd);
+
+			unit<uint32> Panden := select_with_org_rel(IsDefined(pand_site_rel))
+			{
+				attribute<rdc>    geometry  (poly) := SloopPanden/geometry[org_rel];
+				attribute<m2>     area_pand        := SloopPanden/area_pand[org_rel];
+				attribute<Result> site_rel         := pand_site_rel[org_rel];
+				attribute<rdc>    inflate   (poly) := geos_buffer_multi_polygon(geometry, parameters/big_inflate_m[float64], 4b);
+
+				//buffers geknipt op weg/spoor (exact de Onveranderd-expressie)
+				unit<uint32> PandenBuffer_x_WegSpoor := geos_overlay_polygon(inflate, SourceData/Grondgebruik/BRT/Read_Relevant_Tiles_x_WegSpoor/TiledNonWegSpoor);
+			}
+
+			//losse delen van de geknipte buffers; een (deel, pand)-paar telt als het deel >= 50% van het pand bevat
+			unit<uint32> Split          := geos_split_polygon(Panden/PandenBuffer_x_WegSpoor/geometry);
+			unit<uint32> Split_x_Panden := geos_overlay_polygon(Split/geometry, Panden/geometry);
+			unit<uint32> Cleaned        := select_with_org_rel(area(Split_x_Panden/geometry, m2) >= 0.5d * Panden/area_pand[Split_x_Panden/second_rel])
+			{
+				attribute<Panden> pand_rel        := Split_x_Panden/second_rel[org_rel];
+				attribute<rdc>    geometry (poly) := Split/geometry[Split_x_Panden/first_rel[org_rel]];
+			}
+
+			//opgeschoonde bufferdelen plus de originele pandgeometrieen, per site samengevoegd (vgl. Onveranderd/Result)
+			unit<uint32> Union_with_original_geometry := union_unit(Cleaned, Panden)
+			{
+				attribute<rdc>    geometry (poly) := union_data(., Cleaned/geometry, Panden/geometry);
+				attribute<Result> site_rel        := union_data(., Panden/site_rel[Cleaned/pand_rel], Panden/site_rel);
+			}
+			attribute<rdc> geometry      (poly, Result) := geos_union_polygon(Union_with_original_geometry/geometry, Union_with_original_geometry/site_rel);
+			attribute<m2>  site_size     (Result)       := area(geometry, m2);
+			attribute<m2>  sum_footprint (Result)       := sum(Panden/area_pand, Panden/site_rel), Descr = "som van de pandvoetafdrukken, per pand (niet per verblijfsobject) geteld";
+		}
 	}
 
 	#include<Onveranderd.dms>
+	#include<OnveranderdNW.dms>
 }

@@ -43,7 +43,7 @@ container PrijsIndex
 		parameter<String> WP_name   := =lowercase(Types_dom_str) == lowercase('WP4') ? 'Types_dom/name_english[id]' : 'Types_dom/name[id]';
 		
 		unit<UInt32> AdminDomain
-		:  StorageName = "= '%Redev_DataDir%/Vastgoed/Estimates_'+Datum+'_'+WP_name+'.csv'"
+		:  StorageName = "= '%projDir%/analysis/data/Estimates_EconLogic_'+Datum+'_'+WP_name+'.csv'"
 		,  StorageType = "gdal.vect"
 		,  StorageReadOnly = "True"
 		{

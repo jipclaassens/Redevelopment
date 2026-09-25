@@ -107,7 +107,42 @@ final_clustering <- function(ci, k = cfg$kmeans_k_final) {
   centroids <- as.data.table(ctr)[, cluster := .I]
   setcolorder(centroids, "cluster")
 
+  # Canonical numbering (25-09): k-means numbers its clusters in arbitrary order, and a small change
+  # in the input permutes them (it did when dwelling floor areas were capped at 500 m2). The labels in
+  # 08/10 and the stage-1 reference alternative (cluster 1) assume one fixed order, so the clusters
+  # are renumbered by content. The kmeans object keeps its own numbering.
+  new_id <- canonical_cluster_ids(centroids)
+  if (!is.null(new_id)) {
+    ci$sites[, cluster := new_id[cluster]]
+    centroids[, cluster := new_id[cluster]]
+    setorder(centroids, cluster)
+  }
+
   list(sites = ci$sites, kmeans = km, centroids = centroids)
+}
+
+# Map k-means cluster ids to the fixed order used in the tables: 1 detached teardown, 2 apartment
+# high-density, 3 semi-detached, 4 apartment mid-density, 5 terraced, 6 detached large. Each cluster
+# is typed by its dominant dwelling type; the two detached clusters are split on unit size, the two
+# apartment clusters on density. Returns NULL (k-means order kept, with a warning) when the menu
+# does not have that composition, e.g. in a sensitivity run with another K.
+canonical_cluster_ids <- function(centroids) {
+  shares <- as.matrix(centroids[, paste0("share_", cfg$wp4_names), with = FALSE])
+  dominant <- cfg$wp4_names[max.col(shares, ties.method = "first")]
+  idx <- function(type) which(dominant == type)
+  det <- idx("vrijstaand"); app <- idx("appartement")
+  semi <- idx("twee_onder_1_kap"); terr <- idx("rijtjeswoning")
+  if (length(det) != 2L || length(app) != 2L || length(semi) != 1L || length(terr) != 1L) {
+    warning("Cluster menu does not have the expected composition (2 detached, 2 apartment, 1 semi-detached, ",
+            "1 terraced); k-means numbering kept, so the labels in 08/10 may not fit.")
+    return(NULL)
+  }
+  det <- det[order(centroids$unit_size_mean[det])]      # smaller units first: teardown, then large
+  app <- app[order(centroids$density_per_ha[app])]      # lower density first: mid, then high
+  new_id <- integer(nrow(centroids))
+  new_id[det[1]] <- 1L; new_id[app[2]] <- 2L; new_id[semi] <- 3L
+  new_id[app[1]] <- 4L; new_id[terr] <- 5L; new_id[det[2]] <- 6L
+  new_id
 }
 
 ## ---------------------------------------------------------------------------

@@ -15,6 +15,8 @@
 #  - vol_roll5 = sd of local index growth over the 5 years before the decision year
 #    (PriceIndices Volatility_rolling_*; grid5km, fallback gemeente; after the last
 #    available decision year the last known value is used).
+#  - iv and acquisition per hectare with ln(site area) as control, as in the stage-2 base
+#    spec (decision 25-09; see 06/07).
 #  - iv/acquisition/frictions time-invariant (2023 level); year fixed effects capture the
 #    national price cycle and the baseline hazard; 2026 is half a year (BAG through July) —
 #    the year dummy captures that level.
@@ -43,6 +45,7 @@ build_hazard_panel <- function(alt, s, s1) {
   # later does not create dummies for categories with zero observations.
   uni <- build_stage2_input(alt, s, s1)
   uni <- uni[bbg_sn == FALSE & pipeline == FALSE & bouwperiode_inc != "bp_onbekend"]
+  if (isTRUE(cfg$stage2_requires_dwellings)) uni <- uni[inc_has_dwellings == TRUE]   # replacement of housing (25-09)
   uni[, bouwperiode_inc := droplevels(bouwperiode_inc)]
   # Update join: each site_id of uni is looked up in s$incumbent, and := writes the matched
   # event_yearmonth into uni itself as event_ym (the i. prefix = "column from the joined
@@ -53,9 +56,9 @@ build_hazard_panel <- function(alt, s, s1) {
   # Estimation-sample filter: keep only sites where all listed regressors are observed
   # (complete.cases; ..vars means "the columns named in the vars vector") and where OAD
   # meets the configured density threshold, mirroring the stage-2 sample.
-  vars <- c("iv", "acq_mln", "p_owner_occupier_buurt", "p_socialhousing_buurt",
+  vars <- c("iv", "acq_ha", "ln_site_ha", "p_owner_occupier_buurt", "p_socialhousing_buurt",
             "isprotectheritagearea")
-  uni <- uni[complete.cases(uni[, ..vars]) & !is.na(oad) & oad >= cfg$oad_min]
+  uni <- uni[complete.cases(uni[, ..vars]) & is.finite(ln_site_ha) & !is.na(oad) & oad >= cfg$oad_min]
   # Redeveloped sites (y = TRUE) without an event date cannot be placed on the time axis;
   # count them for the log, then drop them. Censored sites (y = FALSE) need no date.
   n_without_event <- uni[y == TRUE & is.na(event_ym), .N]
@@ -132,7 +135,7 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   # notation for fixed effects). est keeps only site-years where every volatility series
   # is observed, so H1-H4 are all estimated on the identical sample and are comparable.
   # Natura 2000 is left out here too, matching the stage-2 base spec (see the note in 07).
-  f_rhs <- paste("iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +",
+  f_rhs <- paste("iv + acq_ha + ln_site_ha + p_owner_occupier_buurt + p_socialhousing_buurt +",
                  "isprotectheritagearea + bouwperiode_inc")
   mk <- function(extra, fe = TRUE) as.formula(paste("y_year ~", f_rhs, "+", extra, if (fe) "| year" else ""))
   est <- panel[!is.na(vol_roll) & !is.na(g_roll) & !is.na(vol_nl)]
@@ -148,7 +151,7 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
     ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")
     setnames(ct, c("term", "estimate", "se_cluster", "z", "p"))
     ct[, spec := label]
-    shown <- ct[term %chin% c("vol_roll", "g_roll", "vol_rollG", "g_rollG", "vol_nl", "g_nl", "iv", "acq_mln")]
+    shown <- ct[term %chin% c("vol_roll", "g_roll", "vol_rollG", "g_rollG", "vol_nl", "g_nl", "iv", "acq_ha")]
     rd_log("  %-9s: %s", label, shown[, paste(sprintf("%s %+.2f (z %.1f)", term, estimate, z), collapse = "; ")])
     ct
   }

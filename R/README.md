@@ -14,7 +14,7 @@ discrete-time hazard. Style follows the R pipeline in `C:/ProjDir/_Tools/PriceIn
 
 ## Steps
 
-| script | does | output (in `%LocalDataDir%/Redevelopment/R_werk`) |
+| script | does | output (in `%LocalDataDir%/<repo folder name>/R_werk`) |
 |---|---|---|
 | `00_config.R` | paths (registry), classification maps, parameters and defaults | — |
 | `01_read_mmd.R` | reader for GeoDMS mmd exports (binary, tiled strings, bit-packed bools; polygon columns skipped) | — |

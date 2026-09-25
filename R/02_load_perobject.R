@@ -8,7 +8,8 @@
 # Region proxies (incumbent has no NVM characteristics): reg_<wp4>_{lotsize,nrooms,
 # d_maintgood,d_highrise}. d_hoogte_onbekend: no regional average available -> 0.
 # Price level: trans_year_<cfg$price_level_year>. Location: lntt_500k_2024, lntt_ovknoop, uai_2012.
-# Non-residential incumbent (Transformatie_Min, SN_Sloop_nw): loc_woz_nonres_eur_m2 * m2.
+# Non-residential incumbent (Transformatie_Min, SN_Sloop_nw, Onveranderd_NW): obj_nonres_eur_m2_2023 x
+# cleaned floor area (GeoDMS NietWoonWaardering: hall or other, calibrated on the local dwelling WOZ).
 
 # Determine the folder this script lives in: when run via Rscript, commandArgs()
 # contains --file=<path>; when sourced interactively we fall back to getwd().
@@ -29,6 +30,12 @@ source(file.path(.rd_script_dir, "01_read_mmd.R"))
 read_coefficients <- function(pad = cfg$file_coef) {
   co <- fread(pad, sep = ";", na.strings = "")
   stopifnot(all(c("coef_name", cfg$wp4_names) %in% names(co)))
+  # Guards against silent errors (25-09): a duplicated term would be recycled like the old
+  # building-period bug, and a term that the price formula below does not use is dropped from
+  # every price without a warning (that is how the green and water terms went missing).
+  stopifnot("duplicated term in the coefficient file" = !anyDuplicated(co$coef_name))
+  unused <- setdiff(co$coef_name[!co$coef_name %like% "^bouwperiode_|^trans_year_"], cfg$price_terms)
+  if (length(unused)) stop("Coefficient file has terms the price formula does not use: ", paste(unused, collapse = ", "))
   co
 }
 
@@ -71,6 +78,13 @@ load_perobject <- function(dir_mmd = cfg$dir_mmd) {
   # (found 30-07: 251 sites, all in the export's OAD column). NA is the honest value;
   # 06/07/09 already drop sites with !is.na(oad).
   if ("oad" %in% names(x)) x[oad >= 4294967295, oad := NA_integer_]
+  # NietWoonWaardering columns (export from 25-09): uint32 and int32 nulls, uint8 codes -> labels
+  if ("obj_pand_n_woningen" %in% names(x))     x[obj_pand_n_woningen >= 4294967295, obj_pand_n_woningen := NA_real_]
+  if ("obj_floor_area_clean_m2" %in% names(x)) x[obj_floor_area_clean_m2 <= -2147483647L, obj_floor_area_clean_m2 := NA_integer_]
+  code_to_label <- function(code, labels) fifelse(code < length(labels), labels[code + 1L], NA_character_)
+  if ("obj_nonres_class" %in% names(x))    x[, obj_nonres_class    := code_to_label(obj_nonres_class, cfg$nonres_classes)]
+  if ("obj_floor_area_flag" %in% names(x)) x[, obj_floor_area_flag := code_to_label(obj_floor_area_flag, cfg$floor_area_flags)]
+  if ("obj_gebruiksdoel" %in% names(x))    x[, obj_gebruiksdoel    := code_to_label(obj_gebruiksdoel, cfg$gebruiksdoelen)]
 
   # role assignment: plus rows = new state, min rows + Onveranderd = incumbent state
   # A mutation appears as a "plus" row (what was built) and/or a "min" row (what
@@ -79,8 +93,49 @@ load_perobject <- function(dir_mmd = cfg$dir_mmd) {
   # obj_is_woon: residential yes/no, looked up per redev type from a cfg vector.
   x[, is_plus      := redev_type_lbl %in% cfg$redev_plus]
   x[, is_min       := redev_type_lbl %in% cfg$redev_min]
-  x[, is_incumbent := is_min | redev_type_lbl == "Onveranderd"]
+  # Onveranderd_NW (id 10, export from 25-09): unchanged non-residential units, either in the Onv_ site of
+  # their mixed building or in the potential sites of the non-residential stock (OnvNW_)
+  x[, is_incumbent := is_min | redev_type_lbl %chin% c("Onveranderd", "Onveranderd_NW")]
   x[, obj_is_woon  := cfg$redev_is_woon[redev_type + 1L]]
+
+  # Floor area plausibility (RuimteScanner rules): a dwelling larger than five times the footprint
+  # of its building -> NA, above 500 m2 capped; a non-residential unit is capped at what fits in its
+  # building (footprint x storeys from the building height, at most 45). Exports from 25-09 carry the
+  # cleaned value (obj_floor_area_clean_m2, GeoDMS NietWoonWaardering); for older exports the two
+  # dwelling rules are applied here. The raw value is kept for inspection.
+  x[, obj_floor_area_raw_m2 := obj_floor_area_res_m2]
+  if ("obj_floor_area_clean_m2" %in% names(x)) {
+    x[, obj_floor_area_res_m2 := obj_floor_area_clean_m2]
+    rd_log("Floor area cleaned in the export; flags:")
+    print(x[, .N, by = obj_floor_area_flag][order(-N)])
+  } else {
+    if ("obj_pand_footprint_m2" %in% names(x))
+      x[obj_is_woon == TRUE & !is.na(obj_pand_footprint_m2) &
+        obj_floor_area_res_m2 > cfg$floor_area_max_ratio_footprint * obj_pand_footprint_m2, obj_floor_area_res_m2 := NA_integer_]
+    x[obj_is_woon == TRUE & obj_floor_area_res_m2 > cfg$floor_area_max_res, obj_floor_area_res_m2 := cfg$floor_area_max_res]
+  }
+  rd_log("Floor area: %s dwellings set to NA (> %gx footprint), %s capped at %d m2",
+         format(x[obj_is_woon == TRUE & is.na(obj_floor_area_res_m2) & !is.na(obj_floor_area_raw_m2), .N], big.mark = ","),
+         cfg$floor_area_max_ratio_footprint,
+         format(x[obj_is_woon == TRUE & obj_floor_area_raw_m2 > cfg$floor_area_max_res, .N], big.mark = ","), cfg$floor_area_max_res)
+
+  # Missing dwelling type (WP4), mostly demolished dwellings whose type can no longer be derived
+  # from their neighbours: without a type there is no price, and the site's acquisition cost used to
+  # become 0. RuimteScanner rule (SourceData/Vastgoed/EigendomStaat.dms): more than one dwelling in
+  # the building -> appartement, otherwise vrijstaand. The export (from 25-09) counts the dwellings in
+  # the building at the object's own reference date over the full BAG history (obj_pand_n_woningen);
+  # older exports fall back on counting export rows within the same role (new or existing state).
+  # Flagged, so its effect can be checked.
+  if ("obj_pand_n_woningen" %in% names(x)) {
+    x[, n_woon_in_pand := obj_pand_n_woningen]
+  } else {
+    x[obj_is_woon == TRUE, n_woon_in_pand := .N, by = .(pand_bag_nr, is_plus)]
+  }
+  x[, housetype_imputed := obj_is_woon & is.na(obj_housetype_lbl)]
+  x[housetype_imputed == TRUE, obj_housetype_lbl := fifelse(!is.na(n_woon_in_pand) & n_woon_in_pand > 1, "appartement", "vrijstaand")]
+  rd_log("Dwelling type imputed for %s dwellings (%s of them existing stock)",
+         format(x[housetype_imputed == TRUE, .N], big.mark = ","),
+         format(x[housetype_imputed == TRUE & is_incumbent == TRUE, .N], big.mark = ","))
 
   # 2012 double-count flag (#26, option 2): new construction registered in 2012 with an old
   # building year is suspected Woningregister->BAG administrative (CBS corrected -56% N in 2012, not reproducible).
@@ -122,10 +177,21 @@ add_price_reconstruction <- function(x, co = read_coefficients()) {
   # for its own type. m[cbind(row, col)] is R matrix indexing that picks exactly one cell
   # per row: row i, the column belonging to object i's type. Regional averages stand in
   # because incumbents have no NVM transaction characteristics of their own.
+  # Where a region has no NVM data for a type the regional average is NA, which would leave the
+  # object without a price; as in RuimteScanner (#676) a national value is used instead, here the
+  # median of that column over all objects.
   reg_column <- function(char) {
     idx <- match(wp4, cfg$wp4_names)
     m <- as.matrix(x[, paste0("reg_", cfg$wp4_names, "_", char), with = FALSE])
+    for (j in seq_len(ncol(m))) m[is.na(m[, j]), j] <- median(m[, j], na.rm = TRUE)
     m[cbind(seq_len(nrow(m)), idx)]
+  }
+  # Green and water shares around the object (fr_natuur_tot2500m, fr_water_500m): part of the
+  # estimated hedonic model, so they must be part of the prediction too.
+  loc_col <- function(term) {
+    col <- cfg$green_cols[[term]]
+    if (!col %in% names(x)) stop("Export lacks column ", col, " for coefficient term ", term, "; run a fresh export.")
+    x[[col]]
   }
 
   # Linear predictor of the hedonic model: constant + sum(coef * characteristic), fully
@@ -141,7 +207,9 @@ add_price_reconstruction <- function(x, co = read_coefficients()) {
     coef_for(co, paste0("trans_year_", cfg$price_level_year), wp4) +
     coef_for(co, "lntt_500k_2024", wp4) * log(x$loc_tt_500k_2024_min) +
     coef_for(co, "lntt_ovknoop", wp4)   * log(pmax(x$loc_tt_ovknoop_2026_min, cfg$ovknoop_floor)) +
-    coef_for(co, "uai_2012", wp4)       * x$uai_2012
+    coef_for(co, "uai_2012", wp4)       * x$uai_2012 +
+    coef_for(co, "fr_natuur_tot2500m", wp4) * loc_col("fr_natuur_tot2500m") +
+    coef_for(co, "fr_water_500m", wp4)      * loc_col("fr_water_500m")
 
   # bouwperiode dummy: look up the appropriate term per row
   # melt() reshapes the bouwperiode coefficient rows from wide (one column per WP4 type)
@@ -165,13 +233,16 @@ add_price_reconstruction <- function(x, co = read_coefficients()) {
   # Final value columns, added by reference with :=. prijs_hat_woon = exp(linear
   # predictor), only for residential objects with a known type and floor area.
   x[, prijs_hat_woon := fifelse(!is.na(wp4) & obj_is_woon & !is.na(obj_floor_area_res_m2), exp(lp), NA_real_)]
-  # non-residential incumbent value: WOZ Eur/m2 x floor area
-  # (no hedonic model exists for non-residential stock; the local WOZ value per m2
-  # times the floor area is the best available proxy)
+  # non-residential incumbent value: Eur/m2 x floor area. No hedonic model exists for the
+  # non-residential stock. Exports from 25-09 carry a value per m2 at the 2023 price level per
+  # object class (hall or other), set as in RuimteScanner (#674): the local dwelling WOZ per m2
+  # times a ratio per class, calibrated so that the national floor-weighted averages match about
+  # 600 (halls) and 1,400 (other) Eur/m2. Older exports only have the dwelling WOZ itself.
+  nonres_eur_m2 <- if ("obj_nonres_eur_m2_2023" %in% names(x)) x$obj_nonres_eur_m2_2023 else x$loc_woz_nonres_eur_m2
   x[, waarde_nonres := fifelse(!obj_is_woon & !is.na(obj_floor_area_res_m2),
-                               loc_woz_nonres_eur_m2 * obj_floor_area_res_m2, NA_real_)]
+                               nonres_eur_m2 * obj_floor_area_res_m2, NA_real_)]
   # acq_waarde: the incumbent value used later as acquisition cost, hedonic price for
-  # residential objects and the WOZ-based value otherwise
+  # residential objects and the non-residential value otherwise
   x[, acq_waarde := fifelse(obj_is_woon, prijs_hat_woon, waarde_nonres)]
   x[]
 }

@@ -61,13 +61,14 @@ d1b_funnel <- function(alt, uni) {
   # stage-2 funnel: replicate the estimate_stage2 filters step by step on uni (from
   # build_stage2_input): pipeline out, BBG-SN out, unknown building period out,
   # complete covariates + OAD observed, then the OAD scope filter.
-  vars <- c("iv", "acq_mln", "p_owner_occupier_buurt", "p_socialhousing_buurt",
+  vars <- c("iv", "acq_ha", "ln_site_ha", "p_owner_occupier_buurt", "p_socialhousing_buurt",
             "isprotectheritagearea", "vol_dlnp")
   u1 <- uni
   u2 <- u1[pipeline == FALSE]
   u3 <- u2[bbg_sn == FALSE]
   u4 <- u3[bouwperiode_inc != "bp_onbekend"]
-  u5 <- u4[complete.cases(u4[, ..vars]) & !is.na(oad)]
+  u4b <- if (isTRUE(cfg$stage2_requires_dwellings)) u4[inc_has_dwellings == TRUE] else u4
+  u5 <- u4b[complete.cases(u4b[, ..vars]) & is.finite(ln_site_ha) & !is.na(oad)]
   u6 <- u5[oad >= cfg$oad_min]
 
   c("**Stage 1 (conditional logit over development types)**", "",
@@ -81,6 +82,7 @@ d1b_funnel <- function(alt, uni) {
     step("Pipeline sites excluded (demolition/withdrawal without follow-up)", nrow(u2), u2[, sum(y)]),
     step("BBG-route SN excluded (acquisition not reconstructable)", nrow(u3), u3[, sum(y)]),
     step("Unknown incumbent building period excluded", nrow(u4), u4[, sum(y)]),
+    step("Only non-residential buildings before excluded (separate model)", nrow(u4b), u4b[, sum(y)]),
     step("Complete covariates and OAD observed", nrow(u5), u5[, sum(y)]),
     step(sprintf("Base estimation sample: OAD >= %d", cfg$oad_min), nrow(u6), u6[, sum(y)]),
     "", sprintf("Redevelopment share in the base sample: %.2f%%.", 100 * u6[, mean(y)]))
@@ -90,7 +92,8 @@ d1b_funnel <- function(alt, uni) {
 ## D2: summary statistics of the stage-2 covariates by outcome (base sample)
 ## ---------------------------------------------------------------------------
 d2_summary_stats <- function(base_dt) {
-  cont <- c(iv = "Inclusive value", acq_mln = "Acquisition costs (EUR M)",
+  cont <- c(iv = "Inclusive value", acq_ha = "Acquisition costs (EUR M per ha)",
+            acq_mln = "Acquisition costs (EUR M per site)",
             site_ha = "Site area (ha)",
             n_units_res_inc = "Dwellings on the site (incumbent)",
             p_owner_occupier_buurt = "Share owner-occupiers neighbourhood (pp)",
@@ -273,10 +276,10 @@ if (sys.nframe() == 0L || isTRUE(get0("run_10", ifnotfound = FALSE))) {
   uni <- build_stage2_input(alt, s, s1)
 
   # base estimation sample for D2 (same filters as the funnel/estimation)
-  vars <- c("iv", "acq_mln", "p_owner_occupier_buurt", "p_socialhousing_buurt",
+  vars <- c("iv", "acq_ha", "ln_site_ha", "p_owner_occupier_buurt", "p_socialhousing_buurt",
             "isprotectheritagearea", "vol_dlnp")
-  base_dt <- uni[pipeline == FALSE & bbg_sn == FALSE & bouwperiode_inc != "bp_onbekend"]
-  base_dt <- base_dt[complete.cases(base_dt[, ..vars]) & !is.na(oad) & oad >= cfg$oad_min]
+  base_dt <- uni[pipeline == FALSE & bbg_sn == FALSE & bouwperiode_inc != "bp_onbekend" & (inc_has_dwellings == TRUE | !isTRUE(cfg$stage2_requires_dwellings))]
+  base_dt <- base_dt[complete.cases(base_dt[, ..vars]) & is.finite(ln_site_ha) & !is.na(oad) & oad >= cfg$oad_min]
 
   # figures first (so the markdown can reference them)
   f1 <- file.path(cfg$dir_work, "fig1_sn_starts_vol.png");  fig_starts_vs_vol(s, f1)

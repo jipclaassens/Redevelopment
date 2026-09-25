@@ -23,6 +23,10 @@ build_sites <- function(x) {
   # These attributes are constant within a site, so taking the first non-missing value is
   # enough; .( ) is data.table shorthand for list(), naming the output columns.
   first_non_na <- function(v) v[which(!is.na(v))[1]]
+  # Columns added to the export on 25-09 (area of the original buildings, green and water shares):
+  # an older export lacks them, so they are created empty and the downstream steps can check them.
+  for (cn in c("site_size_oorspr", "site_sum_footprint_oorspr", unname(cfg$green_cols)))
+    if (!cn %in% names(x)) x[, (cn) := NA_real_]
   site_attrs <- x[, .(
     agglomeratie   = first_non_na(agglomeratie),
     gemeente_code  = first_non_na(gemeente_code),
@@ -31,7 +35,13 @@ build_sites <- function(x) {
     x_coord        = first_non_na(x_coord),
     y_coord        = first_non_na(y_coord),
     site_size      = first_non_na(site_size),
+    # area and footprint of the buildings that stood there BEFORE (stage 2; for redeveloped sites the
+    # demolished buildings only, formed with the same rule as the unchanged stock)
+    site_size_oorspr          = first_non_na(site_size_oorspr),
+    site_sum_footprint_oorspr = first_non_na(site_sum_footprint_oorspr),
     uai_2012       = first_non_na(uai_2012),
+    loc_fr_natuur_tot2500m = first_non_na(loc_fr_natuur_tot2500m),
+    loc_fr_water_500m      = first_non_na(loc_fr_water_500m),
     loc_tt_500k_2024_min  = first_non_na(loc_tt_500k_2024_min),
     loc_tt_ovknoop_2026_min = first_non_na(loc_tt_ovknoop_2026_min),
     p_owner_occupier_buurt  = first_non_na(p_owner_occupier_buurt),
@@ -46,6 +56,12 @@ build_sites <- function(x) {
     isprotectheritagearea = any(isprotectheritagearea, na.rm = TRUE),
     is_natura2000         = any(is_natura2000, na.rm = TRUE)
   ), by = site_id]
+  # Frictions are measured on the buildings that stood there BEFORE (review 25-09): the new buildings
+  # extend a redeveloped site, which would otherwise touch a protected townscape more easily. Sites
+  # without existing buildings (pure new construction) keep the value over all their rows.
+  inc_flags <- x[is_incumbent == TRUE, .(heritage_inc = any(isprotectheritagearea, na.rm = TRUE),
+                                         natura_inc   = any(is_natura2000, na.rm = TRUE)), by = site_id]
+  site_attrs[inc_flags, on = "site_id", `:=`(isprotectheritagearea = i.heritage_inc, is_natura2000 = i.natura_inc)]
 
   # regional-average NVM characteristics (grid values: ~identical within a site -> first row suffices);
   # needed in 05_alternatieven for the price prediction of all 4 types on each site
@@ -59,16 +75,20 @@ build_sites <- function(x) {
 
   # -- incumbent state ----------------------------------------------------------
   inc <- x[is_incumbent == TRUE]
-  # demolition rate per object (Eur/m2, 2023 price level): residential mapped to WP4 (unknown type ->
-  # mean of the four), non-residential to 'kantoor'; applied to the floor area (BVO approximation)
+  # demolition rate per object (Eur/m2 floor area, 2023 price level; see cfg): dwellings by WP4 type
+  # (imputed in 02 where missing; any remaining unknown type -> mean of the four), non-residential
+  # buildings by hall/other class (other where the export has no class), plus the asbestos surcharge
+  # for non-residential buildings built before 1994.
   # match() looks up each object's housetype label in the named rate vector; labels without a
   # rate yield NA, which the second line replaces by the mean rate over the four WP4 types.
   rate_res <- unname(cfg$demolition_costs_2023[match(inc$obj_housetype_lbl, names(cfg$demolition_costs_2023))])
   rate_res[is.na(rate_res)] <- mean(cfg$demolition_costs_2023[cfg$wp4_names])
-  # := adds the column in place (assignment by reference, no copy): residential objects get
-  # their WP4 rate, non-residential objects the 'kantoor' rate. fifelse = fast vectorised
+  nonres_class <- if ("obj_nonres_class" %in% names(inc)) inc$obj_nonres_class else rep(NA_character_, nrow(inc))
+  rate_nonres  <- fifelse(nonres_class %chin% "hal", cfg$demolition_costs_2023[["hal"]], cfg$demolition_costs_2023[["overig_nietwoon"]]) +
+                  fifelse(!is.na(inc$obj_building_year) & inc$obj_building_year < cfg$asbestos_year, cfg$asbestos_surcharge_2023, 0)
+  # := adds the column in place (assignment by reference, no copy); fifelse = fast vectorised
   # if-else (condition, value-if-true, value-if-false).
-  inc[, demolition_rate := fifelse(obj_is_woon, rate_res, cfg$demolition_costs_2023[["kantoor"]])]
+  inc[, demolition_rate := fifelse(obj_is_woon, rate_res, rate_nonres)]
   # Grouped aggregation to 1 row per site describing what stood there originally. .N is the
   # data.table symbol for "number of rows in this group" (= objects on the site); sum/any
   # operate within the group; fifelse splits totals into residential vs non-residential parts.
@@ -85,17 +105,28 @@ build_sites <- function(x) {
                              if (length(b)) as.integer(names(sort(table(b), decreasing = TRUE))[1]) else NA_integer_ },
     # uniqueN = number of distinct values; 1 means all objects on the site share one function
     has_single_function  = uniqueN(obj_is_woon) == 1L,
-    # acquisition costs: hedonic house value + WOZ value for non-residential (raw euros, censoring in estimation step)
-    acq_cost_res_eur     = sum(fifelse(obj_is_woon, acq_waarde, 0), na.rm = TRUE),
-    acq_cost_nonres_eur  = sum(fifelse(!obj_is_woon, acq_waarde, 0), na.rm = TRUE),
+    # acquisition costs: hedonic house value + value of the non-residential space (raw euros). An
+    # object without a value (unknown floor area or location) makes the site total NA instead of
+    # silently counting as 0, as it did before 25-09; such sites drop out of stage 2.
+    n_unvalued           = sum(is.na(acq_waarde)),
+    acq_cost_res_eur     = sum(fifelse(obj_is_woon, acq_waarde, 0)),
+    acq_cost_nonres_eur  = sum(fifelse(!obj_is_woon, acq_waarde, 0)),
     demolition_cost_eur  = sum(demolition_rate * as.numeric(obj_floor_area_res_m2), na.rm = TRUE),
-    was_redeveloped      = any(redev_type_lbl != "Onveranderd"),
+    was_redeveloped      = any(!redev_type_lbl %chin% c("Onveranderd", "Onveranderd_NW")),
     # redevelopment start moment (09_hazard): first min mutation on the site (Sloop/Onttrekking);
     # Onveranderd sites have no mutation month -> NA
     event_yearmonth      = { v <- redev_yearmonth[!is.na(redev_yearmonth)]; if (length(v)) min(v) else NA_integer_ }
   ), by = site_id]
-  # Derived total, appended in place with := (cheaper than recomputing both sums above).
-  sites_inc[, acq_cost_total_eur := acq_cost_res_eur + acq_cost_nonres_eur]
+  # Land under non-residential buildings (cfg$land_value_builtup_eur_ha, RuimteScanner #787): the
+  # dwelling price includes its land, the non-residential price only the building. As in
+  # RuimteScanner, where no dwellings stand the land is bought too; at site level that means sites
+  # without dwellings, over the area of the original buildings (site_size for older exports).
+  sites_inc[site_attrs, on = "site_id", site_m2_ := fcoalesce(i.site_size_oorspr, i.site_size)]
+  sites_inc[, acq_cost_land_eur := fifelse(n_units_res == 0L & n_units_nonres > 0L,
+                                           cfg$land_value_builtup_eur_ha * site_m2_ / 1e4, 0)]
+  sites_inc[, site_m2_ := NULL]
+  # Derived total, appended in place with :=.
+  sites_inc[, acq_cost_total_eur := acq_cost_res_eur + acq_cost_nonres_eur + acq_cost_land_eur]
 
   # -- new state (realized redevelopment) -----------------------------------------
   pl <- x[is_plus == TRUE]

@@ -51,6 +51,11 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
   # changed. site_ha converts the site area from m2 to hectares for the land cost formulas.
   st <- copy(s$attrs)
   st[, site_ha := site_size / 1e4]
+  # Area of the buildings that stood there before (25-09): for redeveloped sites the demolished
+  # buildings only, formed with the rule of the unchanged stock; equal to site_ha for other sites.
+  # Used for the per-hectare costs that are the same for every option (demolition), and in stage 2.
+  # Falls back on site_ha where the export has no such area (older export, or no demolition).
+  st[, site_ha_oorspr := fifelse(!is.na(site_size_oorspr) & site_size_oorspr > 0, site_size_oorspr / 1e4, site_ha)]
 
   # incumbent side (acquisition/demolition/outcome); sites without incumbent rows = pure new construction
   # Attach the incumbent-side aggregates to the site table via a data.table "update join":
@@ -66,6 +71,7 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
     acq_cost_total_eur = i.acq_cost_total_eur,
     demolition_cost_eur = i.demolition_cost_eur,
     n_units_res_inc    = i.n_units_res,
+    n_units_nonres_inc = i.n_units_nonres,
     floor_area_res_inc = i.floor_area_res_m2)]
   st[is.na(has_incumbent), `:=`(has_incumbent = FALSE, was_redeveloped = TRUE,
                                 acq_cost_total_eur = 0, demolition_cost_eur = 0)]
@@ -97,6 +103,14 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
   # The size term is applied per cluster below (price scales with size_k to the power of
   # the lnsize coefficient), so the expensive part runs once per site, not per (site, k).
   ct <- function(term, t) coef_for(co, term, t)  # scalar: one coefficient for (term, type)
+  # Regional averages missing for a type (no NVM data in that region) would make the price of that
+  # type, and so the residual value of every option on the site, NA; as in RuimteScanner (#676) a
+  # national value is used instead: the median of the column over all sites.
+  for (cn in as.vector(outer(cfg$wp4_names, c("lotsize", "nrooms", "d_highrise"), function(w, c) paste0("reg_", w, "_", c)))) {
+    n_na <- st[is.na(get(cn)), .N]
+    if (n_na) { st[is.na(get(cn)), (cn) := median(st[[cn]], na.rm = TRUE)]; rd_log("  %s: national fallback for %s sites", cn, format(n_na, big.mark = ",")) }
+  }
+  stopifnot("green/water shares missing: run a fresh export" = !anyNA(st$loc_fr_natuur_tot2500m[!is.na(st$uai_2012)]))
   P_base <- sapply(cfg$wp4_names, function(t)
     exp(ct("constant", t) +
         ct("lnlotsize", t)   * log(pmax(st[[paste0("reg_", t, "_lotsize")]], 1)) +
@@ -106,11 +120,15 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
         ct(paste0("trans_year_", cfg$price_level_year), t) +
         ct("lntt_500k_2024", t) * log(st$loc_tt_500k_2024_min) +
         ct("lntt_ovknoop", t)   * log(pmax(st$loc_tt_ovknoop_2026_min, cfg$ovknoop_floor)) +
-        ct("uai_2012", t)       * st$uai_2012))
+        ct("uai_2012", t)       * st$uai_2012 +
+        ct("fr_natuur_tot2500m", t) * st$loc_fr_natuur_tot2500m +
+        ct("fr_water_500m", t)      * st$loc_fr_water_500m))
   # Per-type ingredients for the cluster loop: the lnsize coefficient (size scaling of the
-  # price) and the vormfactor (living area per m2 gross floor area, so bvo = size / vf).
+  # price), the vormfactor (living area per m2 gross floor area, so bvo = size / vf) and the
+  # construction cost index per type (cfg; apartments cost more per m2 than terraced houses).
   ls_coef <- vapply(cfg$wp4_names, function(t) ct("lnsize", t), numeric(1))
   vf      <- unname(cfg$vormfactor[cfg$vormfactor_wp4[cfg$wp4_names]])
+  cti     <- unname(cfg$construction_type_index[cfg$wp4_names])
 
   # -- one block of the long table per cluster alternative -----------------------
   # Row expansion: lapply builds one data.table ("block") holding ALL sites for each of the
@@ -127,16 +145,33 @@ build_alternatives <- function(s, cl, co = read_coefficients()) {
     size_k <- ctr$unit_size_mean
     n_units <- ctr$density_per_ha * st$site_ha
     price_units <- P_base %*% (shares * size_k^ls_coef)          # sum_t share_t x price_t,sk
-    bvo_factor  <- sum(shares / vf)                              # m2 gross floor area per m2 living area, weighted
+    cost_factor <- sum(shares * cti / vf)                        # type-indexed m2 gross floor area per m2 living area
+    # Revenue excludes VAT (new dwellings are sold incl. 21%, the hedonic price of existing homes
+    # has none); on top of the construction sum come the additional costs (fees, levies, interest)
+    # and, in the sensitivity run only, the developer's margin (all from cfg, after RuimteScanner).
     block <- data.table(
       site_id        = st$site_id,
       cluster_alt    = k,
       n_units_alt    = n_units,
-      revenue_eur    = n_units * as.numeric(price_units),
-      cost_construction_eur = n_units * size_k * bvo_factor * st$bouw_kental,
+      revenue_eur    = n_units * as.numeric(price_units) / (1 + cfg$vat_rate),
+      cost_construction_eur = n_units * size_k * cost_factor * st$bouw_kental,
       cost_land_eur  = st$loc_grondprod_eur_ha * st$site_ha,
       cost_demolition_eur = st$demolition_cost_eur)
-    block[, rv_eur := revenue_eur - cost_construction_eur - cost_land_eur - cost_demolition_eur]
+    block[, cost_additional_eur := cfg$additional_costs_share * cost_construction_eur]
+    block[, cost_margin_eur     := cfg$developer_margin * (cost_construction_eur + cost_additional_eur)]
+    block[, rv_eur := revenue_eur - cost_construction_eur - cost_additional_eur - cost_margin_eur -
+                      cost_land_eur - cost_demolition_eur]
+    # Residual value per hectare (the regressor of stage 1 and the basis of the inclusive value).
+    # Revenue and construction scale with the project area, so per hectare of that area they no
+    # longer depend on site size; land costs are a per-hectare grid value; demolition is the same
+    # for every option and is spread over the area of the original buildings, the rule that the
+    # unchanged sites follow too.
+    block[, rv_ha_eur := (revenue_eur - cost_construction_eur - cost_additional_eur - cost_margin_eur) / st$site_ha -
+                         st$loc_grondprod_eur_ha - cost_demolition_eur / st$site_ha_oorspr]
+    # sensitivity: the same with the RuimteScanner margin (cfg$developer_margin_sens) over
+    # construction plus additional costs (06 variant 'margin7')
+    block[, rv_ha_eur_margin := rv_ha_eur - (cfg$developer_margin_sens - cfg$developer_margin) *
+                                (cost_construction_eur + cost_additional_eur) / st$site_ha]
     # land production sensitivity (RV variants only, no separate cost columns)
     block[, rv_eur_grond_low  := rv_eur + cost_land_eur - st$loc_grondprod_eur_ha_low  * st$site_ha]
     block[, rv_eur_grond_high := rv_eur + cost_land_eur - st$loc_grondprod_eur_ha_high * st$site_ha]

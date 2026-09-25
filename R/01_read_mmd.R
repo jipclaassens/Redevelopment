@@ -75,7 +75,10 @@ read_mmd_dictionary <- function(dir_mmd) {
   }
 
   fsz <- file.info(path)$size
-  expected <- if (spec$what == "bool") ceiling(n / 8) else n * spec$bytes
+  # Bool is bit-packed in 32-bit words, so the file holds ceiling(n/32)*4 bytes. For the export of
+  # July (8,700,061 rows) that equalled ceiling(n/8) by chance; the export of 25-09 (9,185,609 rows)
+  # has two padding bytes more, and a byte-based check skipped every bool column.
+  expected <- if (spec$what == "bool") ceiling(n / 32) * 4 else n * spec$bytes
   if (fsz != expected) {
     warning(sprintf("column %s: file size %d differs from expected %d (type %s), skipped",
                     name, fsz, expected, type))

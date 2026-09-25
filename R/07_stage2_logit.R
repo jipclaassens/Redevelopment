@@ -17,9 +17,15 @@
 # i.i.d. SEs are too small. Clustering does not change the coefficients.
 #
 # Explanatory variables (theory + frictions):
-#   iv [+], acq_mln [-], p_owner_occupier_buurt [- holdout], p_socialhousing_buurt [?],
-#   isprotectheritagearea [-], vol_dlnp [- real options],
+#   iv [+], acq_ha [-], ln_site_ha (control), p_owner_occupier_buurt [- holdout],
+#   p_socialhousing_buurt [?], isprotectheritagearea [-], vol_dlnp [- real options],
 #   bouwperiode_inc (mode building year of incumbent, ref va2002) [older -> +, depreciation]
+#
+# Per hectare (decision 25-09): the inclusive value comes from the per-hectare stage-1 model
+# and acquisition costs enter per hectare of site area (acq_ha, M EUR/ha), so both sides of
+# the redevelopment condition are values per unit of land; ln(site area) is a control. With
+# amounts for the whole site, both terms largely measured site size (see 06). Head-to-head on
+# the same sites: McFadden 0.156 (per site) vs 0.252 (per hectare).
 #
 # Natura 2000 is NOT in the base specification (decision 30-07). Development there is not
 # forbidden but requires a nitrogen assessment, so it was included as a permitting friction;
@@ -35,12 +41,15 @@
 # Specs (all in the export CSV):
 #   base       OAD>=1000, full covariates
 #   no_bp      base without the bouwperiode control (isolates what building year does with heritage)
-#   urban1500  OAD>=1500 (strongly urban)
-#   nl         no OAD filter
-#   rural      OAD<1000 (outside the urban scope; complement of base)
-#   size       base + ln(site_ha) (comparability control for site formation 10m/20m)
-#   winsor     base with iv/acq winsorized p1/p99 (mega-site tails; separation warning)
+#   urban1500  OAD>=1500 (strongly urban)                  } each with the inclusive value of its
+#   nl         no OAD filter                                } own stage-1 scope (iv_urban1500,
+#   rural      OAD<1000 (complement of base)                } iv_nl, iv_rural; see 06)
+#   no_size    base without ln(site_ha)
+#   winsor     base with iv/acq_ha winsorized p1/p99 (tails of very small or very large sites)
 #   vol_muni   volatility with gemeente granularity primary (instead of grid5km-first)
+#   nonres     separate model: redeveloped sites where only non-residential buildings stood, against
+#              potential sites from the unchanged non-residential stock (OnvNW; export from 25-09)
+#   (demol_start: out since 25-09, its S sites are formed with a different rule; see below)
 #   demol_start S sites (demolition without follow-up = irreversible start) count as y=1;
 #              Onttrekking is excluded here too (mostly administrative, and the
 #              78k O sites gave a flat likelihood / quasi-separation)
@@ -49,8 +58,13 @@
 #              administration, not real redevelopment)
 #   n2000      base + the Natura 2000 indicator (see the note above)
 #   bbg_imput  base + the BBG-route SN sites (no demolition rows in the window) as y=1,
-#              with IMPUTED acquisition (median acq/ha of observed SN sites x
-#              site_ha); without the bouwperiode control (incumbent unknown for those sites)
+#              with IMPUTED acquisition (median acq/ha of observed SN sites);
+#              without the bouwperiode control (incumbent unknown for those sites)
+#   margin7    base with the inclusive value of the stage-1 model whose residual value includes the
+#              RuimteScanner developer margin (7%, cfg$developer_margin_sens); main model: no margin
+#   stage1_cov base with the inclusive value of the stage-1 model with site characteristics x type
+#   total      the previous specification: inclusive value and acquisition costs for the whole
+#              site, no ln(site_ha); reproduces the 30-07 base results (comparison)
 #
 # Output: cfg$file_stage2_rds + R_werk/stage2_specs<suffix>_<area>_<date>.csv
 # (term;estimate;se_cluster;z;spec;n;n_y1) + AMEs of the core variables (base).
@@ -79,8 +93,14 @@ build_stage2_input <- function(alt, s, s1) {
   # outcome; pipeline marks demolition/onttrekking without follow-up construction.
   uni[, prefix := sub("_.*$", "", site_id)]
   uni[prefix == "OnvS", prefix := "Onv"]                       # old naming (mmd < 28-07)
-  uni <- uni[prefix %chin% c("SN", "Onv", "S", "O")]           # TMmin out of scope
+  # OnvNW = potential sites from the unchanged NON-residential stock (export from 25-09), the
+  # comparison group of the separate non-residential model
+  uni <- uni[prefix %chin% c("SN", "Onv", "S", "O", "OnvNW")]  # TMmin out of scope
   uni[, y := prefix == "SN"]
+  # Main analysis = replacement of housing: sites that had at least one dwelling (decision 25-09).
+  # Redeveloped sites with only non-residential buildings before have no counterpart in the
+  # unchanged residential stock; they form the separate non-residential model with OnvNW.
+  uni[, inc_has_dwellings := has_incumbent & !is.na(n_units_res_inc) & n_units_res_inc > 0]
   uni[, pipeline := prefix %chin% c("S", "O")]
   uni[, bbg_sn := has_incumbent == FALSE]
   # For BBG-route sites the demolition predates the window, so these costs cannot be
@@ -94,8 +114,16 @@ build_stage2_input <- function(alt, s, s1) {
   # table"); see README, data.table primer. Then two derived regressors: acquisition cost
   # in mln euro and log site size (the latter only used in the size spec).
   uni[s1$iv, on = "site_id", iv := i.iv]
+  # Inclusive values of the comparison models and the scope-matched ones (06); older stage-1
+  # files do not have them, hence the check per column.
+  for (v in intersect(c("iv_total", "iv_cov", "iv_margin", "iv_nl", "iv_urban1500", "iv_rural"), names(s1$iv)))
+    uni[, (v) := s1$iv[[v]][match(site_id, s1$iv$site_id)]]
   uni[, acq_mln := acq_cost_total_eur / 1e6]
-  uni[, ln_site_ha := log(site_ha)]
+  # Per hectare of the area of the ORIGINAL buildings (site_ha_oorspr, from 05): for redeveloped
+  # sites the outline of the project also covers the new buildings, so the project area is partly
+  # an outcome (review 25-09). Same for the size control.
+  uni[, acq_ha := acq_mln / site_ha_oorspr]     # M EUR per hectare
+  uni[, ln_site_ha := log(site_ha_oorspr)]
 
   # bouwperiode of incumbent (mode building year per site; unknown as its own level — discard nothing)
   # Update join pulls the modal building year from the incumbent aggregates; fifelse maps
@@ -136,12 +164,14 @@ estimate_stage2 <- function(uni) {
   # f_base is the base regression formula: outcome y explained by the covariates listed in
   # the header. w() is a winsorizer: it clips a variable at its 1st and 99th percentile
   # (used only in the winsor spec, to tame mega-site tails).
-  f_base <- y ~ iv + acq_mln + p_owner_occupier_buurt + p_socialhousing_buurt +
+  f_base <- y ~ iv + acq_ha + ln_site_ha + p_owner_occupier_buurt + p_socialhousing_buurt +
                 isprotectheritagearea + vol_dlnp + bouwperiode_inc
   # is_natura2000 stays in the completeness filter (it is never NA, so the sample is
   # identical) so that the n2000 robustness spec runs on exactly the same rows as base.
   vars <- c(setdiff(all.vars(f_base), "bouwperiode_inc"), "is_natura2000")
   w    <- function(v) { q <- quantile(v, c(.01, .99), na.rm = TRUE); pmin(pmax(v, q[1]), q[2]) }
+  # ln(site_ha) must be finite (a zero area would give -Inf); complete.cases() lets -Inf through.
+  uni <- uni[is.finite(ln_site_ha) | bbg_sn == TRUE]
 
   # sites without building year: quasi-separation (nearly no events on the bp_onbekend dummy
   # keeps the likelihood spinning flat) -> out of the estimation; in the urban sample this is ~5 sites.
@@ -153,8 +183,16 @@ estimate_stage2 <- function(uni) {
   # Core sample: genuine yes/no choices only (no pipeline sites, no BBG-SN) with all
   # covariates observed. The .. prefix in core[, ..vars] means "vars is a character vector
   # in the calling scope, not a column name"; see README, data.table primer.
-  core <- uni[pipeline == FALSE & bbg_sn == FALSE]
-  core <- core[complete.cases(core[, ..vars]) & !is.na(oad)]
+  core_all <- uni[pipeline == FALSE & bbg_sn == FALSE]
+  core_all <- core_all[complete.cases(core_all[, ..vars]) & !is.na(oad)]
+  # Main analysis: replacement of housing, i.e. sites that had dwellings before (cfg, decision
+  # 25-09). Redeveloped sites where only non-residential buildings were demolished form a separate
+  # model against the potential sites from the unchanged non-residential stock (OnvNW).
+  core <- if (isTRUE(cfg$stage2_requires_dwellings)) core_all[inc_has_dwellings == TRUE] else core_all
+  core_nonres <- core_all[inc_has_dwellings == FALSE & (prefix == "OnvNW" | y == TRUE)]
+  rd_log("Stage-2 universe: %s sites with dwellings before (%s redeveloped); non-residential model: %s sites (%s redeveloped)",
+         format(nrow(core), big.mark = ","), format(core[, sum(y)], big.mark = ","),
+         format(nrow(core_nonres), big.mark = ","), format(core_nonres[, sum(y)], big.mark = ","))
   urban_subset <- function(d, oad_min) d[oad >= oad_min]
 
   # fit1 estimates one specification: copy() prevents the := below from touching the
@@ -176,7 +214,7 @@ estimate_stage2 <- function(uni) {
       drift <- max(abs(coef(m) - coef(m_long)))
       if (drift < 1e-8) {
         rd_log("    NB: '%s' does not trip fixest's convergence flag, but the estimates are", label)
-        rd_log("        identical at 100 and 1000 iterations (max drift %.1e) — flag artefact.", drift)
+        rd_log("        identical at 100 and 1000 iterations (max drift %.1e): flag artefact.", drift)
       } else {
         rd_log("    WARNING: '%s' has NOT settled: coefficients move %.2e between 100 and", label, drift)
         rd_log("        1000 iterations. Check separation before using this spec.")
@@ -185,10 +223,11 @@ estimate_stage2 <- function(uni) {
     ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")
     setnames(ct, c("term", "estimate", "se_cluster", "z", "p"))
     ct[, `:=`(spec = label, n = m$nobs, n_y1 = d[, sum(y)])]
-    rd_log("  %-9s n = %s (y=1 %s): iv %+.2f (z %.1f), acq %+.3f (z %.1f), vol %+.2f (z %.1f)",
+    acq_term <- intersect(c("acq_ha", "acq_mln"), ct$term)[1]   # the total spec uses acq_mln
+    rd_log("  %-10s n = %s (y=1 %s): iv %+.2f (z %.1f), %s %+.3f (z %.1f), vol %+.2f (z %.1f)",
            label, format(m$nobs, big.mark = ","), format(d[, sum(y)], big.mark = ","),
-           ct[term == "iv", estimate], ct[term == "iv", z],
-           ct[term == "acq_mln", estimate], ct[term == "acq_mln", z],
+           ct[term == "iv", estimate], ct[term == "iv", z], acq_term,
+           ct[term == acq_term, estimate], ct[term == acq_term, z],
            ct[term %like% "^vol", estimate], ct[term %like% "^vol", z])
     list(m = m, ct = ct)
   }
@@ -198,39 +237,49 @@ estimate_stage2 <- function(uni) {
   # update() edits a formula: ". ~ . - x" means "same model, but without x" ("+ x" adds one).
   f_no_bp <- update(f_base, . ~ . - bouwperiode_inc)
 
-  # BBG imputation sample: acquisition = median acq/ha of the observed SN sites x site_ha
-  # (rate taken from the y=1 sites of the base sample, then applied to each BBG site's own
-  # area, so these sites can enter the bbg_imput spec despite unknown acquisition costs)
-  acq_rate <- base[y == TRUE, median(acq_mln / site_ha)]
-  bbg <- uni[bbg_sn == TRUE & !is.na(oad) & oad >= cfg$oad_min]
-  bbg[, acq_mln := acq_rate * site_ha]
+  # BBG imputation sample: acquisition per hectare = median acq/ha of the observed SN sites
+  # (taken from the y=1 sites of the base sample), so these sites can enter the bbg_imput
+  # spec despite unknown acquisition costs
+  acq_rate <- base[y == TRUE, median(acq_ha)]
+  bbg <- uni[bbg_sn == TRUE & !is.na(oad) & oad >= cfg$oad_min & is.finite(ln_site_ha)]
+  bbg[, `:=`(acq_ha = acq_rate, acq_mln = acq_rate * site_ha)]
   bbg <- bbg[complete.cases(bbg[, ..vars])]
-  rd_log("BBG imputation: %s sites added as y=1 (acq = %.2f M/ha x site_ha)", format(nrow(bbg), big.mark = ","), acq_rate)
+  rd_log("BBG imputation: %s sites added as y=1 (acq = %.2f M/ha)", format(nrow(bbg), big.mark = ","), acq_rate)
 
-  # One estimation per specification (the header lists what each one tests). demol_start
-  # builds its own sample inline: S sites (sloop without follow-up) count as y=1 there.
+  # Scope specs use the inclusive value of their own stage-1 scope when 06 provided it.
+  with_iv <- function(d, col) { d <- copy(d); if (col %in% names(d)) d[, iv := get(col)]; d[!is.na(iv)] }
+  # The previous specification, for comparison: amounts for the whole site, no size control.
+  f_total <- update(f_base, . ~ . - acq_ha - ln_site_ha + acq_mln)
+
+  # One estimation per specification (the header lists what each one tests). The demol_start
+  # spec is out since 25-09: its S sites are formed with a third rule (permit clusters, other
+  # buffer), so their area is not comparable; back in once S sites are formed like the others.
+  # The non-residential model only runs when the export has the OnvNW comparison sites.
   fits <- list(
     base      = fit1(f_base, base, "base"),
     no_bp     = fit1(f_no_bp, base, "no_bp"),
-    urban1500 = fit1(f_base, urban_subset(core, 1500L), "urban1500"),
-    nl        = fit1(f_base, core, "nl"),
-    rural     = fit1(f_base, core[oad < cfg$oad_min], "rural"),
-    size      = fit1(update(f_base, . ~ . + ln_site_ha), base, "size"),
-    winsor    = fit1(f_base, copy(base)[, `:=`(iv = w(iv), acq_mln = w(acq_mln))], "winsor"),
+    urban1500 = fit1(f_base, with_iv(urban_subset(core, 1500L), "iv_urban1500"), "urban1500"),
+    nl        = fit1(f_base, with_iv(core, "iv_nl"), "nl"),
+    rural     = fit1(f_base, with_iv(core[oad < cfg$oad_min], "iv_rural"), "rural"),
+    no_size   = fit1(update(f_base, . ~ . - ln_site_ha), base, "no_size"),
+    winsor    = fit1(f_base, copy(base)[, `:=`(iv = w(iv), acq_ha = w(acq_ha))], "winsor"),
     vol_muni  = fit1(update(f_base, . ~ . - vol_dlnp + vol_dlnp_gem), base, "vol_muni"),
-    demol_start = fit1(f_base, { d <- uni[prefix != "O" & bbg_sn == FALSE]
-                                 d <- d[complete.cases(d[, ..vars]) & !is.na(oad) & oad >= cfg$oad_min]
-                                 d[, y := prefix != "Onv"]; d }, "demol_start"),
     excl2012  = fit1(f_base, base[n_flag_2012 == 0L], "excl2012"),
     n2000     = fit1(update(f_base, . ~ . + is_natura2000), base, "n2000"),
-    bbg_imput = fit1(f_no_bp, rbind(base, bbg), "bbg_imput"))
+    bbg_imput = fit1(f_no_bp, rbind(base, bbg), "bbg_imput"),
+    stage1_cov = fit1(f_base, with_iv(base, "iv_cov"), "stage1_cov"),
+    margin7   = if ("iv_margin" %in% names(base)) fit1(f_base, with_iv(base, "iv_margin"), "margin7"),
+    total     = fit1(f_total, with_iv(base, "iv_total"), "total"))
+  fits <- Filter(Negate(is.null), fits)   # margin7 is absent for an older stage-1 rds
+  if (core_nonres[prefix == "OnvNW", .N] > 0L)
+    fits$nonres <- fit1(f_base, urban_subset(core_nonres, cfg$oad_min), "nonres")
 
   # AMEs (base): average marginal effect on P(redevelopment), logit: mean(p(1-p)) x beta
   # Logit coefficients are not probability effects by themselves; multiplying by mean(p(1-p))
   # converts each beta into the average change in redevelopment probability per unit of x.
   p <- predict(fits$base$m, type = "response")
   scale_factor <- mean(p * (1 - p))
-  ame <- fits$base$ct[term %chin% c("iv", "acq_mln", "vol_dlnp", "p_owner_occupier_buurt"),
+  ame <- fits$base$ct[term %chin% c("iv", "acq_ha", "ln_site_ha", "vol_dlnp", "p_owner_occupier_buurt"),
                       .(term, ame = scale_factor * estimate)]
   list(fits = fits, ame = ame, basis_n = nrow(base))
 }
@@ -247,7 +296,7 @@ if (sys.nframe() == 0L || isTRUE(get0("run_07", ifnotfound = FALSE))) {
   uni <- build_stage2_input(alt, s, s1)
   r   <- estimate_stage2(uni)
 
-  rd_log("Main model (base, OAD >= %d) — full table:", cfg$oad_min)
+  rd_log("Main model (base, OAD >= %d), full table:", cfg$oad_min)
   print(r$fits$base$ct[, .(term, estimate = round(estimate, 4), se_cluster = round(se_cluster, 4), z = round(z, 1))])
   rd_log("McFadden R2 (base): %.3f", r2(r$fits$base$m, "pr2"))
   rd_log("AMEs (percentage points on P(redevelopment), base):")

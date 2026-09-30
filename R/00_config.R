@@ -149,6 +149,7 @@ cfg$hazard_last_year <- 2024L
 # The OneDrive sync root differs per machine; take the first candidate that exists.
 cfg$dir_nvm_output <- local({
   cand <- c("D:/OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output",
+            "E:/OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output",   # OVSRV08
             "C:/Users/JipClaassens/OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output",
             file.path(Sys.getenv("USERPROFILE"), "OneDrive - Objectvision/VU/Projects/NVM Prijsindex/Output"))
   hit <- cand[dir.exists(cand)]
@@ -159,6 +160,51 @@ cfg$file_vol        <- function(korrel) file.path(cfg$dir_nvm_output, sprintf("V
 cfg$file_vol_rolling <- function(korrel) file.path(cfg$dir_nvm_output, sprintf("Volatility_rolling_%s_%s.csv", cfg$nvm_filedate, korrel))
 cfg$vol_cel_m       <- 5000L
 cfg$file_hazard_rds <- file.path(cfg$dir_work, sprintf("hazard%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
+
+## -- permits and zoning (issue #30, step 11_permits.R) --------------------------------------
+# Fixed export of the permit track (repo Stikstof, R/27b_econlogic_export.R): flat files keyed on
+# case (zaak), building (pand) or RD point, never on site_id, so they survive a new site formation
+# here. The pipeline never reads the permit database itself. Folder <VERGUNNINGEN_DATA>/
+# export_econlogic_<yyyymmdd>; PERMITS_EXPORT overrides it, otherwise the newest export is taken.
+cfg$dir_permits <- local({
+  env <- Sys.getenv("PERMITS_EXPORT")
+  if (nzchar(env)) return(env)
+  roots <- c(Sys.getenv("VERGUNNINGEN_DATA"),
+             "E:/OneDrive - Objectvision/VU/Projects/202505-StikstofPaper/vergunningen",
+             "D:/OneDrive - Objectvision/VU/Projects/202505-StikstofPaper/vergunningen",
+             file.path(Sys.getenv("USERPROFILE"), "OneDrive - Objectvision/VU/Projects/202505-StikstofPaper/vergunningen"))
+  hits <- unlist(lapply(roots[nzchar(roots) & dir.exists(roots)], function(r)
+    list.files(r, pattern = "^export_econlogic_[0-9]{8}$", full.names = TRUE)))
+  if (length(hits)) sort(hits, decreasing = TRUE)[1] else NA_character_
+})
+# Coverage windows. The BAG-case link (zaak_bag) covers buildings with the status 'Bouwvergunning
+# verleend' from June 2021; the official announcements are nationally complete from July 2021
+# (before that a growing set of municipalities, so time would measure composition); the EconLogic
+# export is of July 2026.
+cfg$permits_bag_from      <- as.IDate("2021-06-01")
+cfg$permits_national_from <- as.IDate("2021-07-01")
+cfg$permits_end           <- as.IDate("2026-06-30")
+# Spatial rules of the attempt measure (Stikstof R/27 part C, inzichten ch. 36): a case with a
+# precise location (point, address, parcel) links to the nearest object within 25 m, a small plane
+# (at most 100 m wide) within 50 m; not at a point the municipality uses for more than 5 cases.
+# Strict: within 5 m, and no new construction of ANOTHER site within 30 m after the case.
+cfg$attempt_radius_point <- 25
+cfg$attempt_radius_plane <- 50
+cfg$attempt_plane_max_m  <- 100
+cfg$attempt_max_same_pt  <- 5L
+cfg$attempt_strict_m     <- 5
+cfg$attempt_elsewhere_m  <- 30
+# Permitted replacement from the BAG itself: a new object that is not in use (permit granted,
+# construction started, or not realized; permit from 2012) within this distance of a standing object.
+cfg$bag_planned_m <- 5
+# Zoning: the plan in force on this date. The PDOK download holds mostly current plans; the plans
+# replaced in the 2012-2013 update wave are missing, so end 2013 is the earliest date with ~50%
+# coverage (same for redeveloped and unchanged sites). Realized projects are compared from
+# cfg$zoning_redev_from on, so the plan predates completion by at least four years.
+cfg$zoning_date       <- "20131231"
+cfg$zoning_redev_from <- 201801L
+cfg$zoning_small_plan_ha <- 10    # a plan below this area touching the site = site-specific plan change
+cfg$file_permits_rds  <- file.path(cfg$dir_work, sprintf("permits%s_%s_%s.rds", cfg$sample_suffix, cfg$area, cfg$bag_date))
 
 ## -- k-means parameters (step 1, Makles 2012) ----------------------------------
 cfg$kmeans_k_max     <- 20

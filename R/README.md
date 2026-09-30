@@ -27,7 +27,8 @@ discrete-time hazard. Style follows the R pipeline in `C:/ProjDir/_Tools/PriceIn
 | `08_tables.R` | paper tables (markdown + docx): stage 1, stage-2 main + robustness specs, urban/rural scopes, hazard H1–H4, AMEs | `paper_tabellen_sn_*.md/.docx` |
 | `09_hazard.R` | extension: discrete-time hazard (site × year panel), time-varying rolling volatility + growth (Capozza-Li), H1–H4 battery | `hazard_sn_*.rds` |
 | `10_descriptives.R` | descriptive tables D1–D4 (mutation types, sample-construction funnel, covariates by outcome, densification before/after, cluster menu) + four figures | `descriptives_sn_*.md/.docx`, `fig*.png` |
-| `run_all.R` | everything in sequence | |
+| `11_permits.R` | #30: permits and zoning from the fixed export of the permit track (`cfg$dir_permits`, repo Stikstof `R/27b_econlogic_export.R`; keyed on case, building or RD point, never on site_id). Pipeline per alternative K (linked case, procedure, extended, refused/withdrawn, appeal, permit → start → completion, contrasts vs K = 1); per site the strict attempt (from July 2021) and permitted replacement in the BAG (from 2012); zoning of end 2013 and the zoning gap; stage-1 variant with feasibility per alternative, stage-2 specs (pending_y1, excl_blocked, window2021/decision2021, zoning), hazard with the permit date as decision moment, waiting after the permit vs volatility | `permits_sn_*.rds`, `permits_tables_sn_*.md/.docx`, `permits_objects_*.rds` (cache) |
+| `run_all.R` | everything in sequence (11 only when the permit export exists) | |
 
 Run: `Rscript run_all.R` (or per step; every script runs standalone).
 

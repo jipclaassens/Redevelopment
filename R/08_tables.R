@@ -34,6 +34,10 @@ labels <- c(
   bouwperiode_incbouwperiode_1974_1981 = "Construction period: 1974–1981",
   bouwperiode_incbouwperiode_1982_1991 = "Construction period: 1982–1991",
   bouwperiode_incbouwperiode_1992_2001 = "Construction period: 1992–2001",
+  # zoning of end 2013 (11_permits.R, spec 'zoning'; reference: residential, no type designation)
+  `zon_gap_classresidential, room for a denser type`    = "Zoning 2013: residential, room for a denser type",
+  `zon_gap_classresidential, no room for a denser type` = "Zoning 2013: residential, no room for a denser type",
+  `zon_gap_classnon-residential zoning`                 = "Zoning 2013: non-residential",
   `(Intercept)` = "Constant")
 
 # Same idea for stage 1: ASC = alternative-specific constant, one per development-type
@@ -164,6 +168,28 @@ md_table <- function(dt, spec_order) {
   c(header, divider, rows, footer)
 }
 
+# Issue #30 (11_permits.R): the pipeline per alternative and the stage-2 permit and zoning specs.
+# The full set of permit tables is in permits_tables_*.md; here only what the paper needs.
+permit_section <- function(pm) {
+  pk <- pm$tables$pipeline_K[scope == sprintf("OAD >= %d", cfg$oad_min)]
+  pipe <- c("| alternative | sites in window | linked (%) | extended (%) | procedure (days) | permit to start (days) | start to completion (days) | appeal (%) |",
+            "|---|---|---|---|---|---|---|---|",
+            pk[, sprintf("| %s | %s | %.1f | %.1f | %.0f | %.0f | %.0f | %.1f |", alt, format(in_window, big.mark = ","), pct_linked,
+                         pct_extended, days_procedure_med, days_permit_start_med, days_start_compl_med, pct_appeal)])
+  specs <- intersect(c("base", "pending_y1", "excl_blocked", "window2021", "decision2021", "zoning_sample", "zoning"), pm$stage2$spec)
+  c("", "## Permits: pipeline per alternative (SN sites, OAD >= 1000, BAG permit from June 2021)", "", pipe,
+    "", paste("Medians. Extended procedure among recognizable new-construction cases. Only projects completed before",
+              "July 2026, so long projects drop out and the differences between alternatives are lower bounds."),
+    if (length(specs)) c(
+      "", "## Stage 2: permits and zoning", "",
+      md_table(copy(pm$stage2), specs),
+      "", paste("pending_y1: unchanged sites with a permitted replacement in the BAG that is not (yet) realized count as",
+                "redeveloped. excl_blocked: without unchanged sites where a strict attempt was refused or withdrawn.",
+                "window2021: decisions from July 2021 (SN sites with their BAG permit from then on); decision2021: the",
+                "same sites, with attempts and permitted replacements on unchanged sites as y = 1. zoning_sample and",
+                "zoning: sites with a plan of end 2013 (SN completed from 2018), without and with the zoning gap.")))
+}
+
 ## ---------------------------------------------------------------------------
 # Guard: the block below runs only when this file is executed directly as a script
 # (sys.nframe() == 0) or when a caller has set run_08 <- TRUE before sourcing it.
@@ -174,6 +200,7 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
   s1 <- readRDS(cfg$file_stage1_rds)
   s2 <- readRDS(cfg$file_stage2_rds)
   hz <- if (file.exists(cfg$file_hazard_rds)) readRDS(cfg$file_hazard_rds) else NULL
+  pm <- if (file.exists(cfg$file_permits_rds)) readRDS(cfg$file_permits_rds) else NULL   # 11_permits.R (#30)
 
   # Build the whole markdown document as one character vector (one element per line):
   # title and scope, the stage-1 table (stage1_table: main model plus comparisons), the two
@@ -215,7 +242,8 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
     s2$ame[, sprintf("| %s | %.3f |", labels[term], 100 * ame)],
     if (!is.null(s2$bp_prob)) c(
       "", "## Probability of redevelopment per construction period (base)", "",
-      bp_prob_table(s2$bp_prob)))
+      bp_prob_table(s2$bp_prob)),
+    if (!is.null(pm)) permit_section(pm))
 
   # Write the file to the work directory; the name is stamped with sample suffix, area
   # and BAG date so runs on different samples never overwrite each other.

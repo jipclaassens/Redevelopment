@@ -39,6 +39,10 @@ run_07_saved <- get0("run_07", ifnotfound = FALSE); run_07 <- FALSE
 source(file.path(.rd_script_dir, "07_stage2_logit.R"))   # build_stage2_input + config/fixest
 run_07 <- run_07_saved
 
+# Right-hand side shared by all hazard specs (and by the permit-date variant in 11_permits.R).
+hazard_f_rhs <- paste("iv + acq_ha + ln_site_ha + p_owner_occupier_buurt + p_socialhousing_buurt +",
+                      "isprotectheritagearea + bouwperiode_inc")
+
 build_hazard_panel <- function(alt, s, s1) {
   # Build the site x year risk panel. Start from the stage-2 universe (one row per site)
   # and keep only sites where the hazard clock is well defined: no BBG-SN (start year
@@ -142,8 +146,7 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   # notation for fixed effects). est keeps only site-years where every volatility series
   # is observed, so H1-H4 are all estimated on the identical sample and are comparable.
   # Natura 2000 is left out here too, matching the stage-2 base spec (see the note in 07).
-  f_rhs <- paste("iv + acq_ha + ln_site_ha + p_owner_occupier_buurt + p_socialhousing_buurt +",
-                 "isprotectheritagearea + bouwperiode_inc")
+  f_rhs <- hazard_f_rhs
   mk <- function(extra, fe = TRUE) as.formula(paste("y_year ~", f_rhs, "+", extra, if (fe) "| year" else ""))
   est <- panel[!is.na(vol_roll) & !is.na(g_roll) & !is.na(vol_nl)]
 

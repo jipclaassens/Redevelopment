@@ -159,18 +159,18 @@ build_stage2_input <- function(alt, s, s1) {
   uni[]
 }
 
-# Estimate the stage-2 logit in every specification from the header and collect the
-# coefficient tables plus average marginal effects (AMEs) of the base model.
-estimate_stage2 <- function(uni) {
-  # f_base is the base regression formula: outcome y explained by the covariates listed in
-  # the header. w() is a winsorizer: it clips a variable at its 1st and 99th percentile
-  # (used only in the winsor spec, to tame mega-site tails).
-  f_base <- y ~ iv + acq_ha + ln_site_ha + p_owner_occupier_buurt + p_socialhousing_buurt +
-                isprotectheritagearea + vol_dlnp + bouwperiode_inc
+# f_base is the base regression formula: outcome y explained by the covariates listed in
+# the header.
+stage2_f_base <- y ~ iv + acq_ha + ln_site_ha + p_owner_occupier_buurt + p_socialhousing_buurt +
+                     isprotectheritagearea + vol_dlnp + bouwperiode_inc
+
+# The estimation samples, shared with 11_permits.R so its permit and zoning specs run on exactly
+# the base rows: uni (all sites, filtered as below), core (sites with dwellings before, genuine
+# yes/no choices, all covariates observed) and core_nonres (the separate non-residential model).
+stage2_samples <- function(uni, f_base = stage2_f_base) {
   # is_natura2000 stays in the completeness filter (it is never NA, so the sample is
   # identical) so that the n2000 robustness spec runs on exactly the same rows as base.
   vars <- c(setdiff(all.vars(f_base), "bouwperiode_inc"), "is_natura2000")
-  w    <- function(v) { q <- quantile(v, c(.01, .99), na.rm = TRUE); pmin(pmax(v, q[1]), q[2]) }
   # ln(site_ha) must be finite (a zero area would give -Inf); complete.cases() lets -Inf through.
   uni <- uni[is.finite(ln_site_ha) | bbg_sn == TRUE]
 
@@ -194,44 +194,57 @@ estimate_stage2 <- function(uni) {
   rd_log("Stage-2 universe: %s sites with dwellings before (%s redeveloped); non-residential model: %s sites (%s redeveloped)",
          format(nrow(core), big.mark = ","), format(core[, sum(y)], big.mark = ","),
          format(nrow(core_nonres), big.mark = ","), format(core_nonres[, sum(y)], big.mark = ","))
-  urban_subset <- function(d, oad_min) d[oad >= oad_min]
+  list(uni = uni, core = core, core_nonres = core_nonres, vars = vars)
+}
 
-  # fit1 estimates one specification: copy() prevents the := below from touching the
-  # caller's table, droplevels() removes unused bouwperiode levels (no empty dummies),
-  # feglm runs the logit with SEs clustered on gemeente, and the coefficient table is
-  # converted to a data.table tagged with spec label and sample sizes for the export CSV.
-  fit1 <- function(fml, d, label) {
-    d <- copy(d)[, bouwperiode_inc := droplevels(bouwperiode_inc)]
-    m <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code,
-               glm.iter = 100, glm.tol = 1e-6)
-    # On some subsamples the IRLS lands on a numerical plateau: the deviance and every
-    # coefficient stop moving, but fixest's convergence criterion is never formally
-    # satisfied. Rather than trusting that, refit with a ten times larger iteration cap
-    # and compare: identical estimates prove the flag is a stopping-criterion artefact,
-    # a real difference means the model genuinely has not settled and must be examined.
-    if (!isTRUE(m$convStatus)) {
-      m_long <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code,
-                      glm.iter = 1000, glm.tol = 1e-6)
-      drift <- max(abs(coef(m) - coef(m_long)))
-      if (drift < 1e-8) {
-        rd_log("    NB: '%s' does not trip fixest's convergence flag, but the estimates are", label)
-        rd_log("        identical at 100 and 1000 iterations (max drift %.1e): flag artefact.", drift)
-      } else {
-        rd_log("    WARNING: '%s' has NOT settled: coefficients move %.2e between 100 and", label, drift)
-        rd_log("        1000 iterations. Check separation before using this spec.")
-      }
+# Fit one stage-2 logit (SE clustered on gemeente) and return the model and its coefficient table,
+# tagged with the spec label and sample sizes for the export CSV.
+fit_stage2 <- function(fml, d, label) {
+  # copy() prevents the := below from touching the caller's table, droplevels() removes unused
+  # bouwperiode levels (no empty dummies).
+  d <- copy(d)[, bouwperiode_inc := droplevels(bouwperiode_inc)]
+  m <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code,
+             glm.iter = 100, glm.tol = 1e-6)
+  # On some subsamples the IRLS lands on a numerical plateau: the deviance and every
+  # coefficient stop moving, but fixest's convergence criterion is never formally
+  # satisfied. Rather than trusting that, refit with a ten times larger iteration cap
+  # and compare: identical estimates prove the flag is a stopping-criterion artefact,
+  # a real difference means the model genuinely has not settled and must be examined.
+  if (!isTRUE(m$convStatus)) {
+    m_long <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code,
+                    glm.iter = 1000, glm.tol = 1e-6)
+    drift <- max(abs(coef(m) - coef(m_long)))
+    if (drift < 1e-8) {
+      rd_log("    NB: '%s' does not trip fixest's convergence flag, but the estimates are", label)
+      rd_log("        identical at 100 and 1000 iterations (max drift %.1e): flag artefact.", drift)
+    } else {
+      rd_log("    WARNING: '%s' has NOT settled: coefficients move %.2e between 100 and", label, drift)
+      rd_log("        1000 iterations. Check separation before using this spec.")
     }
-    ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")
-    setnames(ct, c("term", "estimate", "se_cluster", "z", "p"))
-    ct[, `:=`(spec = label, n = m$nobs, n_y1 = d[, sum(y)])]
-    acq_term <- intersect(c("acq_ha", "acq_mln"), ct$term)[1]   # the total spec uses acq_mln
-    rd_log("  %-10s n = %s (y=1 %s): iv %+.2f (z %.1f), %s %+.3f (z %.1f), vol %+.2f (z %.1f)",
-           label, format(m$nobs, big.mark = ","), format(d[, sum(y)], big.mark = ","),
-           ct[term == "iv", estimate], ct[term == "iv", z], acq_term,
-           ct[term == acq_term, estimate], ct[term == acq_term, z],
-           ct[term %like% "^vol", estimate], ct[term %like% "^vol", z])
-    list(m = m, ct = ct)
   }
+  ct <- as.data.table(summary(m)$coeftable, keep.rownames = "term")
+  setnames(ct, c("term", "estimate", "se_cluster", "z", "p"))
+  ct[, `:=`(spec = label, n = m$nobs, n_y1 = d[, sum(y)])]
+  acq_term <- intersect(c("acq_ha", "acq_mln"), ct$term)[1]   # the total spec uses acq_mln
+  rd_log("  %-10s n = %s (y=1 %s): iv %+.2f (z %.1f), %s %+.3f (z %.1f), vol %+.2f (z %.1f)",
+         label, format(m$nobs, big.mark = ","), format(d[, sum(y)], big.mark = ","),
+         ct[term == "iv", estimate], ct[term == "iv", z], acq_term,
+         ct[term == acq_term, estimate], ct[term == acq_term, z],
+         ct[term %like% "^vol", estimate], ct[term %like% "^vol", z])
+  list(m = m, ct = ct)
+}
+
+# Estimate the stage-2 logit in every specification from the header and collect the
+# coefficient tables plus average marginal effects (AMEs) of the base model.
+estimate_stage2 <- function(uni) {
+  f_base <- stage2_f_base
+  # w() is a winsorizer: it clips a variable at its 1st and 99th percentile (used only in the
+  # winsor spec, to tame mega-site tails).
+  w <- function(v) { q <- quantile(v, c(.01, .99), na.rm = TRUE); pmin(pmax(v, q[1]), q[2]) }
+  smp <- stage2_samples(uni, f_base)
+  uni <- smp$uni; core <- smp$core; core_nonres <- smp$core_nonres; vars <- smp$vars
+  urban_subset <- function(d, oad_min) d[oad >= oad_min]
+  fit1 <- fit_stage2
 
   rd_log("Specs (SE clustered on gemeente):")
   base    <- urban_subset(core, cfg$oad_min)

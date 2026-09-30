@@ -15,5 +15,9 @@ run_05 <- TRUE; source(file.path(.rd_script_dir, "05_alternatives.R"));   run_05
 run_06 <- TRUE; source(file.path(.rd_script_dir, "06_stage1_logit.R"));   run_06 <- FALSE
 run_07 <- TRUE; source(file.path(.rd_script_dir, "07_stage2_logit.R"));   run_07 <- FALSE
 run_09 <- TRUE; source(file.path(.rd_script_dir, "09_hazard.R"));         run_09 <- FALSE  # before 08: the tables include the hazard results
+# Permits and zoning (#30): only when the fixed export of the permit track is on this machine.
+if (!is.na(cfg$dir_permits) && dir.exists(cfg$dir_permits)) {
+  run_11 <- TRUE; source(file.path(.rd_script_dir, "11_permits.R"));      run_11 <- FALSE
+} else rd_log("11_permits.R skipped: no permit export (cfg$dir_permits)")
 run_08 <- TRUE; source(file.path(.rd_script_dir, "08_tables.R"));         run_08 <- FALSE
 run_10 <- TRUE; source(file.path(.rd_script_dir, "10_descriptives.R"))

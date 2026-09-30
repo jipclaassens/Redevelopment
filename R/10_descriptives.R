@@ -94,7 +94,7 @@ d1b_funnel <- function(alt, uni) {
 d2_summary_stats <- function(base_dt) {
   cont <- c(iv = "Inclusive value", acq_ha = "Acquisition costs (EUR M per ha)",
             acq_mln = "Acquisition costs (EUR M per site)",
-            site_ha = "Site area (ha)",
+            site_ha_oorspr = "Site area, original buildings (ha)",   # the area the model uses (07), not the project outline
             n_units_res_inc = "Dwellings on the site (incumbent)",
             p_owner_occupier_buurt = "Share owner-occupiers neighbourhood (pp)",
             p_socialhousing_buurt  = "Share social housing neighbourhood (pp)",
@@ -222,13 +222,14 @@ fig_bp_coefplot <- function(s2, file) {
   d[, period := sub("^bouwperiode_incbouwperiode_", "", term)]
   ord <- c("tm1925", "1926_1950", "1951_1965", "1966_1973", "1974_1981", "1982_1991", "1992_2001")
   d <- d[match(ord, period)]
-  lab <- c("<1926", "1926-50", "1951-65", "1966-73", "1974-81", "1982-91", "1992-2001", "2002+ (ref)")
+  ref <- sprintf("2002-%02d", (cfg$incumbent_built_before - 1L) %% 100L)   # stock built from 2012 on is out (03)
+  lab <- c("<1926", "1926-50", "1951-65", "1966-73", "1974-81", "1982-91", "1992-2001", paste(ref, "(ref)"))
   est <- c(d$estimate, 0); lo <- c(d$estimate - 1.96 * d$se_cluster, NA); hi <- c(d$estimate + 1.96 * d$se_cluster, NA)
   png(file, width = 2400, height = 1500, res = 300)
   par(mar = c(6, 4, 1.5, 1))
   plot(seq_along(est), est, pch = 16, xaxt = "n", xlab = "", xlim = c(0.5, length(est) + 0.5),
        ylim = range(c(lo, hi, 0), na.rm = TRUE),
-       ylab = "Log-odds of redevelopment (ref: built 2002+)")
+       ylab = sprintf("Log-odds of redevelopment (ref: built %s)", ref))
   segments(seq_along(est), lo, seq_along(est), hi)
   abline(h = 0, lty = 3, col = "grey50")
   axis(1, at = seq_along(est), labels = lab, las = 2)

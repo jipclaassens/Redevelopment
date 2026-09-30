@@ -129,6 +129,20 @@ cfg$multiproj_months <- 24L
 # cluster menu (04) and the IV computation (06, all sites) remain nationwide.
 cfg$oad_min <- 1000L
 
+## -- stock at risk (decision 26-09) ---------------------------------------------------------
+# Only the stock that stood at the start of the observation window can be redeveloped in it:
+# 03 drops sites whose buildings (most frequent construction year) date from this year or later.
+# Of such sites in the urban sample 30% were "redeveloped", at a median age of 2 years:
+# temporary units and BAG registrations rather than the replacement of standing stock.
+cfg$incumbent_built_before <- 2012L
+
+## -- hazard window (decision 26-09) ----------------------------------------------------------
+# Last year of the discrete-time hazard (09). 2025 and 2026 are incomplete (BAG through July 2026,
+# demolition registrations lag) and the national volatility series ends in 2024. Carrying the last
+# volatility value into those years made the national volatility effect an artefact (-8.2 with,
+# -2.1 n.s. without them). Starts after this year count as not (yet) started.
+cfg$hazard_last_year <- 2024L
+
 ## -- price volatility (stage-2 friction; produced by PriceIndices R/06_volatility.R) --
 # sd of the year-on-year growth of the hedonically corrected local log price index, 2000-2023.
 # Granularity 'grid5km' = RD cell floor(x/5000)_floor(y/5000): vintage-free join via x/y_coord.

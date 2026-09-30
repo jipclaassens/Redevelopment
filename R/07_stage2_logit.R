@@ -19,7 +19,8 @@
 # Explanatory variables (theory + frictions):
 #   iv [+], acq_ha [-], ln_site_ha (control), p_owner_occupier_buurt [- holdout],
 #   p_socialhousing_buurt [?], isprotectheritagearea [-], vol_dlnp [- real options],
-#   bouwperiode_inc (mode building year of incumbent, ref va2002) [older -> +, depreciation]
+#   bouwperiode_inc (mode building year of incumbent, ref va2002, i.e. 2002-2011 since stock built from
+#   cfg$incumbent_built_before on is dropped in 03) [older -> +, depreciation]
 #
 # Per hectare (decision 25-09): the inclusive value comes from the per-hectare stage-1 model
 # and acquisition costs enter per hectare of site area (acq_ha, M EUR/ha), so both sides of
@@ -281,7 +282,16 @@ estimate_stage2 <- function(uni) {
   scale_factor <- mean(p * (1 - p))
   ame <- fits$base$ct[term %chin% c("iv", "acq_ha", "ln_site_ha", "vol_dlnp", "p_owner_occupier_buurt"),
                       .(term, ame = scale_factor * estimate)]
-  list(fits = fits, ame = ame, basis_n = nrow(base))
+
+  # Probability of redevelopment per construction period (base): the observed share, and the mean
+  # predicted probability when every site is given that period with all other variables as observed.
+  # Easier to read than dummies against the reference period.
+  bd <- copy(base)[, bouwperiode_inc := droplevels(bouwperiode_inc)]
+  lv <- levels(bd$bouwperiode_inc)
+  bp_prob <- bd[, .(n = .N, redev = sum(y), observed = mean(y)), keyby = .(bouwperiode = bouwperiode_inc)]
+  bp_prob[, predicted := vapply(as.character(bouwperiode), function(L)
+    mean(predict(fits$base$m, newdata = copy(bd)[, bouwperiode_inc := factor(L, levels = lv)])), numeric(1))]
+  list(fits = fits, ame = ame, bp_prob = bp_prob, basis_n = nrow(base))
 }
 
 ## ---------------------------------------------------------------------------
@@ -301,13 +311,15 @@ if (sys.nframe() == 0L || isTRUE(get0("run_07", ifnotfound = FALSE))) {
   rd_log("McFadden R2 (base): %.3f", r2(r$fits$base$m, "pr2"))
   rd_log("AMEs (percentage points on P(redevelopment), base):")
   print(r$ame[, .(term, ame_pp = round(100 * ame, 4))])
+  rd_log("Probability of redevelopment per construction period (%%, base):")
+  print(r$bp_prob[, .(bouwperiode, n, redev, observed = round(100 * observed, 2), predicted = round(100 * predicted, 2))])
 
   # rbindlist stacks the per-spec coefficient tables into one long table for the CSV export;
   # the RDS additionally stores base coefficients and covariance matrix for downstream use.
   specs <- rbindlist(lapply(r$fits, `[[`, "ct"))
   out_file <- file.path(cfg$dir_work, sprintf("stage2_specs%s_%s_%s.csv", cfg$sample_suffix, cfg$area, cfg$bag_date))
   fwrite(specs, out_file, sep = ";")
-  saveRDS(list(specs = specs, ame = r$ame, coef = coef(r$fits$base$m), vcov = vcov(r$fits$base$m)),
+  saveRDS(list(specs = specs, ame = r$ame, bp_prob = r$bp_prob, coef = coef(r$fits$base$m), vcov = vcov(r$fits$base$m)),
           cfg$file_stage2_rds, compress = FALSE)
   rd_log("Written: %s + %s", cfg$file_stage2_rds, out_file)
 }

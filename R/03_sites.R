@@ -163,6 +163,16 @@ build_sites <- function(x) {
   sites_new[, density_per_ha := n_units_new / (site_size / 1e4)]
   sites_new[, far            := floor_area_m2 / site_size]
 
+  # Stock at risk (cfg$incumbent_built_before): drop sites whose buildings were built during the
+  # observation window, from all three tables. Sites without incumbent rows (pure new construction,
+  # the BBG route) have no construction year here and stay.
+  young <- sites_inc[!is.na(mode_building_year) & mode_building_year >= cfg$incumbent_built_before, site_id]
+  rd_log("Buildings from %d or later: %s sites dropped (%s of them redeveloped)", cfg$incumbent_built_before,
+         format(length(young), big.mark = ","), format(sites_inc[site_id %chin% young, sum(was_redeveloped)], big.mark = ","))
+  site_attrs <- site_attrs[!site_id %chin% young]
+  sites_inc  <- sites_inc[!site_id %chin% young]
+  sites_new  <- sites_new[!site_id %chin% young]
+
   list(attrs = site_attrs, incumbent = sites_inc, new = sites_new)
 }
 

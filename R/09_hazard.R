@@ -1,10 +1,12 @@
-# 09_hazard.R — discrete-time hazard (extension of step 5): site x year panel 2012-2026,
+# 09_hazard.R — discrete-time hazard (extension of step 5): site x year panel 2012 to
+# cfg$hazard_last_year (2024; 2025-2026 are incomplete, decision 26-09),
 # y_st = 1 in the START YEAR of the redevelopment. Goal: test the real-options channel
 # with TIME-VARYING volatility, where the cross-sectional measure in 07 found no evidence —
 # identification here comes from time variation within locations (crisis vs boom years).
 #
 # Setup (Allison-style): binomial logit on the panel = discrete-time hazard. A site is
-# "at risk" from 2012 up to and including its start year (SN) or through 2026 (Onveranderd, censored).
+# "at risk" from 2012 up to and including its start year (SN) or through cfg$hazard_last_year
+# (Onveranderd, and SN sites that start later: censored).
 #
 # Assumptions/choices (default, documented for the paper):
 #  - decision moment ~ first minus-mutation on the site (event_yearmonth from 03: the first
@@ -13,13 +15,13 @@
 #  - universe = stage-2 base: SN-with-incumbent + Onveranderd, OAD >= cfg$oad_min,
 #    excluding pipeline (S/O), BBG-SN (start year/acquisition unknown) and unknown building year.
 #  - vol_roll5 = sd of local index growth over the 5 years before the decision year
-#    (PriceIndices Volatility_rolling_*; grid5km, fallback gemeente; after the last
-#    available decision year the last known value is used).
+#    (PriceIndices Volatility_rolling_*; grid5km, fallback gemeente). No carry-forward: the
+#    series must cover the last hazard year (a carried-forward value in the incomplete years
+#    2025-2026 made the national volatility effect an artefact, 26-09).
 #  - iv and acquisition per hectare with ln(site area) as control, as in the stage-2 base
 #    spec (decision 25-09; see 06/07).
 #  - iv/acquisition/frictions time-invariant (2023 level); year fixed effects capture the
-#    national price cycle and the baseline hazard; 2026 is half a year (BAG through July) —
-#    the year dummy captures that level.
+#    national price cycle and the baseline hazard.
 #  - feglm logit with year FE, SE clustered on gemeente.
 #
 # Output: cfg$file_hazard_rds (coefficient tables main model + variant without vol; n's).
@@ -71,8 +73,11 @@ build_hazard_panel <- function(alt, s, s1) {
   # extracts the year. Redeveloped sites leave the risk set in their event year (capped at
   # 2026); censored sites stay at risk through 2026. Events before the 2012 panel start
   # have no at-risk years inside the window and are dropped.
+  # Starts after cfg$hazard_last_year fall outside the panel: those sites count as not (yet) started.
+  last <- cfg$hazard_last_year
   uni[, event_year := fifelse(y, event_ym %/% 100L, NA_integer_)]
-  uni[, year_end  := fifelse(y, pmin(event_year, 2026L), 2026L)]
+  uni[, started    := y & event_year <= last]
+  uni[, year_end   := fifelse(started, event_year, last)]
   uni <- uni[year_end >= 2012L]
 
   # Row expansion into the panel: rep(seq_len(.N), k) repeats each site's row k times,
@@ -81,22 +86,24 @@ build_hazard_panel <- function(alt, s, s1) {
   # year. y_year is the discrete-time hazard outcome: 1 only in the site's own event year.
   panel <- uni[rep(seq_len(.N), year_end - 2012L + 1L)]
   panel[, year := 2011L + rowid(site_id)]
-  panel[, y_year := as.integer(y & year == year_end)]
+  panel[, y_year := as.integer(started & year == year_end)]
 
   # time-varying volatility + growth expectation: grid5km cell, fallback gemeente (and
-  # vice versa as variant); national series separate; last known value after the end
+  # vice versa as variant); national series separate. The series must cover every panel year:
+  # no carry-forward of the last known value (see cfg$hazard_last_year).
   # Mechanics: fread loads the three volatility CSVs; three update joins then write the
   # matched vol/growth values into the panel by reference (:=). The join key can rename on
   # the fly: on = .(cel = regio, year_vol = besluitjaar) matches panel$cel to csv$regio and
-  # panel$year_vol to csv$besluitjaar. year_vol caps the lookup year at the last year the
-  # series covers, so later panel years reuse the last known value (carry-forward).
+  # panel$year_vol to csv$besluitjaar.
   # fcoalesce takes the first non-missing value per row, implementing the fallback order:
   # vol_roll prefers grid5km with gemeente as backup, vol_rollG the other way around.
   # See README, data.table primer, for update joins.
   vg  <- fread(cfg$file_vol_rolling("grid5km"))
   vgm <- fread(cfg$file_vol_rolling("gemeente_code"))
   vnl <- fread(cfg$file_vol_rolling("nationaal"))
-  panel[, year_vol := pmin(year, max(vg$besluitjaar))]
+  cover <- min(max(vg$besluitjaar), max(vgm$besluitjaar), max(vnl$besluitjaar))
+  if (last > cover) stop(sprintf("hazard_last_year %d is beyond the volatility series (%d): no carry-forward", last, cover))
+  panel[, year_vol := year]
   panel[vg,  on = .(cel = regio, year_vol = besluitjaar),           `:=`(vol_g_ = i.vol_roll5, gr_g_ = i.g_roll5)]
   panel[vgm, on = .(gemeente_code = regio, year_vol = besluitjaar), `:=`(vol_m_ = i.vol_roll5, gr_m_ = i.g_roll5)]
   panel[vnl, on = .(year_vol = besluitjaar),                        `:=`(vol_nl = i.vol_roll5, g_nl = i.g_roll5)]

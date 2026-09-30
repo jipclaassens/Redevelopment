@@ -112,7 +112,24 @@ hazard_table <- function(hz) {
     paste0("| Site-years (events) | ", paste(rep(sprintf("%s (%s)",
            format(hz$n_site_jaren, big.mark = ","), format(hz$n_events, big.mark = ",")),
            length(specs)), collapse = " | "), " |"),
-    "", "All specs on the identical site-year sample; H1-H3 include year fixed effects, H4 replaces them by a linear trend plus the national series (indicative identification).")
+    "", sprintf("All specs on the identical site-year sample, 2012-%d; H1-H3 include year fixed effects, H4 replaces them by a linear trend plus the national series (indicative identification).", cfg$hazard_last_year))
+}
+
+# Probability of redevelopment per construction period (07, base): observed share and the mean
+# predicted probability with every site given that period, other variables as observed. Rows in
+# chronological order; the newest period ends before cfg$incumbent_built_before (03 drops later stock).
+bp_labels <- c(bouwperiode_tm1925 = "Before 1926", bouwperiode_1926_1950 = "1926–1950",
+  bouwperiode_1951_1965 = "1951–1965", bouwperiode_1966_1973 = "1966–1973", bouwperiode_1974_1981 = "1974–1981",
+  bouwperiode_1982_1991 = "1982–1991", bouwperiode_1992_2001 = "1992–2001",
+  bouwperiode_va2002 = sprintf("2002–%d", cfg$incumbent_built_before - 1L))
+bp_prob_table <- function(bp) {
+  if (is.null(bp)) return(NULL)
+  bp <- bp[match(names(bp_labels), as.character(bouwperiode))][!is.na(n)]
+  c("| Construction period | Sites | Redeveloped | Observed (%) | Predicted (%) |", "|---|---|---|---|---|",
+    bp[, sprintf("| %s | %s | %s | %.2f | %.2f |", bp_labels[as.character(bouwperiode)], trimws(format(n, big.mark = ",")),
+                 trimws(format(redev, big.mark = ",")), 100 * observed, 100 * predicted)],
+    "", paste("Predicted: mean predicted probability of the base model when every site is given this construction",
+              "period, all other variables as observed."))
 }
 
 # Build one markdown table (rows = regressors, columns = specifications) from the long
@@ -195,7 +212,10 @@ if (sys.nframe() == 0L || isTRUE(get0("run_08", ifnotfound = FALSE))) {
       hazard_table(hz)),
     "", "## Average marginal effects (base, percentage points)", "",
     "| | AME (pp) |", "|---|---|",
-    s2$ame[, sprintf("| %s | %.3f |", labels[term], 100 * ame)])
+    s2$ame[, sprintf("| %s | %.3f |", labels[term], 100 * ame)],
+    if (!is.null(s2$bp_prob)) c(
+      "", "## Probability of redevelopment per construction period (base)", "",
+      bp_prob_table(s2$bp_prob)))
 
   # Write the file to the work directory; the name is stamped with sample suffix, area
   # and BAG date so runs on different samples never overwrite each other.

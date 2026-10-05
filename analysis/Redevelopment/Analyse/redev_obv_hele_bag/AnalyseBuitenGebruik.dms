@@ -1,0 +1,256 @@
+// Ad-hoc analyse-scaffold (sessie 2026-09-02): wat is 'buiten gebruik' in de BAG?
+// Vraag Jip: hoeveel panden/VBO's staan er op 1-1-2026 op 'buiten gebruik', waar zit die
+// status in de levensloop van een object, en wat gebeurt er daarna (sloop? terug in gebruik?).
+//
+// Werkt rechtstreeks op de pand- en vbo-voorkomens uit de VolledigeBAG (alle historische records,
+// BAG-filedatum /Parameters/BAG_file_date), dus los van onze eigen mutatietypering.
+// Keten: record r wordt opgevolgd door het record van hetzelfde object waarvan begindatum == r/einddatum.
+//
+// Twee GeoDMS-lessen uit deze sessie:
+//   * attributen van 'panden/pand' en 'VBOs/vbo' (select_with_attr...) zijn niet via een pad adresseerbaar;
+//     daarom hangt dit scaffold aan 'panden/src' resp. 'VBOs/src' en filtert zelf op IsStudyArea.
+//   * GeoDms20.8.0.m crasht (access violation) op elk item met een StorageName; gedraaid met 20.17.0.m.
+//
+// Draaien:
+//   "C:\Program Files\ObjectVision\GeoDms20.17.0.m\GeoDmsRun.exe" Redevelopment.dms /Analyse/redev_obv_hele_bag/AnalyseBuitenGebruik/Export/<item>
+// Exports (CSV in %LocalDataProjDir%/Temp/):
+//   StandPerJaar               - stand per 1 januari 2012..2026 (pand + vbo, buiten gebruik en voorraad)
+//   StandPeildatum_Pand / _Vbo - volledige statusverdeling op de peildatum
+//   PandBG_Episodes / VboBG_Episodes - elke buiten-gebruik-periode met vorige en volgende status
+//   PandenOoitBG / VbosOoitBG  - per object dat ooit buiten gebruik was: eerste BG-datum, sloop/intrekking, huidige status
+container AnalyseBuitenGebruik : using = "AdditionalClassifications"
+{
+	parameter<int32> PeilDatum := 20260101i;
+	parameter<int32> MaxDatum  := /SourceData/Vastgoed/BAG/VolledigeBAG/MaxDatum;
+
+	//=================================================================================================
+	// PANDEN (alle voorkomens)
+	//=================================================================================================
+	unit<uint32> PandRec := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/src, KeepData = "true"
+	{
+		attribute<uint64>      p_nr    := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/src/pand_bag_nr;
+		attribute<int32>       d_begin := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/src/begindatum;
+		attribute<int32>       d_eind  := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/src/einddatum;
+		attribute<pand_status> st      := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/src/status_rel;
+		attribute<uint16>      bj      := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/src/bouwjaar_trunc / 1[Yr];
+		attribute<bool>        is_nl   := /SourceData/Vastgoed/BAG/VolledigeBAG/panden/src/IsStudyArea;
+
+		attribute<bool>        IsBG         := st == pand_status/V/pand_buiten_gebruik;
+		attribute<bool>        IsOpen       := d_eind == MaxDatum, Descr = "laatste voorkomen: nog geldig op de BAG-filedatum";
+		// projectconventie (zie SourceData/bag.dms PerJaar_T): stand vlak voor de mutaties van 1 januari
+		attribute<bool>        GeldigOpPeil := d_begin < PeilDatum && d_eind >= PeilDatum;
+
+		// keten binnen hetzelfde pand
+		attribute<string>      key_begin := string(p_nr) + '_' + string(d_begin);
+		attribute<string>      key_eind  := string(p_nr) + '_' + string(d_eind);
+		attribute<.>           next_rel  := rlookup(key_eind, key_begin);
+		attribute<.>           prev_rel  := rlookup(key_begin, key_eind);
+		attribute<string>      prev_naam := MakeDefined(pand_status/label[st[prev_rel]], 'geen (eerste voorkomen)');
+		attribute<string>      next_naam := MakeDefined(pand_status/label[st[next_rel]], 'geen (nog actueel)');
+
+		// duur in hele maanden
+		attribute<int32>       begin_mnd := (d_begin / 10000i) * 12i + ((d_begin / 100i) - (d_begin / 10000i) * 100i);
+		attribute<int32>       eind_mnd  := (d_eind  / 10000i) * 12i + ((d_eind  / 100i) - (d_eind  / 10000i) * 100i);
+		attribute<int32>       duur_mnd  := IsOpen ? null_i : eind_mnd - begin_mnd;
+
+		attribute<uq_pand>     uq_rel    := rlookup(p_nr, uq_pand/values);
+
+		// hulpattributen voor de per-pand aggregatie
+		attribute<int32>       bg_begin        := IsBG ? d_begin : null_i;
+		attribute<int32>       sloopverg_begin := st == pand_status/V/sloopvergunning_verleend ? d_begin : null_i;
+		attribute<int32>       sloop_begin     := st == pand_status/V/pand_gesloopt ? d_begin : null_i;
+		attribute<uint8>       open_st_code    := IsOpen ? st[uint8] : null_b;
+	}
+
+	unit<uint32> uq_pand := unique(PandRec/p_nr)
+	{
+		attribute<uint64> p_nr             := values;
+		attribute<uint32> n_rec            := pcount(PandRec/uq_rel);
+		attribute<uint32> n_bg             := sum_uint32(PandRec/IsBG, PandRec/uq_rel);
+		attribute<bool>   OoitBG           := n_bg > 0u;
+		attribute<int32>  eerste_bg        := min(PandRec/bg_begin, PandRec/uq_rel);
+		attribute<int32>  eerste_sloopverg := min(PandRec/sloopverg_begin, PandRec/uq_rel);
+		attribute<int32>  eerste_sloop     := min(PandRec/sloop_begin, PandRec/uq_rel);
+		attribute<uint8>  huidige_st_code  := max(PandRec/open_st_code, PandRec/uq_rel);
+		attribute<uint16> bj               := max(PandRec/bj, PandRec/uq_rel);
+	}
+
+	//=================================================================================================
+	// VERBLIJFSOBJECTEN (alle voorkomens)
+	//=================================================================================================
+	unit<uint32> VboRec := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/src, KeepData = "true"
+	{
+		attribute<uint64>     v_nr    := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/src/vbo_bag_nr;
+		attribute<int32>      d_begin := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/src/begindatum;
+		attribute<int32>      d_eind  := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/src/einddatum;
+		attribute<vbo_status> st      := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/src/status_rel;
+		attribute<bool>       is_woon := /SourceData/Vastgoed/BAG/VolledigeBAG/VBOs/src/impl/gebruiksdoelen/woon;
+
+		attribute<bool>       IsBG         := st == vbo_status/V/verblijfsobject_buiten_gebruik;
+		attribute<bool>       IsOpen       := d_eind == MaxDatum;
+		attribute<bool>       GeldigOpPeil := d_begin < PeilDatum && d_eind >= PeilDatum;
+
+		attribute<string>     key_begin := string(v_nr) + '_' + string(d_begin);
+		attribute<string>     key_eind  := string(v_nr) + '_' + string(d_eind);
+		attribute<.>          next_rel  := rlookup(key_eind, key_begin);
+		attribute<.>          prev_rel  := rlookup(key_begin, key_eind);
+		attribute<string>     prev_naam := MakeDefined(vbo_status/label[st[prev_rel]], 'geen (eerste voorkomen)');
+		attribute<string>     next_naam := MakeDefined(vbo_status/label[st[next_rel]], 'geen (nog actueel)');
+
+		attribute<int32>      begin_mnd := (d_begin / 10000i) * 12i + ((d_begin / 100i) - (d_begin / 10000i) * 100i);
+		attribute<int32>      eind_mnd  := (d_eind  / 10000i) * 12i + ((d_eind  / 100i) - (d_eind  / 10000i) * 100i);
+		attribute<int32>      duur_mnd  := IsOpen ? null_i : eind_mnd - begin_mnd;
+
+		attribute<uq_vbo>     uq_rel            := rlookup(v_nr, uq_vbo/values);
+		attribute<int32>      bg_begin          := IsBG ? d_begin : null_i;
+		attribute<int32>      ingetrokken_begin := st == vbo_status/V/verblijfsobject_ingetrokken ? d_begin : null_i;
+		attribute<uint8>      open_st_code      := IsOpen ? st[uint8] : null_b;
+	}
+
+	unit<uint32> uq_vbo := unique(VboRec/v_nr)
+	{
+		attribute<uint64> v_nr               := values;
+		attribute<uint32> n_bg               := sum_uint32(VboRec/IsBG, VboRec/uq_rel);
+		attribute<bool>   OoitBG             := n_bg > 0u;
+		attribute<int32>  eerste_bg          := min(VboRec/bg_begin, VboRec/uq_rel);
+		attribute<int32>  eerste_ingetrokken := min(VboRec/ingetrokken_begin, VboRec/uq_rel);
+		attribute<uint8>  huidige_st_code    := max(VboRec/open_st_code, VboRec/uq_rel);
+		attribute<bool>   is_woon            := sum_uint32(VboRec/is_woon, VboRec/uq_rel) > 0u, Descr = "max() heeft geen bool-operator, vandaar de sum-variant";
+	}
+
+	//=================================================================================================
+	// STANDEN PER JAAR
+	//=================================================================================================
+	unit<uint32> Peiljaren := range(uint32, 2012, 2027)
+	{
+		attribute<uint32> jaar  := id(.);
+		attribute<string> name  := 'Y' + string(jaar);
+		attribute<string> label := name, DialogType = "LabelText";
+	}
+
+	container PerJaar := for_each_ne(Peiljaren/name, 'StandPerJaar_T(' + string(Peiljaren/jaar) + '[int32])');
+
+	Template StandPerJaar_T
+	{
+		parameter<int32> Jaar;
+		///
+		parameter<int32>  Peil                := Jaar * 10000i + 101i;
+		parameter<uint32> n_pand_bg           := sum_uint32(PandRec/IsBG && PandRec/is_nl && PandRec/d_begin <  Peil && PandRec/d_eind >= Peil);
+		parameter<uint32> n_pand_bg_alt       := sum_uint32(PandRec/IsBG && PandRec/is_nl && PandRec/d_begin <= Peil && PandRec/d_eind >  Peil), Descr = "andere datumconventie, ter controle";
+		parameter<uint32> n_pand_voorraad     := sum_uint32(pand_status/IsVoorraad[PandRec/st] && PandRec/is_nl && PandRec/d_begin < Peil && PandRec/d_eind >= Peil);
+		parameter<uint32> n_vbo_bg            := sum_uint32(VboRec/IsBG && VboRec/d_begin <  Peil && VboRec/d_eind >= Peil);
+		parameter<uint32> n_vbo_bg_woon       := sum_uint32(VboRec/IsBG && VboRec/is_woon && VboRec/d_begin < Peil && VboRec/d_eind >= Peil);
+		parameter<uint32> n_vbo_voorraad      := sum_uint32(vbo_status/IsVoorraad[VboRec/st] && VboRec/d_begin < Peil && VboRec/d_eind >= Peil);
+		parameter<uint32> n_vbo_voorraad_woon := sum_uint32(vbo_status/IsVoorraad[VboRec/st] && VboRec/is_woon && VboRec/d_begin < Peil && VboRec/d_eind >= Peil);
+	}
+
+	//=================================================================================================
+	// EXPORTS
+	//=================================================================================================
+	container Export
+	{
+		unit<uint32> StandPerJaar := Peiljaren
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_StandPerJaar_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<uint32> jaar                := Peiljaren/jaar;
+			attribute<uint32> n_pand_bg           := ='union_data(., '+AsItemList('PerJaar/'+Peiljaren/name+'/n_pand_bg')+')';
+			attribute<uint32> n_pand_bg_alt       := ='union_data(., '+AsItemList('PerJaar/'+Peiljaren/name+'/n_pand_bg_alt')+')';
+			attribute<uint32> n_pand_voorraad     := ='union_data(., '+AsItemList('PerJaar/'+Peiljaren/name+'/n_pand_voorraad')+')';
+			attribute<uint32> n_vbo_bg            := ='union_data(., '+AsItemList('PerJaar/'+Peiljaren/name+'/n_vbo_bg')+')';
+			attribute<uint32> n_vbo_bg_woon       := ='union_data(., '+AsItemList('PerJaar/'+Peiljaren/name+'/n_vbo_bg_woon')+')';
+			attribute<uint32> n_vbo_voorraad      := ='union_data(., '+AsItemList('PerJaar/'+Peiljaren/name+'/n_vbo_voorraad')+')';
+			attribute<uint32> n_vbo_voorraad_woon := ='union_data(., '+AsItemList('PerJaar/'+Peiljaren/name+'/n_vbo_voorraad_woon')+')';
+		}
+
+		unit<uint8> StandPeildatum_Pand := pand_status
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_StandPeildatum_Pand_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<string> status_naam  := pand_status/label;
+			attribute<uint32> n_op_peil    := sum_uint32(PandRec/GeldigOpPeil && PandRec/is_nl, PandRec/st);
+			attribute<uint32> n_records    := pcount(PandRec/st);
+		}
+
+		unit<uint8> StandPeildatum_Vbo := vbo_status
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_StandPeildatum_Vbo_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<string> status_naam    := vbo_status/label;
+			attribute<uint32> n_op_peil      := sum_uint32(VboRec/GeldigOpPeil, VboRec/st);
+			attribute<uint32> n_op_peil_woon := sum_uint32(VboRec/GeldigOpPeil && VboRec/is_woon, VboRec/st);
+			attribute<uint32> n_records      := pcount(VboRec/st);
+		}
+
+		unit<uint32> PandBG_Episodes := select_with_org_rel(PandRec/IsBG)
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_PandEpisodes_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<uint64> pand_nr    := PandRec/p_nr[org_rel];
+			attribute<int32>  begindatum := PandRec/d_begin[org_rel];
+			attribute<int32>  einddatum  := PandRec/d_eind[org_rel];
+			attribute<int32>  duur_mnd   := PandRec/duur_mnd[org_rel];
+			attribute<bool>   is_open    := PandRec/IsOpen[org_rel];
+			attribute<bool>   is_nl      := PandRec/is_nl[org_rel];
+			attribute<uint16> bouwjaar   := PandRec/bj[org_rel];
+			attribute<string> prev_naam  := PandRec/prev_naam[org_rel];
+			attribute<string> next_naam  := PandRec/next_naam[org_rel];
+		}
+
+		unit<uint32> VboBG_Episodes := select_with_org_rel(VboRec/IsBG)
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_VboEpisodes_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<uint64> vbo_nr     := VboRec/v_nr[org_rel];
+			attribute<int32>  begindatum := VboRec/d_begin[org_rel];
+			attribute<int32>  einddatum  := VboRec/d_eind[org_rel];
+			attribute<int32>  duur_mnd   := VboRec/duur_mnd[org_rel];
+			attribute<bool>   is_open    := VboRec/IsOpen[org_rel];
+			attribute<bool>   is_woon    := VboRec/is_woon[org_rel];
+			attribute<string> prev_naam  := VboRec/prev_naam[org_rel];
+			attribute<string> next_naam  := VboRec/next_naam[org_rel];
+		}
+
+		unit<uint32> PandenOoitBG := select_with_org_rel(uq_pand/OoitBG)
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_PandenOoitBG_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<uint64> pand_nr          := uq_pand/p_nr[org_rel];
+			attribute<uint32> n_bg             := uq_pand/n_bg[org_rel];
+			attribute<int32>  eerste_bg        := uq_pand/eerste_bg[org_rel];
+			attribute<int32>  eerste_sloopverg := uq_pand/eerste_sloopverg[org_rel];
+			attribute<int32>  eerste_sloop     := uq_pand/eerste_sloop[org_rel];
+			attribute<uint8>  huidige_st_code  := uq_pand/huidige_st_code[org_rel];
+			attribute<uint16> bouwjaar         := uq_pand/bj[org_rel];
+		}
+
+		unit<uint32> VbosOoitBG := select_with_org_rel(uq_vbo/OoitBG)
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_VbosOoitBG_'+/Parameters/BAG_file_date+'.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<uint64> vbo_nr             := uq_vbo/v_nr[org_rel];
+			attribute<uint32> n_bg               := uq_vbo/n_bg[org_rel];
+			attribute<int32>  eerste_bg          := uq_vbo/eerste_bg[org_rel];
+			attribute<int32>  eerste_ingetrokken := uq_vbo/eerste_ingetrokken[org_rel];
+			attribute<uint8>  huidige_st_code    := uq_vbo/huidige_st_code[org_rel];
+			attribute<bool>   is_woon            := uq_vbo/is_woon[org_rel];
+		}
+
+		// statuscodes -> labels, voor het interpreteren van huidige_st_code
+		unit<uint8> StatusCodes_Pand := pand_status
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_StatusCodes_Pand.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<uint8>  code  := id(pand_status)[uint8];
+			attribute<string> label := pand_status/label;
+		}
+
+		unit<uint8> StatusCodes_Vbo := vbo_status
+		, StorageName = "='%LocalDataProjDir%/Temp/BG_StatusCodes_Vbo.csv'"
+		, StorageType = "gdalwrite.vect"
+		{
+			attribute<uint8>  code  := id(vbo_status)[uint8];
+			attribute<string> label := vbo_status/label;
+		}
+	}
+}

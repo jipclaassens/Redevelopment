@@ -39,7 +39,7 @@ container Redevelopment
 		parameter<string>  BAG_file_date                   := '20260710'; //'20240708'; 20250115 20251009 20260108
 		parameter<UInt32>  BAG_RecentYear                  :=  2026, Descr = "Wat is het meest recent beschikbare jaar van de BAG";
 		parameter<string>  RegioIndelingenJaar             := '2025';
-		parameter<String>  NVM_filedate                    := '20260711', Descr = "Welke bestandsdatum van de NVM-coefficienten moet worden gebruikt; 20260711 = PriceIndices-set rs_groen: lntt_500k_2024, lntt_ovknoop, uai_2012 plus natuur- (2,5 km) en waterfracties (500 m); gelezen uit de eigen kopie analysis/data/Estimates_EconLogic_20260711_<type>.csv (25-09-2026), zodat RSopen het bestand niet meer kan overschrijven";
+		parameter<String>  NVM_filedate                    := '20261011', Descr = "Welke bestandsdatum van de NVM-coefficienten moet worden gebruikt; 20261011 = PriceIndices-set rs_groen (lntt_500k_2024, lntt_ovknoop, uai_2012 plus natuur- en waterfracties) waarin perceel 0 telt als onbekend; gelezen uit de eigen kopie analysis/data/Estimates_EconLogic_20261011_<type>.csv, zodat RSopen het bestand niet kan overschrijven; kiest ook de regionale en nationale woningkenmerken in Vastgoed met dezelfde datum";
 		parameter<String>  NVM_coeff_Year                  := '2023', Descr = "Welk jaar moet als prijsniveau worden gehanteerd uit de hedonische prijsanalyse";
 		parameter<Float32> Grondproductie_significatie_threshold := 0.11f, Descr = "Drempelwaarde voor de p-waarde waaronder een coëfficiënt in grondproductiekostenbepaling als significant wordt beschouwd. Indien de signifantie van een variabele in de OLS regressie lager is dan deze drempel, wordt de grondproductie component van die variabele op 0 gezet.";
 	

@@ -289,8 +289,9 @@ container BAG: using = "units"
 		attribute<String> Label := name;
 	}
 
-	// Termen van de hedoon (Estimates_EconLogic_20260711, PriceIndices R-pipeline, spec 'rs_groen' = de redev-termen plus
-	// fr_natuur_tot2500m en fr_water_500m); namen zijn 1-op-1 de CSV-termnamen.
+	// Termen van de hedoon (Estimates_EconLogic_<NVM_filedate>, PriceIndices R-pipeline, spec 'rs_groen' = de redev-termen plus
+	// fr_natuur_tot2500m en fr_water_500m); namen zijn 1-op-1 de CSV-termnamen. Vanaf 20261011 staat in de CSV ook
+	// d_perceel_onbekend (perceel 0 = onbekend); die ontbreekt hier bewust: bij voorspellen is het perceel bekend (0).
 	// Referentiecategorieen (bouwperiode_va2002, trans_year_2000) staan in de CSV met estimate 0 en zitten hier bewust in.
 	// lnlotsize ontbreekt bij appartement; d_highrise/d_hoogte_onbekend alleen bij appartement -> null-coefficienten bij de andere types.
 	unit<UInt8> HouseCharacteristics_src : NrOfRows = 44

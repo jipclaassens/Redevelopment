@@ -27,7 +27,7 @@ cfg <- list()
 ## -- run identification: which GeoDMS export we read --------------------------
 cfg$area         <- "Nederland"   # Parameters/StudyArea in the GeoDMS config
 cfg$bag_date     <- "20260710"    # Parameters/BAG_file_date
-cfg$nvm_filedate <- "20260711"    # Parameters/NVM_filedate (coefficients CSV, spec 'redev')
+cfg$nvm_filedate <- "20261011"    # Parameters/NVM_filedate (coefficients CSV, spec 'rs_groen' with lot 0 as unknown; volatility CSVs)
 
 ## -- paths --------------------------------------------------------------------
 # GeoDMS writes to %LocalDataProjDir% = <LocalDataDir>/<name of the repo folder>. Follow the same

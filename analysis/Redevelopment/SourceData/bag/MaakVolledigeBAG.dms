@@ -187,7 +187,6 @@ container MaakVolledigeBAG : using = "classifications/BAG"
 			, DialogType  = "Map"
 			, DialogData  = "geometry_mm"
 			{
-				attribute<uint32>                                              vbo_count             := pcount(vbo/result/pand_rel)      , DisableStorage = "True";
 				attribute<units/jaar>                                       bouwjaar              := oorspronkelijkBouwjaar;
 				attribute<geography/rdc_mm>                                   geometry_mm (poly)    := geometry_mm_simpl;
 				attribute<string>                                              identificatie         := src/identificatie;
@@ -197,26 +196,15 @@ container MaakVolledigeBAG : using = "classifications/BAG"
 					// attribute<uint32>                                              nr_buurpanden  (..) := afleidingen/pand_attributen/geometrie/results/nr_buurpanden;
 					// attribute<afleidingen/pand_attributen/geometrie/type_woonpand> WOONPAND_TYPE  (..) := afleidingen/pand_attributen/geometrie/results/type_woonpand_rel;
 				// }
-
-				container gebruiksdoelen:=
-					for_each_nedv(
-						'nr_'+ vbo_gebruiksdoel/name
-						, 'sum(vbo/result/gebruiksdoelen/' + vbo_gebruiksdoel/name + ' ? 1 : 0 , vbo/result/pand_rel)'
-						, result
-						, uint32
-					);
 			}
 
 			unit<uint32> result_fss := select_with_attr_by_org_rel(result, const(true,result)),  StorageName = "= Result_FSS_dir + '/pand.fss'"
 			{
-				attribute<uint32> vbo_count: DisableStorage = "True";
 				attribute<result> org_rel:   DisableStorage = "True";
 				
 				// attribute<afleidingen/pand_attributen/geometrie/type_woonpand> WOONPAND_TYPE := result/woningtype/WOONPAND_TYPE [org_rel];
 
 				container meta := collect_attr_by_org_rel(result/meta, result_fss, org_rel);
-
-				container gebruiksdoelen:= collect_attr_by_org_rel(result/gebruiksdoelen, result_fss, org_rel);
 			}
 
 			// unit<uint32> phn_fss := result_fss
@@ -356,9 +344,6 @@ container MaakVolledigeBAG : using = "classifications/BAG"
 			,	DialogType  = "Map"
 			,	DialogData  = "geometry_mm"
 			{
-				attribute<pand/result>       pand_rel            := point_in_polygon(geometry_mm, pand/result/geometry_mm), DisableStorage = "True";
-				attribute<string>            pand_id_geom        := pand/result/identificatie[pand_rel];
-
 				attribute<geography/rdc_mm> geometry_mm         := src/geometry_mm;
 				attribute<string>            identificatie       := src/identificatie;
 				attribute<string>            nummeraanduiding_id := src/nummeraanduiding_id;
@@ -401,7 +386,6 @@ container MaakVolledigeBAG : using = "classifications/BAG"
 			unit<uint32> result_fss := select_with_attr_by_org_rel(result, const(true,result)),  StorageName = "= Result_FSS_dir + '/vbo.fss'"
 			{
 				attribute<uint32>      count:    DisableStorage = "True";
-				attribute<pand/result> pand_rel: DisableStorage = "True";
 				attribute<result>      org_rel:  DisableStorage = "True";
 
 				container meta := collect_attr_by_org_rel(result/meta, result_fss, org_rel);

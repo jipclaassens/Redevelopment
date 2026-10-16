@@ -146,7 +146,7 @@ if (sys.nframe() == 0L || isTRUE(get0("run_10", ifnotfound = FALSE))) {
   ## -- Table 2: descriptives matching the estimated models -------------------
   # The published Table 2 described net change per hectare, which no longer matches what is
   # estimated. These rows are gross additions per hectare, one per column of Table 3, with the
-  # removal side underneath so that both sides of Table 5 are documented too.
+  # removal side underneath so that both sides of Table S1 are documented too.
   desc_rows <- c(
     setNames(paste0("gross_", names(cols)), paste("Units added per ha,", tolower(unname(cols)))),
     "Units removed per ha, replacement (demolition)"      = "count_sn_sloop",
@@ -176,7 +176,7 @@ if (sys.nframe() == 0L || isTRUE(get0("run_10", ifnotfound = FALSE))) {
                 variable, format(count, big.mark = ","), mean, sd, min, max)])
 
   md <- c(
-    sprintf("# Revised Tables 2, 3, 4 and 5 (export %s)", cfg$filedate), "",
+    sprintf("# Tables 2, 3 and 4 of the paper and Table S1 of the Supplemental Material (export %s)", cfg$filedate), "",
     "## Table 2. Descriptive statistics", "",
     "Dependent variables are gross additions per hectare of neighbourhood land area, matching what",
     "the models estimate. Removals are shown separately because they are modelled separately.", "",
@@ -202,8 +202,8 @@ if (sys.nframe() == 0L || isTRUE(get0("run_10", ifnotfound = FALSE))) {
     paste0("| | ", paste(sprintf("(%d) %s", seq_along(cols), unname(cols)), collapse = " | "), " |"),
     paste0("|", paste(rep("---", length(cols) + 1), collapse = "|"), "|"),
     aw[, paste0("| ", row, " | ", do.call(paste, c(.SD, sep = " | ")), " |"), .SDcols = names(cols)], "",
-    "## Table 5", "",
-    "*Table 5: Poisson estimates of gross residential unit removals per neighbourhood, for the three",
+    "## Table S1", "",
+    "*Table S1: Poisson estimates of gross residential unit removals per neighbourhood, for the three",
     "development processes that have a removal side, January 2012 to December 2025. Specification,",
     "fixed effects and standard errors as in Table 3.*", "",
     render(fits_r, labs, headers = unname(cols_r)))

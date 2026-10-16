@@ -125,8 +125,8 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
   # is now columns 3 and 4 of Table 3 in the paper itself.
   md <- c(
     sprintf("# Supplementary material (export %s)", cfg$filedate), "",
-    "## Table 6", "",
-    "*Table 6: Robustness of the main specification to additional controls. All columns estimate",
+    "## Table S2", "",
+    "*Table S2: Robustness of the main specification to additional controls. All columns estimate",
     "gross residential unit additions across all development processes by Poisson pseudo-maximum",
     "likelihood, with neighbourhood land area as an exposure term and municipal fixed effects, which",
     "absorb the intercept. Columns 1 to 3 are estimated on the neighbourhoods for which the residual",

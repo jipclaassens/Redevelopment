@@ -78,18 +78,22 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
     c("New build, pooled", "Infill", "Expansion"), core_lab)
 
   ## -- Panel B: robustness of the main specification --------------------------
-  # Fixed sample, so the columns differ only in what is controlled for. The post-period
-  # variables are added as one block, since neither can enter a main specification.
-  blocks <- list(
-    base   = character(0),
-    price  = "ln_landprice",
-    demog  = c("ln_landprice", "ln_inw", "gem_hh_gr", "p_65_eo_jr", "p_25_44_jr"),
-    post   = c("ln_landprice", "ln_inw", "gem_hh_gr", "p_65_eo_jr", "p_25_44_jr",
-               "avg_tt_100k_inw", "avg_tt_500k_inw", "ln_woz"))
-  need <- unique(unlist(blocks))
-  sub  <- wijk[complete.cases(wijk[, ..need])]
-  rd_log("Panel B sample: %d of %d neighbourhoods", nrow(sub), nrow(wijk))
-  panelB <- panel(lapply(blocks, function(e) ppml("gross_all", sub, e)),
+  # The first three columns share one sample: the neighbourhoods for which the pre-period
+  # controls (land value 2007, demography 2012) are observed. The post-period column is
+  # estimated on its own, smaller sample, because the WOZ value of 2018 is missing for 471
+  # neighbourhoods. Restricting every column to that smaller sample (as the 20260820 version
+  # did) made the urban attractivity association disappear in column 1 already, before any
+  # control was added, so the table could not show what the text claims: that the association
+  # is absorbed by land value. The post-period variables are added as one block, since neither
+  # can enter a main specification.
+  pre  <- c("ln_landprice", "ln_inw", "gem_hh_gr", "p_65_eo_jr", "p_25_44_jr")
+  post <- c(pre, "avg_tt_100k_inw", "avg_tt_500k_inw", "ln_woz")
+  blocks <- list(base = character(0), price = "ln_landprice", demog = pre, post = post)
+  sub_pre  <- wijk[complete.cases(wijk[, ..pre])]
+  sub_post <- wijk[complete.cases(wijk[, ..post])]
+  rd_log("Panel B sample: %d (pre-period controls) and %d (post-period controls) of %d neighbourhoods",
+         nrow(sub_pre), nrow(sub_post), nrow(wijk))
+  panelB <- panel(lapply(blocks, function(e) ppml("gross_all", if (identical(e, post)) sub_post else sub_pre, e)),
                   c("Main specification", "+ land value", "+ demography", "+ post-period controls"),
                   c(core_lab, extra_lab))
 
@@ -125,11 +129,13 @@ if (sys.nframe() == 0L || isTRUE(get0("run_09", ifnotfound = FALSE))) {
     "*Table 6: Robustness of the main specification to additional controls. All columns estimate",
     "gross residential unit additions across all development processes by Poisson pseudo-maximum",
     "likelihood, with neighbourhood land area as an exposure term and municipal fixed effects, which",
-    "absorb the intercept. The models are estimated on the neighbourhoods for which every control is",
-    "observed, so that the columns differ only in what is controlled for. Residual land value refers",
-    "to 2007 and the demographic variables to 2012, both preceding the observation period; travel",
-    "times refer to 2020 and property values to 2018, which do not. Cluster-robust standard errors,",
-    "clustered on municipality, in parentheses. *** p<0.01, ** p<0.05, * p<0.1.*", "",
+    "absorb the intercept. Columns 1 to 3 are estimated on the neighbourhoods for which the residual",
+    "land value and the demographic variables are observed, so that these columns differ only in what",
+    "is controlled for; column 4 on the smaller set for which the property value is also observed.",
+    "Residual land value refers to 2007 and the demographic variables to 2012, both preceding the",
+    "observation period; travel times refer to 2020 and property values to 2018, which do not.",
+    "Cluster-robust standard errors, clustered on municipality, in parentheses.",
+    "*** p<0.01, ** p<0.05, * p<0.1.*", "",
     panelB, "",
     "## Sentences for the main text, replacing separate tables", "",
     "Spatial dependence (Section 3.6):", "", paste(">", moran_sentence), "",

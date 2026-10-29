@@ -198,12 +198,13 @@ stage2_samples <- function(uni, f_base = stage2_f_base) {
 }
 
 # Fit one stage-2 logit (SE clustered on gemeente) and return the model and its coefficient table,
-# tagged with the spec label and sample sizes for the export CSV.
-fit_stage2 <- function(fml, d, label) {
+# tagged with the spec label and sample sizes for the export CSV. weights: optional one-sided
+# formula on a column of d (12 weights by the dwellings on the site); NULL = unweighted.
+fit_stage2 <- function(fml, d, label, weights = NULL) {
   # copy() prevents the := below from touching the caller's table, droplevels() removes unused
   # bouwperiode levels (no empty dummies).
   d <- copy(d)[, bouwperiode_inc := droplevels(bouwperiode_inc)]
-  m <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code,
+  m <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code, weights = weights,
              glm.iter = 100, glm.tol = 1e-6)
   # On some subsamples the IRLS lands on a numerical plateau: the deviance and every
   # coefficient stop moving, but fixest's convergence criterion is never formally
@@ -211,7 +212,7 @@ fit_stage2 <- function(fml, d, label) {
   # and compare: identical estimates prove the flag is a stopping-criterion artefact,
   # a real difference means the model genuinely has not settled and must be examined.
   if (!isTRUE(m$convStatus)) {
-    m_long <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code,
+    m_long <- feglm(fml, data = d, family = binomial(), cluster = ~gemeente_code, weights = weights,
                     glm.iter = 1000, glm.tol = 1e-6)
     drift <- max(abs(coef(m) - coef(m_long)))
     if (drift < 1e-8) {

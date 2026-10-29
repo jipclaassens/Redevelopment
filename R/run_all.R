@@ -14,6 +14,7 @@ run_04 <- TRUE; source(file.path(.rd_script_dir, "04_kmeans.R"));         run_04
 run_05 <- TRUE; source(file.path(.rd_script_dir, "05_alternatives.R"));   run_05 <- FALSE  # re-sources 02 (functions only); run_02 must already be FALSE
 run_06 <- TRUE; source(file.path(.rd_script_dir, "06_stage1_logit.R"));   run_06 <- FALSE
 run_07 <- TRUE; source(file.path(.rd_script_dir, "07_stage2_logit.R"));   run_07 <- FALSE
+run_12 <- TRUE; source(file.path(.rd_script_dir, "12_stage2_densifying.R")); run_12 <- FALSE  # stage 2 for RuimteScanner (RSopen#869)
 run_09 <- TRUE; source(file.path(.rd_script_dir, "09_hazard.R"));         run_09 <- FALSE  # before 08: the tables include the hazard results
 # Permits and zoning (#30): only when the fixed export of the permit track is on this machine.
 if (!is.na(cfg$dir_permits) && dir.exists(cfg$dir_permits)) {

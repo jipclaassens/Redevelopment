@@ -143,6 +143,11 @@ cfg$incumbent_built_before <- 2012L
 # -2.1 n.s. without them). Starts after this year count as not (yet) started.
 cfg$hazard_last_year <- 2024L
 
+## -- stage 2 for RuimteScanner (12, ObjectVision/RSopen#869) ----------------------------------
+# Classes of dwellings on the site for the table of site area against building footprint: upper bounds
+# of right-closed intervals, named by the class label (1, 2 to 5, 6 to 20, more than 20).
+cfg$footprint_dwelling_classes <- c(lower = 0, "1" = 1, "2-5" = 5, "6-20" = 20, ">20" = Inf)
+
 ## -- price volatility (stage-2 friction; produced by PriceIndices R/06_volatility.R) --
 # sd of the year-on-year growth of the hedonically corrected local log price index, 2000-2023.
 # Granularity 'grid5km' = RD cell floor(x/5000)_floor(y/5000): vintage-free join via x/y_coord.
